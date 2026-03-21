@@ -4,6 +4,7 @@ import aiohttp
 import hashlib
 import time
 import base64
+import re
 from datetime import datetime
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
@@ -21,15 +22,15 @@ ADMIN_ID = 8387532956
 CLIENT_ID = "FA75F890120A05C3E64075605E6FD61DB8EE82146E1171B5CC854F2ACC7C20E8"
 CLIENT_SECRET = "4E2C4D267ACA070493EC7412C90809CFF7BC2446EB44FD98B827DFA6F9A720BEC9046D59BAD4C1F9CCF1283AB402D1DDCEE9E367390AD01FDF2C840ABE6AC70B"
 
-# Номер кошелька ЮMoney (укажите ваш)
-YOOMONEY_WALLET = "410011111111111"  # ⚠️ ЗАМЕНИТЕ НА ВАШ НОМЕР КОШЕЛЬКА
+# Номер кошелька ЮMoney
+YOOMONEY_WALLET = "4100118889570559"  # ⚠️ ЗАМЕНИТЕ
 
 # Настройки бота
 BOT_USERNAME = "aimnoob_bot"
 SUPPORT_USERNAME = "aimnoob_support"
 SHOP_URL = "https://aimnoob.ru"
 
-# Создаем бота с правильными настройками
+# Создаем бота
 bot = Bot(
     token=BOT_TOKEN,
     default=DefaultBotProperties(parse_mode="Markdown")
@@ -46,6 +47,12 @@ logger = logging.getLogger(__name__)
 
 # Хранилище платежей
 pending_payments = {}
+
+# ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+def escape_markdown(text):
+    """Экранирование специальных символов Markdown"""
+    special_chars = r'[_*`()\[\]{}#+\-.!]'
+    return re.sub(special_chars, lambda m: '\\' + m.group(0), text)
 
 # ========== ПРОДУКТЫ ==========
 PRODUCTS = {
@@ -151,10 +158,6 @@ def about_keyboard():
     buttons = [[InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_platform")]]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-def restart_keyboard():
-    buttons = [[InlineKeyboardButton(text="🔄 Новый заказ", callback_data="restart")]]
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
-
 # ========== ФУНКЦИИ ЮMONEY ==========
 def create_payment_link(amount, payment_id, product_name):
     comment = f"AimNoob {product_name} (Заказ #{payment_id})"
@@ -207,11 +210,7 @@ async def cmd_start(message: types.Message, state: FSMContext):
     
     if message.text and "start=success" in message.text:
         await message.answer(
-            "✅ *Спасибо за покупку!*\n\n"
-            "Ваш заказ обрабатывается.\n"
-            "В ближайшее время вы получите доступ.\n\n"
-            f"💬 По вопросам: @{SUPPORT_USERNAME}",
-            parse_mode="Markdown",
+            "✅ Спасибо за покупку!\n\nВаш заказ обрабатывается.\nВ ближайшее время вы получите доступ.\n\n💬 По вопросам: @" + SUPPORT_USERNAME,
             reply_markup=support_keyboard()
         )
         return
@@ -314,12 +313,13 @@ async def process_subscription(callback: CallbackQuery, state: FSMContext):
         "status": "pending"
     }
     
+    # Используем HTML вместо Markdown для безопасности
     payment_text = (
-        f"{product['emoji']} *Оплата AimNoob*\n\n"
-        f"📦 *Товар:* {product['name']}\n"
-        f"💰 *Сумма:* {amount} ₽\n"
-        f"🆔 *Заказ:* `{payment_id}`\n\n"
-        f"📝 *Инструкция:*\n"
+        f"{product['emoji']} <b>Оплата AimNoob</b>\n\n"
+        f"📦 <b>Товар:</b> {product['name']}\n"
+        f"💰 <b>Сумма:</b> {amount} ₽\n"
+        f"🆔 <b>Заказ:</b> <code>{payment_id}</code>\n\n"
+        f"📝 <b>Инструкция:</b>\n"
         f"1️⃣ Нажмите кнопку оплаты\n"
         f"2️⃣ Оплатите {amount} ₽\n"
         f"3️⃣ Нажмите \"Проверить оплату\"\n\n"
@@ -328,20 +328,20 @@ async def process_subscription(callback: CallbackQuery, state: FSMContext):
     
     await callback.message.edit_text(
         payment_text,
-        parse_mode="Markdown",
+        parse_mode="HTML",
         reply_markup=payment_keyboard(payment_url)
     )
     
     # Уведомление админу
     await bot.send_message(
         ADMIN_ID,
-        f"🔄 *Новый заказ*\n\n"
+        f"🔄 <b>Новый заказ</b>\n\n"
         f"👤 {callback.from_user.full_name}\n"
-        f"🆔 ID: `{user_id}`\n"
+        f"🆔 ID: <code>{user_id}</code>\n"
         f"📦 {product['name']}\n"
         f"💰 {amount} ₽\n"
-        f"🆔 Заказ: `{payment_id}`",
-        parse_mode="Markdown"
+        f"🆔 Заказ: <code>{payment_id}</code>",
+        parse_mode="HTML"
     )
     
     await callback.answer()
@@ -359,8 +359,8 @@ async def check_payment_callback(callback: CallbackQuery):
     await callback.answer("🔍 Проверяю оплату...")
     
     checking_msg = await callback.message.edit_text(
-        "🔄 *Проверяем платеж...*\n\nПожалуйста, подождите 5-10 секунд.",
-        parse_mode="Markdown"
+        "🔄 <b>Проверяем платеж...</b>\n\nПожалуйста, подождите 5-10 секунд.",
+        parse_mode="HTML"
     )
     
     payment_received = await check_payment(
@@ -375,15 +375,15 @@ async def check_payment_callback(callback: CallbackQuery):
         license_key = f"AIMNOOB-{payment_info['payment_id'][:8]}-{user_id % 10000}"
         
         success_text = (
-            f"✅ *Оплата подтверждена!*\n\n"
+            f"✅ <b>Оплата подтверждена!</b>\n\n"
             f"🎉 Добро пожаловать в AimNoob!\n\n"
-            f"📦 *Ваш заказ:*\n"
+            f"📦 <b>Ваш заказ:</b>\n"
             f"• {product['name']}\n"
             f"• {product['emoji']} {product['platform']}\n"
             f"• Срок: {product['period']}\n\n"
-            f"🔑 *Лицензионный ключ:*\n"
-            f"`{license_key}`\n\n"
-            f"📥 *Скачать:*\n"
+            f"🔑 <b>Лицензионный ключ:</b>\n"
+            f"<code>{license_key}</code>\n\n"
+            f"📥 <b>Скачать:</b>\n"
             f"{SHOP_URL}/download/{product['platform_code']}_{user_id}\n\n"
             f"📖 Сохраните ключ! Он понадобится для активации.\n\n"
             f"💬 Поддержка: @{SUPPORT_USERNAME}"
@@ -391,21 +391,21 @@ async def check_payment_callback(callback: CallbackQuery):
         
         await checking_msg.edit_text(
             success_text,
-            parse_mode="Markdown",
+            parse_mode="HTML",
             reply_markup=support_keyboard()
         )
         
         # Уведомление админу об успешной продаже
         await bot.send_message(
             ADMIN_ID,
-            f"✅ *НОВАЯ ПРОДАЖА!*\n\n"
+            f"✅ <b>НОВАЯ ПРОДАЖА!</b>\n\n"
             f"👤 {callback.from_user.full_name}\n"
-            f"🆔 ID: `{user_id}`\n"
+            f"🆔 ID: <code>{user_id}</code>\n"
             f"📦 {product['name']}\n"
             f"💰 {payment_info['amount']} ₽\n"
-            f"🔑 Ключ: `{license_key}`\n"
+            f"🔑 Ключ: <code>{license_key}</code>\n"
             f"📅 {datetime.now().strftime('%d.%m.%Y %H:%M')}",
-            parse_mode="Markdown"
+            parse_mode="HTML"
         )
         
     else:
@@ -416,10 +416,10 @@ async def check_payment_callback(callback: CallbackQuery):
         )
         
         fail_text = (
-            f"❌ *Платеж не найден*\n\n"
+            f"❌ <b>Платеж не найден</b>\n\n"
             f"💰 Сумма: {payment_info['amount']} ₽\n"
-            f"🆔 Заказ: `{payment_info['payment_id']}`\n\n"
-            f"*Проверьте:*\n"
+            f"🆔 Заказ: <code>{payment_info['payment_id']}</code>\n\n"
+            f"<b>Проверьте:</b>\n"
             f"• Оплачена ли точная сумма {payment_info['amount']} ₽\n"
             f"• Правильный ли кошелек получателя\n"
             f"• Если оплатили — подождите 1-2 минуты\n\n"
@@ -428,7 +428,7 @@ async def check_payment_callback(callback: CallbackQuery):
         
         await checking_msg.edit_text(
             fail_text,
-            parse_mode="Markdown",
+            parse_mode="HTML",
             reply_markup=payment_keyboard(payment_url)
         )
 
@@ -472,11 +472,6 @@ async def main():
         )
     except Exception as e:
         print(f"❌ Ошибка: {e}")
-        print("\n💡 Решения:")
-        print("1. Проверьте интернет-соединение")
-        print("2. Проверьте токен бота")
-        print("3. Если в Docker, добавьте DNS: 8.8.8.8")
-        print("4. Проверьте доступ к api.telegram.org")
 
 if __name__ == "__main__":
     asyncio.run(main())
