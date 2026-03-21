@@ -7,7 +7,7 @@ import base64
 from datetime import datetime
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -29,7 +29,7 @@ BOT_USERNAME = "aimnoob_bot"
 SUPPORT_USERNAME = "aimnoob_support"
 SHOP_URL = "https://aimnoob.ru"
 
-# Создаем бота с правильными настройками для новой версии
+# Создаем бота с правильными настройками
 bot = Bot(
     token=BOT_TOKEN,
     default=DefaultBotProperties(parse_mode="Markdown")
@@ -155,7 +155,7 @@ def restart_keyboard():
     buttons = [[InlineKeyboardButton(text="🔄 Новый заказ", callback_data="restart")]]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-# ========== ФУНКЦИИ ==========
+# ========== ФУНКЦИИ ЮMONEY ==========
 def create_payment_link(amount, payment_id, product_name):
     comment = f"AimNoob {product_name} (Заказ #{payment_id})"
     return (
@@ -210,7 +210,7 @@ async def cmd_start(message: types.Message, state: FSMContext):
             "✅ *Спасибо за покупку!*\n\n"
             "Ваш заказ обрабатывается.\n"
             "В ближайшее время вы получите доступ.\n\n"
-            "💬 По вопросам: @" + SUPPORT_USERNAME,
+            f"💬 По вопросам: @{SUPPORT_USERNAME}",
             parse_mode="Markdown",
             reply_markup=support_keyboard()
         )
@@ -454,43 +454,29 @@ async def main():
     print("🎯 AIMNOOB SHOP BOT 🎯")
     print("=" * 50)
     
-    # Проверка подключения с повторными попытками
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            me = await bot.get_me()
-            print(f"✅ Бот @{me.username} успешно запущен!")
-            print(f"📱 Username: @{BOT_USERNAME}")
-            print(f"💬 Поддержка: @{SUPPORT_USERNAME}")
-            print(f"💰 Кошелек: {YOOMONEY_WALLET}")
-            print("=" * 50)
-            print("✅ Ожидание сообщений...")
-            break
-        except Exception as e:
-            print(f"❌ Попытка {attempt + 1}/{max_retries}: {e}")
-            if attempt < max_retries - 1:
-                print(f"⏳ Повтор через 5 секунд...")
-                await asyncio.sleep(5)
-            else:
-                print("❌ Не удалось подключиться к Telegram API")
-                print("\n💡 Решения:")
-                print("1. Проверьте интернет-соединение")
-                print("2. Проверьте токен бота")
-                print("3. Если в Docker, добавьте DNS: 8.8.8.8")
-                return
-    
-    # Запуск polling с автоперезапуском
-    while True:
-        try:
-            await dp.start_polling(
-                bot,
-                polling_timeout=60,
-                skip_updates=True
-            )
-        except Exception as e:
-            print(f"❌ Ошибка: {e}")
-            print("🔄 Перезапуск через 10 секунд...")
-            await asyncio.sleep(10)
+    # Проверка подключения
+    try:
+        me = await bot.get_me()
+        print(f"✅ Бот @{me.username} успешно запущен!")
+        print(f"📱 Username: @{BOT_USERNAME}")
+        print(f"💬 Поддержка: @{SUPPORT_USERNAME}")
+        print(f"💰 Кошелек: {YOOMONEY_WALLET}")
+        print("=" * 50)
+        print("✅ Ожидание сообщений...")
+        
+        # Запуск polling
+        await dp.start_polling(
+            bot,
+            polling_timeout=60,
+            skip_updates=True
+        )
+    except Exception as e:
+        print(f"❌ Ошибка: {e}")
+        print("\n💡 Решения:")
+        print("1. Проверьте интернет-соединение")
+        print("2. Проверьте токен бота")
+        print("3. Если в Docker, добавьте DNS: 8.8.8.8")
+        print("4. Проверьте доступ к api.telegram.org")
 
 if __name__ == "__main__":
     asyncio.run(main())
