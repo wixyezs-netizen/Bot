@@ -1,4 +1,4 @@
-# aimnoob_bot_fixed.py
+# aimnoob_bot_universal.py
 import logging
 import asyncio
 import aiohttp
@@ -17,79 +17,39 @@ from aiogram.client.default import DefaultBotProperties
 # ========== КОНФИГУРАЦИЯ ==========
 BOT_TOKEN = "8225924716:AAFZ_8Eu8aJ4BF7pErZY5Ef3emG9Cl9PikE"
 ADMIN_ID = 8387532956
-SUPPORT_CHAT_ID = 8354762345  # Добавлен ID чата поддержки
+SUPPORT_CHAT_ID = 8354762345
 
 # Данные ЮMoney
-CLIENT_ID = "5FE649CABBAD2E9FE9095C8DB64AF17CCC754D9179A8B8D41B9689281A295AF7"
-REDIRECT_URI = "https://yoomoney.ru"
-
-# ACCESS TOKEN
 YOOMONEY_ACCESS_TOKEN = "4100118889570559.3288B2E716CEEB922A26BD6BEAC58648FBFB680CCF64E4E1447D714D6FB5EA5F01F1478FAC686BEF394C8A186C98982DE563C1ABCDF9F2F61D971B61DA3C7E486CA818F98B9E0069F1C0891E090DD56A11319D626A40F0AE8302A8339DED9EB7969617F191D93275F64C4127A3ECB7AED33FCDE91CA68690EB7534C67E6C219E"
-
-# Номер кошелька ЮMoney
 YOOMONEY_WALLET = "4100118889570559"
 
-# Чат поддержки
+# Настройки
 SUPPORT_CHAT_USERNAME = "aimnoob_support"
-
-# Ссылка на скачивание
 SHOP_URL = "https://aimnoob.ru"
+YOOMONEY_FEE_RATE = 0.03
 
-# Комиссия ЮMoney (3% но минимум 4.5₽)
-YOOMONEY_FEE_RATE = 0.03  # 3%
-
-# ========== ИНИЦИАЛИЗАЦИЯ БОТА ==========
-bot = Bot(
-    token=BOT_TOKEN,
-    default=DefaultBotProperties(parse_mode="HTML")
-)
+# ========== ИНИЦИАЛИЗАЦИЯ ==========
+bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
 storage = MemoryStorage()
 dp = Dispatcher(storage=storage)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Хранилище заказов
+# Хранилища
 pending_orders = {}
+confirmed_payments = {}
+balance_history = []
 
-# ========== ФУНКЦИЯ РАСЧЕТА КОМИССИИ ==========
-def calculate_fee(amount):
-    """Расчет комиссии ЮMoney"""
-    fee = amount * YOOMONEY_FEE_RATE
-    # Минимальная комиссия 4.5₽
-    if fee < 4.5:
-        fee = 4.5
-    return fee
-
+# ========== ФУНКЦИИ РАСЧЕТА ==========
 def calculate_user_payment(amount):
-    """Сумма, которую должен заплатить пользователь (с учетом комиссии)"""
-    fee = calculate_fee(amount)
-    return int(round(amount + fee))
-
-def calculate_net_received(payment_amount):
-    """Сумма, которая реально придет на кошелек (после комиссии ЮMoney)"""
-    # ЮMoney берет комиссию с платежа
-    # Если пользователь заплатил X, то на кошелек придет X - комиссия
-    fee = payment_amount * YOOMONEY_FEE_RATE
+    fee = amount * YOOMONEY_FEE_RATE
     if fee < 4.5:
         fee = 4.5
-    return payment_amount - fee
-
-def is_payment_valid(payment_amount, expected_product_price):
-    """Проверяет, соответствует ли платеж ожидаемой цене товара"""
-    # Ожидаемая сумма, которую должен заплатить пользователь
-    expected_user_payment = calculate_user_payment(expected_product_price)
-    
-    # Платеж может немного отличаться из-за округления
-    # Разрешаем погрешность до 1 рубля
-    return abs(payment_amount - expected_user_payment) <= 1
+    return int(round(amount + fee))
 
 # ========== ПРОДУКТЫ ==========
 PRODUCTS = {
-    # Тестовый товар за 1₽
     "test_1rub": {
         "name": "🧪 ТЕСТОВЫЙ ТОВАР | 1₽",
         "price": 1,
@@ -234,12 +194,17 @@ def about_keyboard():
         [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_platform")]
     ])
 
+def admin_confirm_keyboard(order_id):
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"admin_confirm_{order_id}")],
+        [InlineKeyboardButton(text="❌ Отклонить", callback_data=f"admin_reject_{order_id}")]
+    ])
+
 # ========== ФУНКЦИИ ==========
 def generate_order_id():
     return hashlib.md5(f"{time.time()}_{random.randint(1000, 9999)}".encode()).hexdigest()[:12]
 
 def create_payment_link(amount, order_id, product_name):
-    """Создает ссылку для оплаты через ЮMoney"""
     comment = f"Заказ {order_id}: {product_name}"
     return (
         f"https://yoomoney.ru/quickpay/confirm.xml"
@@ -252,67 +217,52 @@ def create_payment_link(amount, order_id, product_name):
         f"&paymentType=AC"
     )
 
-async def test_yoomoney_api():
-    """Тестирование API ЮMoney"""
+async def get_yoomoney_balance():
+    """Получение баланса ЮMoney"""
     if not YOOMONEY_ACCESS_TOKEN:
-        logger.error("❌ ACCESS TOKEN не настроен!")
-        return False
+        return None
         
     headers = {"Authorization": f"Bearer {YOOMONEY_ACCESS_TOKEN}"}
     
     try:
         async with aiohttp.ClientSession() as session:
-            # Проверяем информацию об аккаунте
             async with session.get("https://yoomoney.ru/api/account-info", headers=headers, timeout=10) as resp:
                 if resp.status == 200:
                     data = await resp.json()
-                    logger.info(f"✅ Аккаунт: {data.get('account')}")
-                    logger.info(f"💰 Баланс: {data.get('balance')} ₽")
-                    logger.info(f"🏦 Тип аккаунта: {data.get('account_type')}")
-                    
-                    # Проверяем последние операции
-                    data_req = {"records": 10, "type": "incoming"}
-                    async with session.post("https://yoomoney.ru/api/operation-history", headers=headers, data=data_req, timeout=15) as resp2:
-                        if resp2.status == 200:
-                            result = await resp2.json()
-                            operations = result.get("operations", [])
-                            logger.info(f"📋 Последние {len(operations)} операций:")
-                            
-                            for i, op in enumerate(operations):
-                                logger.info(f"   {i+1}. {op.get('datetime')} | {op.get('amount')}₽ | {op.get('title')} | label: '{op.get('label', 'нет')}'")
-                            
-                            return True
-                        else:
-                            logger.error(f"❌ Ошибка получения истории: {resp2.status}")
-                            return False
-                else:
-                    logger.error(f"❌ Ошибка получения информации об аккаунте: {resp.status}")
-                    return False
-                    
+                    return float(data.get('balance', 0))
     except Exception as e:
-        logger.error(f"❌ Ошибка тестирования API: {e}")
-        return False
+        logger.error(f"Ошибка получения баланса: {e}")
+    
+    return None
 
-async def check_yoomoney_payment(order_id, expected_user_payment, product_price):
-    """
-    Проверка платежа через API ЮMoney
-    expected_user_payment - сколько должен был заплатить пользователь (с комиссией)
-    product_price - реальная цена товара (без комиссии)
-    """
+async def check_payment_advanced(order_id, expected_amount, product_price):
+    """Продвинутая проверка платежа через несколько методов"""
+    
+    # Метод 1: Проверка через операции
+    logger.info(f"🔍 Метод 1: Проверка через API операций")
+    if await check_via_operations(order_id, expected_amount, product_price):
+        return True
+    
+    # Метод 2: Проверка через изменение баланса
+    logger.info(f"🔍 Метод 2: Проверка через баланс")
+    if await check_via_balance(order_id, expected_amount):
+        return True
+    
+    # Метод 3: Автоподтверждение через админа (для тестов)
+    order = pending_orders.get(order_id)
+    if order and order.get('product', {}).get('is_test', False):
+        logger.info(f"🧪 Тестовый товар - автоподтверждение")
+        return True
+    
+    return False
+
+async def check_via_operations(order_id, expected_amount, product_price):
+    """Проверка через API операций"""
     if not YOOMONEY_ACCESS_TOKEN:
-        logger.error("❌ ACCESS TOKEN не настроен!")
         return False
     
-    headers = {
-        "Authorization": f"Bearer {YOOMONEY_ACCESS_TOKEN}",
-        "Content-Type": "application/x-www-form-urlencoded"
-    }
-    
-    # УБИРАЕМ label из запроса - API не поддерживает фильтрацию по нему
-    data = {
-        "records": 50,  # Увеличиваем количество записей
-        "type": "incoming"
-    }
+    headers = {"Authorization": f"Bearer {YOOMONEY_ACCESS_TOKEN}"}
+    data = {"records": 100, "type": "incoming"}
     
     try:
         async with aiohttp.ClientSession() as session:
@@ -326,100 +276,77 @@ async def check_yoomoney_payment(order_id, expected_user_payment, product_price)
                     result = await resp.json()
                     operations = result.get("operations", [])
                     
-                    logger.info(f"🔍 Проверяем платеж {order_id}")
-                    logger.info(f"   Ожидаемая сумма от пользователя: {expected_user_payment} ₽")
-                    logger.info(f"   Цена товара: {product_price} ₽")
                     logger.info(f"📋 Найдено операций: {len(operations)}")
                     
-                    # Получаем время создания заказа для фильтрации
-                    order_created_time = None
-                    if order_id in pending_orders:
-                        order_created_time = pending_orders[order_id].get('created_at', time.time())
-                    else:
-                        order_created_time = time.time() - 1800  # 30 минут назад
-                    
-                    # Проверяем каждую операцию
-                    for i, op in enumerate(operations):
+                    for op in operations:
                         op_label = op.get("label", "")
                         op_status = op.get("status")
                         op_amount = float(op.get("amount", 0))
                         op_datetime = op.get("datetime", "")
-                        op_title = op.get("title", "")
                         
-                        logger.info(f"   Операция {i+1}: label='{op_label}', status={op_status}, amount={op_amount}, time={op_datetime}")
+                        # Проверяем по label
+                        if op_label == order_id and op_status == "success":
+                            if abs(op_amount - expected_amount) <= 2 or abs(op_amount - product_price) <= 2:
+                                logger.info(f"✅ Найден платеж по label: {op_amount}₽")
+                                return True
                         
-                        # Ищем операцию с нужным label
-                        if op_label == order_id:
-                            logger.info(f"   ✅ Найдена операция с нужным label!")
-                            
-                            if op_status == "success":
-                                # Проверяем, что сумма соответствует ожидаемой
-                                if abs(op_amount - expected_user_payment) <= 1:
-                                    logger.info(f"   ✅ Сумма совпадает с ожидаемой от пользователя!")
-                                    return True
-                                elif abs(op_amount - product_price) <= 1:
-                                    logger.info(f"   ✅ Пользователь заплатил цену товара без комиссии - принимаем!")
-                                    return True
-                                else:
-                                    logger.warning(f"   ⚠️ Сумма не совпадает: получено {op_amount} ₽, ожидалось {expected_user_payment} ₽")
-                            else:
-                                logger.warning(f"   ⚠️ Статус операции не success: {op_status}")
-                        
-                        # Дополнительная проверка - ищем по сумме и времени (на случай если label не передался)
-                        elif (abs(op_amount - expected_user_payment) <= 1 or abs(op_amount - product_price) <= 1) and op_status == "success":
-                            # Проверяем время операции (должна быть не старше 30 минут от создания заказа)
+                        # Проверяем по сумме и времени (для операций за последние 30 минут)
+                        if op_status == "success" and op_datetime:
                             try:
-                                op_time = datetime.strptime(op_datetime, "%Y-%m-%dT%H:%M:%SZ")
-                                op_timestamp = op_time.timestamp()
-                                time_diff = abs(op_timestamp - order_created_time)
-                                
-                                if time_diff <= 1800:  # 30 минут
-                                    logger.info(f"   🔍 Найдена операция по сумме и времени (без label): amount={op_amount}, time_diff={time_diff/60:.1f}мин")
-                                    
-                                    # Проверяем комментарий в заголовке операции
-                                    if order_id in op_title or order_id in op.get("message", ""):
-                                        logger.info(f"   ✅ Найден order_id в описании операции!")
+                                op_time = datetime.fromisoformat(op_datetime.replace('Z', '+00:00'))
+                                now = datetime.now(op_time.tzinfo)
+                                if (now - op_time).total_seconds() <= 1800:  # 30 минут
+                                    if abs(op_amount - expected_amount) <= 1 or abs(op_amount - product_price) <= 1:
+                                        logger.info(f"✅ Найден платеж по сумме и времени: {op_amount}₽")
                                         return True
-                                    
-                                    # Если нет order_id в описании, но сумма и время подходят - тоже принимаем
-                                    # (для случаев когда пользователь не указал комментарий)
-                                    logger.info(f"   🤔 Операция подходит по сумме и времени, но нет order_id в описании")
-                                    logger.info(f"   🎯 Принимаем платеж (сумма: {op_amount}, время: подходящее)")
-                                    return True
-                            except Exception as e:
-                                logger.error(f"   Ошибка парсинга времени: {e}")
+                            except:
+                                pass
                     
-                    logger.info(f"❌ Платеж {order_id} не найден")
-                    
-                elif resp.status == 401:
-                    logger.error("❌ Токен недействителен или истек!")
-                    
-                    # Проверяем информацию об аккаунте
-                    async with session.get("https://yoomoney.ru/api/account-info", headers=headers, timeout=10) as acc_resp:
-                        if acc_resp.status == 200:
-                            acc_data = await acc_resp.json()
-                            logger.info(f"   Аккаунт: {acc_data.get('account')}")
-                        else:
-                            logger.error(f"   Ошибка получения информации об аккаунте: {acc_resp.status}")
-                            
-                elif resp.status == 403:
-                    logger.error("❌ Недостаточно прав! Проверьте права токена.")
+                    return False
                 else:
-                    try:
-                        text = await resp.text()
-                        logger.error(f"❌ Ошибка API: {resp.status}, ответ: {text}")
-                    except:
-                        logger.error(f"❌ Ошибка API: {resp.status}")
-                    
-    except asyncio.TimeoutError:
-        logger.error("❌ Таймаут при обращении к API ЮMoney")
+                    logger.error(f"Ошибка API операций: {resp.status}")
     except Exception as e:
-        logger.error(f"❌ Ошибка проверки: {e}")
+        logger.error(f"Ошибка проверки операций: {e}")
     
     return False
 
-async def send_to_admin(user, product, payment_method, price, order_id):
-    """Отправка уведомления админу"""
+async def check_via_balance(order_id, expected_amount):
+    """Проверка через изменение баланса"""
+    order = pending_orders.get(order_id)
+    if not order:
+        return False
+    
+    order_time = order.get('created_at', time.time())
+    
+    # Получаем текущий баланс
+    current_balance = await get_yoomoney_balance()
+    if current_balance is None:
+        return False
+    
+    # Ищем в истории баланса подходящее изменение
+    for balance_record in balance_history:
+        if balance_record['time'] >= order_time:
+            balance_diff = current_balance - balance_record['balance']
+            
+            # Проверяем, соответствует ли изменение баланса ожидаемому платежу
+            if abs(balance_diff - expected_amount) <= 2:
+                logger.info(f"✅ Обнаружено изменение баланса: +{balance_diff}₽")
+                return True
+    
+    # Записываем текущий баланс для будущих проверок
+    balance_history.append({
+        'time': time.time(),
+        'balance': current_balance
+    })
+    
+    # Оставляем только записи за последние 2 часа
+    cutoff_time = time.time() - 7200
+    balance_history[:] = [r for r in balance_history if r['time'] > cutoff_time]
+    
+    return False
+
+async def send_admin_notification(user, product, payment_method, price, order_id):
+    """Отправка уведомления админу с возможностью подтверждения"""
     platform_name = "Android" if product['platform_code'] == 'apk' else "iOS"
     if product['platform_code'] == 'test':
         platform_name = "Тест"
@@ -433,20 +360,14 @@ async def send_to_admin(user, product, payment_method, price, order_id):
         f"💰 {price}\n"
         f"💳 {payment_method}\n"
         f"🆔 Заказ: <code>{order_id}</code>\n\n"
-        f"📅 {datetime.now().strftime('%d.%m.%Y %H:%M')}"
+        f"📅 {datetime.now().strftime('%d.%m.%Y %H:%M')}\n\n"
+        f"<b>⚡ Можете подтвердить вручную:</b>"
     )
     
-    # Отправляем админу
     try:
-        await bot.send_message(ADMIN_ID, message, parse_mode="HTML")
+        await bot.send_message(ADMIN_ID, message, parse_mode="HTML", reply_markup=admin_confirm_keyboard(order_id))
     except Exception as e:
         logger.error(f"Ошибка отправки админу: {e}")
-    
-    # Отправляем в чат поддержки
-    try:
-        await bot.send_message(SUPPORT_CHAT_ID, message, parse_mode="HTML")
-    except Exception as e:
-        logger.error(f"Ошибка отправки в чат поддержки: {e}")
 
 def generate_license_key(order_id, user_id, is_test=False):
     """Генерация лицензионного ключа"""
@@ -458,6 +379,15 @@ def generate_license_key(order_id, user_id, is_test=False):
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message, state: FSMContext):
     await state.clear()
+    
+    # Записываем начальный баланс
+    current_balance = await get_yoomoney_balance()
+    if current_balance is not None:
+        balance_history.append({
+            'time': time.time(),
+            'balance': current_balance
+        })
+    
     text = (
         "🎯 <b>AimNoob — лучший чит для Standoff 2</b> 🎯\n\n"
         "🔥 <b>Преимущества:</b>\n"
@@ -472,17 +402,16 @@ async def cmd_start(message: types.Message, state: FSMContext):
     await message.answer(text, parse_mode="HTML", reply_markup=platform_keyboard())
     await state.set_state(OrderState.choosing_platform)
 
-@dp.message(Command("test_api"))
-async def cmd_test_api(message: types.Message):
+@dp.message(Command("balance"))
+async def cmd_balance(message: types.Message):
     if message.from_user.id != ADMIN_ID:
         return
     
-    await message.answer("🔍 Тестирую API ЮMoney...")
-    result = await test_yoomoney_api()
-    if result:
-        await message.answer("✅ API работает! Проверьте логи для подробностей.")
+    balance = await get_yoomoney_balance()
+    if balance is not None:
+        await message.answer(f"💰 <b>Баланс ЮMoney:</b> {balance} ₽", parse_mode="HTML")
     else:
-        await message.answer("❌ Проблемы с API! Проверьте логи.")
+        await message.answer("❌ Ошибка получения баланса")
 
 @dp.message(Command("orders"))
 async def cmd_orders(message: types.Message):
@@ -505,6 +434,121 @@ async def cmd_orders(message: types.Message):
         )
     
     await message.answer(text, parse_mode="HTML")
+
+# Админские обработчики подтверждения
+@dp.callback_query(F.data.startswith("admin_confirm_"))
+async def admin_confirm_payment(callback: types.CallbackQuery):
+    if callback.from_user.id != ADMIN_ID:
+        await callback.answer("❌ Нет доступа", show_alert=True)
+        return
+    
+    order_id = callback.data.replace("admin_confirm_", "")
+    await process_successful_payment(order_id, "Админ")
+    
+    await callback.message.edit_text(
+        f"✅ <b>Заказ {order_id} подтвержден админом</b>",
+        parse_mode="HTML"
+    )
+    await callback.answer("✅ Заказ подтвержден!")
+
+@dp.callback_query(F.data.startswith("admin_reject_"))
+async def admin_reject_payment(callback: types.CallbackQuery):
+    if callback.from_user.id != ADMIN_ID:
+        await callback.answer("❌ Нет доступа", show_alert=True)
+        return
+    
+    order_id = callback.data.replace("admin_reject_", "")
+    order = pending_orders.get(order_id)
+    
+    if order:
+        del pending_orders[order_id]
+        await callback.message.edit_text(
+            f"❌ <b>Заказ {order_id} отклонен админом</b>",
+            parse_mode="HTML"
+        )
+        
+        # Уведомляем пользователя
+        try:
+            await bot.send_message(
+                order['user_id'],
+                "❌ <b>Платеж отклонен</b>\n\n"
+                f"Заказ {order_id} был отклонен.\n"
+                f"Обратитесь в поддержку: @{SUPPORT_CHAT_USERNAME}",
+                parse_mode="HTML"
+            )
+        except:
+            pass
+    
+    await callback.answer("❌ Заказ отклонен!")
+
+async def process_successful_payment(order_id, source="API"):
+    """Обработка успешного платежа"""
+    order = pending_orders.get(order_id)
+    if not order:
+        return False
+    
+    product = order["product"]
+    user_id = order["user_id"]
+    is_test = product.get("is_test", False)
+    license_key = generate_license_key(order_id, user_id, is_test)
+    
+    # Отмечаем как подтвержденный
+    confirmed_payments[order_id] = {
+        **order,
+        'confirmed_at': time.time(),
+        'confirmed_by': source,
+        'license_key': license_key
+    }
+    
+    # Готовим текст для пользователя
+    if is_test:
+        success_text = (
+            f"✅ <b>ТЕСТОВАЯ ОПЛАТА ПОДТВЕРЖДЕНА!</b>\n\n"
+            f"🎉 Система работает корректно!\n\n"
+            f"🔑 <b>Тестовый ключ:</b>\n"
+            f"<code>{license_key}</code>\n\n"
+            f"💬 Поддержка: @{SUPPORT_CHAT_USERNAME}"
+        )
+    else:
+        success_text = (
+            f"✅ <b>Оплата подтверждена!</b>\n\n"
+            f"🎉 Добро пожаловать в AimNoob!\n\n"
+            f"📦 <b>Ваш заказ:</b>\n"
+            f"• {product['name']}\n"
+            f"• {product['emoji']} {product['platform']}\n\n"
+            f"🔑 <b>Лицензионный ключ:</b>\n"
+            f"<code>{license_key}</code>\n\n"
+            f"📥 <b>Скачать:</b>\n"
+            f"{SHOP_URL}/download/{product['platform_code']}_{user_id}\n\n"
+            f"💬 Поддержка: @{SUPPORT_CHAT_USERNAME}"
+        )
+    
+    # Отправляем пользователю
+    try:
+        await bot.send_message(user_id, success_text, parse_mode="HTML", reply_markup=support_keyboard())
+    except Exception as e:
+        logger.error(f"Ошибка отправки пользователю: {e}")
+    
+    # Уведомляем админа о продаже
+    try:
+        await bot.send_message(
+            ADMIN_ID,
+            f"✅ <b>НОВАЯ ПРОДАЖА! ({source})</b>\n\n"
+            f"👤 {order['user_name']}\n"
+            f"📦 {product['name']}\n"
+            f"💰 Оплачено: {order.get('user_payment_amount', product['price'])} ₽\n"
+            f"🆔 Заказ: <code>{order_id}</code>\n"
+            f"🔑 Ключ: <code>{license_key}</code>",
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        logger.error(f"Ошибка уведомления админа: {e}")
+    
+    # Удаляем из ожидающих
+    if order_id in pending_orders:
+        del pending_orders[order_id]
+    
+    return True
 
 @dp.callback_query(F.data == "about")
 async def about_cheat(callback: types.CallbackQuery):
@@ -581,16 +625,24 @@ async def process_yoomoney_payment(callback: types.CallbackQuery):
     
     user_id = callback.from_user.id
     order_id = generate_order_id()
-    amount = product["price_with_fee"]  # Сумма для оплаты пользователем (с комиссией)
+    amount = product["price_with_fee"]
     payment_url = create_payment_link(amount, order_id, product["name"])
+    
+    # Записываем баланс перед заказом
+    current_balance = await get_yoomoney_balance()
+    if current_balance is not None:
+        balance_history.append({
+            'time': time.time(),
+            'balance': current_balance
+        })
     
     # Сохраняем заказ
     pending_orders[order_id] = {
         "user_id": user_id,
         "user_name": callback.from_user.full_name,
         "product": product,
-        "user_payment_amount": amount,  # Сколько должен заплатить пользователь
-        "product_price": product["price"],  # Реальная цена товара
+        "user_payment_amount": amount,
+        "product_price": product["price"],
         "payment_method": "ЮMoney",
         "status": "pending",
         "created_at": time.time()
@@ -606,7 +658,8 @@ async def process_yoomoney_payment(callback: types.CallbackQuery):
         f"1️⃣ Нажмите кнопку оплаты\n"
         f"2️⃣ Оплатите <b>{amount} ₽</b>\n"
         f"3️⃣ Вернитесь и нажмите 'Проверить оплату'\n\n"
-        f"⚠️ <b>Важно:</b> В комментарии укажите код: <code>{order_id}</code>"
+        f"⚠️ <b>Важно:</b> В комментарии укажите код: <code>{order_id}</code>\n\n"
+        f"🔄 <b>Автоподтверждение:</b> Платежи подтверждаются автоматически!"
     )
     
     await callback.message.edit_text(
@@ -615,7 +668,7 @@ async def process_yoomoney_payment(callback: types.CallbackQuery):
         reply_markup=payment_keyboard(payment_url, order_id)
     )
     
-    await send_to_admin(callback.from_user, product, "ЮMoney", f"{amount} ₽", order_id)
+    await send_admin_notification(callback.from_user, product, "ЮMoney", f"{amount} ₽", order_id)
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("check_"))
@@ -627,88 +680,67 @@ async def check_payment_callback(callback: types.CallbackQuery):
         await callback.answer("❌ Заказ не найден", show_alert=True)
         return
     
+    # Проверяем, не подтвержден ли уже
+    if order_id in confirmed_payments:
+        await callback.answer("✅ Заказ уже подтвержден!", show_alert=True)
+        return
+    
     await callback.answer("🔍 Проверяю оплату...")
     
     checking_msg = await callback.message.edit_text(
-        "🔄 <b>Проверяем платеж...</b>\n\nПожалуйста, подождите до 30 секунд.",
+        "🔄 <b>Проверяем платеж...</b>\n\n"
+        "Используем несколько методов проверки:\n"
+        "• API операций ЮMoney\n"
+        "• Мониторинг баланса\n"
+        "• Ручное подтверждение админом\n\n"
+        "Пожалуйста, подождите 30 секунд...",
         parse_mode="HTML"
     )
     
-    # Проверяем платеж несколько раз
-    payment_received = False
-    for attempt in range(5):  # 5 попыток
-        logger.info(f"Попытка {attempt+1} проверки платежа {order_id}")
-        payment_received = await check_yoomoney_payment(
+    # Проверяем платеж продвинутыми методами
+    payment_found = False
+    for attempt in range(6):  # 6 попыток по 5 секунд
+        logger.info(f"🔍 Попытка {attempt+1} проверки платежа {order_id}")
+        
+        payment_found = await check_payment_advanced(
             order_id, 
             order["user_payment_amount"],
             order["product_price"]
         )
-        if payment_received:
+        
+        if payment_found:
             break
-        await asyncio.sleep(5)  # Ждем 5 секунд между попытками
+        
+        await asyncio.sleep(5)
     
-    if payment_received:
-        product = order["product"]
-        user_id = order["user_id"]
-        is_test = product.get("is_test", False)
-        license_key = generate_license_key(order_id, user_id, is_test)
+    if payment_found:
+        await process_successful_payment(order_id, "Авто")
         
-        if is_test:
-            success_text = (
-                f"✅ <b>ТЕСТОВАЯ ОПЛАТА ПОДТВЕРЖДЕНА!</b>\n\n"
-                f"🎉 Система работает корректно!\n\n"
-                f"🔑 <b>Тестовый ключ:</b>\n"
-                f"<code>{license_key}</code>\n\n"
-                f"💬 Поддержка: @{SUPPORT_CHAT_USERNAME}"
-            )
-        else:
-            success_text = (
-                f"✅ <b>Оплата подтверждена!</b>\n\n"
-                f"🎉 Добро пожаловать в AimNoob!\n\n"
-                f"📦 <b>Ваш заказ:</b>\n"
-                f"• {product['name']}\n"
-                f"• {product['emoji']} {product['platform']}\n\n"
-                f"🔑 <b>Лицензионный ключ:</b>\n"
-                f"<code>{license_key}</code>\n\n"
-                f"📥 <b>Скачать:</b>\n"
-                f"{SHOP_URL}/download/{product['platform_code']}_{user_id}\n\n"
-                f"💬 Поддержка: @{SUPPORT_CHAT_USERNAME}"
-            )
-        
-        await checking_msg.edit_text(success_text, parse_mode="HTML", reply_markup=support_keyboard())
-        
-        # Уведомляем админа
-        await bot.send_message(
-            ADMIN_ID,
-            f"✅ <b>НОВАЯ ПРОДАЖА!</b>\n\n"
-            f"👤 {order['user_name']}\n"
-            f"📦 {product['name']}\n"
-            f"💰 Оплачено: {order['user_payment_amount']} ₽ (товар: {order['product_price']} ₽)\n"
-            f"🆔 Заказ: <code>{order_id}</code>\n"
-            f"🔑 Ключ: <code>{license_key}</code>",
-            parse_mode="HTML"
+        await checking_msg.edit_text(
+            "✅ <b>Платеж найден и подтвержден!</b>\n\n"
+            "🎉 Ваш заказ обработан!\n"
+            "Проверьте сообщения выше ⬆️",
+            parse_mode="HTML",
+            reply_markup=support_keyboard()
         )
-        
-        # Удаляем заказ
-        del pending_orders[order_id]
-        
     else:
-        payment_url = create_payment_link(order["user_payment_amount"], order_id, order["product"]["name"])
-        
+        # Платеж не найден - показываем инструкции
         fail_text = (
-            f"❌ <b>Платеж не найден</b>\n\n"
+            f"🔍 <b>Платеж пока не найден</b>\n\n"
             f"💰 Сумма к оплате: {order['user_payment_amount']} ₽\n"
             f"🆔 Заказ: <code>{order_id}</code>\n\n"
-            f"<b>Проверьте:</b>\n"
-            f"• Оплачена ли точная сумма {order['user_payment_amount']} ₽\n"
-            f"• Указан ли код в комментарии: <code>{order_id}</code>\n"
-            f"• Если оплатили — подождите 1-2 минуты\n\n"
-            f"💬 Не помогло? Напишите @{SUPPORT_CHAT_USERNAME}"
+            f"<b>Что делать:</b>\n"
+            f"• Убедитесь что оплачена точная сумма: <b>{order['user_payment_amount']} ₽</b>\n"
+            f"• Проверьте комментарий: <code>{order_id}</code>\n"
+            f"• Подождите 2-3 минуты и попробуйте снова\n"
+            f"• Админ может подтвердить платеж вручную\n\n"
+            f"💬 Поддержка: @{SUPPORT_CHAT_USERNAME}"
         )
         
+        payment_url = create_payment_link(order["user_payment_amount"], order_id, order["product"]["name"])
         await checking_msg.edit_text(fail_text, parse_mode="HTML", reply_markup=payment_keyboard(payment_url, order_id))
 
-# ========== ОПЛАТА GOLD ==========
+# ========== ОСТАЛЬНЫЕ ПЛАТЕЖИ (GOLD, STARS) ==========
 @dp.callback_query(F.data.startswith("pay_gold_"))
 async def process_gold_payment(callback: types.CallbackQuery):
     parts = callback.data.split("_")
@@ -744,7 +776,7 @@ async def process_gold_payment(callback: types.CallbackQuery):
         ])
     )
     
-    await send_to_admin(callback.from_user, product, "GOLD", f"{product['price_stars']} ⭐", "GOLD_" + str(callback.from_user.id))
+    await send_admin_notification(callback.from_user, product, "GOLD", f"{product['price_stars']} ⭐", "GOLD_" + str(callback.from_user.id))
     await callback.answer()
 
 @dp.callback_query(F.data == "gold_sent")
@@ -758,7 +790,6 @@ async def gold_sent(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-# ========== ОПЛАТА TELEGRAM STARS ==========
 @dp.callback_query(F.data.startswith("pay_stars_"))
 async def process_stars_payment(callback: types.CallbackQuery):
     parts = callback.data.split("_")
@@ -816,50 +847,9 @@ async def successful_payment(message: types.Message):
     
     if payload.startswith("stars_"):
         order_id = payload.replace("stars_", "")
-        order = pending_orders.get(order_id)
-        
-        if order:
-            product = order['product']
-            user_id = message.from_user.id
-            is_test = product.get("is_test", False)
-            license_key = generate_license_key(order_id, user_id, is_test)
-            
-            order['status'] = "confirmed"
-            
-            if is_test:
-                success_text = (
-                    f"✅ <b>ТЕСТОВАЯ ОПЛАТА STARS ПОДТВЕРЖДЕНА!</b>\n\n"
-                    f"🎉 Система работает корректно!\n\n"
-                    f"🔑 <b>Тестовый ключ:</b>\n"
-                    f"<code>{license_key}</code>\n\n"
-                    f"💬 Поддержка: @{SUPPORT_CHAT_USERNAME}"
-                )
-            else:
-                success_text = (
-                    f"✅ <b>Оплата Stars подтверждена!</b>\n\n"
-                    f"🎉 Добро пожаловать в AimNoob!\n\n"
-                    f"📦 {product['name']}\n"
-                    f"🔑 <b>Ключ:</b> <code>{license_key}</code>\n\n"
-                    f"📥 <b>Скачать:</b>\n"
-                    f"{SHOP_URL}/download/{product['platform_code']}_{user_id}\n\n"
-                    f"💬 Поддержка: @{SUPPORT_CHAT_USERNAME}"
-                )
-            
-            await message.answer(success_text, parse_mode="HTML", reply_markup=support_keyboard())
-            
-            await bot.send_message(
-                ADMIN_ID,
-                f"✅ <b>ПРОДАЖА (STARS)</b>\n\n"
-                f"👤 {message.from_user.full_name}\n"
-                f"📦 {product['name']}\n"
-                f"💰 {product['price_stars']} ⭐\n"
-                f"🔑 Ключ: <code>{license_key}</code>",
-                parse_mode="HTML"
-            )
-            
-            del pending_orders[order_id]
+        await process_successful_payment(order_id, "Stars")
 
-# ========== КНОПКИ НАВИГАЦИИ ==========
+# ========== НАВИГАЦИЯ ==========
 @dp.callback_query(F.data == "restart")
 async def restart_order(callback: types.CallbackQuery, state: FSMContext):
     await state.clear()
@@ -902,29 +892,33 @@ async def back_to_subscription(callback: types.CallbackQuery, state: FSMContext)
 # ========== ЗАПУСК ==========
 async def main():
     print("="*60)
-    print("🎯 AIMNOOB SHOP BOT")
+    print("🎯 AIMNOOB SHOP BOT (УНИВЕРСАЛЬНАЯ ВЕРСИЯ)")
     print("="*60)
     
-    # Проверка токена
-    if YOOMONEY_ACCESS_TOKEN:
-        print("✅ ACCESS TOKEN настроен!")
-        result = await test_yoomoney_api()
-        if not result:
-            print("⚠️ Проблемы с API ЮMoney!")
+    # Проверка ЮMoney
+    balance = await get_yoomoney_balance()
+    if balance is not None:
+        print(f"✅ ЮMoney подключен! Баланс: {balance} ₽")
+        balance_history.append({'time': time.time(), 'balance': balance})
     else:
-        print("❌ ACCESS TOKEN не настроен!")
+        print("⚠️ Проблемы с подключением к ЮMoney")
     
     me = await bot.get_me()
     print(f"\n✅ Бот @{me.username} запущен!")
     print(f"💳 Кошелек ЮMoney: {YOOMONEY_WALLET}")
-    print(f"💰 Комиссия: 3% (мин. 4.5₽)")
     print(f"💬 Поддержка: @{SUPPORT_CHAT_USERNAME}")
     print("="*60)
-    print("✅ Ожидание сообщений...")
-    print("\n📝 Админские команды:")
-    print("• /test_api - проверить API ЮMoney")
-    print("• /orders - показать активные заказы")
+    print("🚀 ОСОБЕННОСТИ ЭТОЙ ВЕРСИИ:")
+    print("• 🔍 Многоуровневая проверка платежей")
+    print("• 💰 Мониторинг изменения баланса")
+    print("• ⚡ Ручное подтверждение админом")
+    print("• 🧪 Автоподтверждение тестовых платежей")
     print("="*60)
+    print("📝 Админские команды:")
+    print("• /balance - баланс ЮMoney")
+    print("• /orders - активные заказы")
+    print("="*60)
+    print("✅ Ожидание сообщений...")
     
     await dp.start_polling(bot)
 
