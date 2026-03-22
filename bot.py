@@ -1,4 +1,4 @@
-# aimnoob_bot_final_beautiful.py
+# bot.py
 import logging
 import asyncio
 import aiohttp
@@ -6,6 +6,7 @@ import hashlib
 import time
 import random
 import json
+import os
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
@@ -17,20 +18,21 @@ from aiogram.client.default import DefaultBotProperties
 from urllib.parse import quote_plus
 
 # ========== КОНФИГУРАЦИЯ ==========
-BOT_TOKEN = "8225924716:AAFzKnXZ8lJG_X1W9poH6Muyi-MMCXTWMy0"
-ADMIN_ID = 8387532956
-SUPPORT_CHAT_ID = 8354762345
+# Получаем токены из переменных окружения
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8225924716:AAFzKnXZ8lJG_X1W9poH6Muyi-MMCXTWMy0")
+ADMIN_ID = int(os.getenv("ADMIN_ID", "8387532956"))
+SUPPORT_CHAT_ID = int(os.getenv("SUPPORT_CHAT_ID", "8354762345"))
 
 # Криптобот
-CRYPTOBOT_TOKEN = "493276:AAtS7R1zYy0gaPw8eax1EgiWo0tdnd6dQ9c"
+CRYPTOBOT_TOKEN = os.getenv("CRYPTOBOT_TOKEN", "493276:AAtS7R1zYy0gaPw8eax1EgiWo0tdnd6dQ9c")
 
 # Данные ЮMoney
-YOOMONEY_ACCESS_TOKEN = "4100118889570559.3288B2E716CEEB922A26BD6BEAC58648FBFB680CCF64E4E1447D714D6FB5EA5F01F1478FAC686BEF394C8A186C98982DE563C1ABCDF9F2F61D971B61DA3C7E486CA818F98B9E0069F1C0891E090DD56A11319D626A40F0AE8302A8339DED9EB7969617F191D93275F64C4127A3ECB7AED33FCDE91CA68690EB7534C67E6C219E"
-YOOMONEY_WALLET = "4100118889570559"
+YOOMONEY_ACCESS_TOKEN = os.getenv("YOOMONEY_ACCESS_TOKEN", "4100118889570559.3288B2E716CEEB922A26BD6BEAC58648FBFB680CCF64E4E1447D714D6FB5EA5F01F1478FAC686BEF394C8A186C98982DE563C1ABCDF9F2F61D971B61DA3C7E486CA818F98B9E0069F1C0891E090DD56A11319D626A40F0AE8302A8339DED9EB7969617F191D93275F64C4127A3ECB7AED33FCDE91CA68690EB7534C67E6C219E")
+YOOMONEY_WALLET = os.getenv("YOOMONEY_WALLET", "4100118889570559")
 
 # Настройки
-SUPPORT_CHAT_USERNAME = "aimnoob_support"
-SHOP_URL = "https://aimnoob.ru"
+SUPPORT_CHAT_USERNAME = os.getenv("SUPPORT_CHAT_USERNAME", "aimnoob_support")
+SHOP_URL = os.getenv("SHOP_URL", "https://aimnoob.ru")
 
 # ========== ИНИЦИАЛИЗАЦИЯ ==========
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode="HTML"))
@@ -231,6 +233,9 @@ def generate_license_key(order_id, user_id):
 # ========== КРИПТОБОТ API ==========
 async def create_crypto_invoice(amount_usdt, order_id, description):
     """Создание инвойса через CryptoBot"""
+    if not CRYPTOBOT_TOKEN:
+        return None
+        
     url = "https://pay.crypt.bot/api/createInvoice"
     headers = {
         "Crypto-Pay-API-Token": CRYPTOBOT_TOKEN,
@@ -247,8 +252,9 @@ async def create_crypto_invoice(amount_usdt, order_id, description):
     }
     
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, headers=headers, json=data, timeout=15) as resp:
+        timeout = aiohttp.ClientTimeout(total=15)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(url, headers=headers, json=data) as resp:
                 if resp.status == 200:
                     result = await resp.json()
                     if result.get("ok"):
@@ -267,6 +273,9 @@ async def create_crypto_invoice(amount_usdt, order_id, description):
 
 async def check_crypto_invoice(invoice_id):
     """Проверка статуса криптоинвойса"""
+    if not CRYPTOBOT_TOKEN:
+        return False
+        
     url = "https://pay.crypt.bot/api/getInvoices"
     headers = {
         "Crypto-Pay-API-Token": CRYPTOBOT_TOKEN,
@@ -278,8 +287,9 @@ async def check_crypto_invoice(invoice_id):
     }
     
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, headers=headers, json=data, timeout=15) as resp:
+        timeout = aiohttp.ClientTimeout(total=15)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(url, headers=headers, json=data) as resp:
                 if resp.status == 200:
                     result = await resp.json()
                     if result.get("ok"):
@@ -301,8 +311,9 @@ async def get_yoomoney_balance():
     headers = {"Authorization": f"Bearer {YOOMONEY_ACCESS_TOKEN}"}
     
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get("https://yoomoney.ru/api/account-info", headers=headers, timeout=15) as resp:
+        timeout = aiohttp.ClientTimeout(total=15)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get("https://yoomoney.ru/api/account-info", headers=headers) as resp:
                 if resp.status == 200:
                     data = await resp.json()
                     return float(data.get('balance', 0))
@@ -320,12 +331,12 @@ async def check_yoomoney_payment(order_id, expected_amount):
     data = {"type": "incoming", "records": 50}
     
     try:
-        async with aiohttp.ClientSession() as session:
+        timeout = aiohttp.ClientTimeout(total=20)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(
                 "https://yoomoney.ru/api/operation-history",
                 headers=headers,
-                data=data,
-                timeout=20
+                data=data
             ) as resp:
                 if resp.status == 200:
                     result = await resp.json()
@@ -1067,37 +1078,50 @@ async def main():
     print("🚀      AIMNOOB PREMIUM SHOP BOT       🚀")
     print("💎" + "="*50 + "💎")
     
-    # Проверяем ЮMoney
-    balance = await get_yoomoney_balance()
-    if balance is not None:
-        print(f"✅ ЮMoney: подключен (баланс: {balance} ₽)")
-        balance_history.append({'time': time.time(), 'balance': balance})
-    else:
-        print("⚠️  ЮMoney: проблемы с подключением")
+    # Проверяем токен бота
+    if not BOT_TOKEN:
+        print("❌ Токен бота не найден!")
+        print("💡 Установите переменную окружения BOT_TOKEN")
+        return
     
-    # Получаем информацию о боте
-    me = await bot.get_me()
-    print(f"\n🤖 Бот: @{me.username}")
-    print(f"💬 Поддержка: @{SUPPORT_CHAT_USERNAME}")
-    print(f"🌐 Сайт: {SHOP_URL}")
-    
-    print(f"\n💳 СПОСОБЫ ОПЛАТЫ:")
-    print(f"• 💳 ЮMoney (карты)")
-    print(f"• ⭐ Telegram Stars") 
-    print(f"• ₿  CryptoBot")
-    print(f"• 💰 GOLD (ручная)")
-    print(f"• 🎨 NFT (ручная)")
-    
-    print(f"\n📦 ПРОДУКТЫ:")
-    for key, product in PRODUCTS.items():
-        print(f"• {product['emoji']} {product['name']} ({product['duration']}) — {product['price']}₽")
-    
-    print("🎯" + "="*50 + "🎯")
-    print("✨ Бот запущен и готов к работе!")
-    print("🎮 Удачных продаж AimNoob!")
-    print("💎" + "="*50 + "💎")
-    
-    await dp.start_polling(bot)
+    try:
+        # Проверяем ЮMoney
+        balance = await get_yoomoney_balance()
+        if balance is not None:
+            print(f"✅ ЮMoney: подключен (баланс: {balance} ₽)")
+            balance_history.append({'time': time.time(), 'balance': balance})
+        else:
+            print("⚠️  ЮMoney: проблемы с подключением")
+        
+        # Получаем информацию о боте
+        me = await bot.get_me()
+        print(f"\n🤖 Бот: @{me.username}")
+        print(f"💬 Поддержка: @{SUPPORT_CHAT_USERNAME}")
+        print(f"🌐 Сайт: {SHOP_URL}")
+        
+        print(f"\n💳 СПОСОБЫ ОПЛАТЫ:")
+        print(f"• 💳 ЮMoney (карты)")
+        print(f"• ⭐ Telegram Stars") 
+        print(f"• ₿  CryptoBot")
+        print(f"• 💰 GOLD (ручная)")
+        print(f"• 🎨 NFT (ручная)")
+        
+        print(f"\n📦 ПРОДУКТЫ:")
+        for key, product in PRODUCTS.items():
+            print(f"• {product['emoji']} {product['name']} ({product['duration']}) — {product['price']}₽")
+        
+        print("🎯" + "="*50 + "🎯")
+        print("✨ Бот запущен и готов к работе!")
+        print("🎮 Удачных продаж AimNoob!")
+        print("💎" + "="*50 + "💎")
+        
+        await dp.start_polling(bot)
+        
+    except Exception as e:
+        print(f"❌ Ошибка запуска бота: {e}")
+        print("💡 Проверьте правильность токена бота!")
+    finally:
+        await bot.session.close()
 
 if __name__ == "__main__":
     asyncio.run(main())
