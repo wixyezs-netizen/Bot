@@ -1,4 +1,4 @@
-# aimnoob_bot.py - ПОЛНЫЙ ГОТОВЫЙ БОТ
+# aimnoob_bot_final.py
 import logging
 import asyncio
 import aiohttp
@@ -16,23 +16,27 @@ from aiogram.client.default import DefaultBotProperties
 
 # ========== КОНФИГУРАЦИЯ ==========
 BOT_TOKEN = "8225924716:AAFZ_8Eu8aJ4BF7pErZY5Ef3emG9Cl9PikE"
-ADMIN_ID = 8387532956
+ADMIN_ID = 8387532956,8354762345
 
 # Данные ЮMoney
 CLIENT_ID = "5FE649CABBAD2E9FE9095C8DB64AF17CCC754D9179A8B8D41B9689281A295AF7"
 REDIRECT_URI = "https://yoomoney.ru"
 
-# ✅ ВАШ ACCESS TOKEN (уже получен)
+# ✅ ВАШ ACCESS TOKEN
 YOOMONEY_ACCESS_TOKEN = "4100118889570559.3288B2E716CEEB922A26BD6BEAC58648FBFB680CCF64E4E1447D714D6FB5EA5F01F1478FAC686BEF394C8A186C98982DE563C1ABCDF9F2F61D971B61DA3C7E486CA818F98B9E0069F1C0891E090DD56A11319D626A40F0AE8302A8339DED9EB7969617F191D93275F64C4127A3ECB7AED33FCDE91CA68690EB7534C67E6C219E"
 
-# Номер кошелька ЮMoney (ВАШ НОМЕР КОШЕЛЬКА)
-YOOMONEY_WALLET = "4100118889570559"  # ЗАМЕНИТЕ НА ВАШ!
+# Номер кошелька ЮMoney
+YOOMONEY_WALLET = "4100118889570559"
 
-# Чат поддержки (ВАШ ЧАТ)
-SUPPORT_CHAT_USERNAME = "aimnoob_support"  # ЗАМЕНИТЕ НА ВАШ!
+# Чат поддержки
+SUPPORT_CHAT_USERNAME = "aimnoob_support"
 
-# Ссылка на скачивание (ВАШ САЙТ)
+# Ссылка на скачивание
 SHOP_URL = "https://aimnoob.ru"
+
+# Комиссия ЮMoney (3% но минимум 4.5₽)
+YOOMONEY_FEE_RATE = 0.03  # 3%
+YOOMONEY_MIN_FEE = 4.5    # минимальная комиссия 4.5₽
 
 # ========== ИНИЦИАЛИЗАЦИЯ БОТА ==========
 bot = Bot(
@@ -51,61 +55,99 @@ logger = logging.getLogger(__name__)
 # Хранилище заказов
 pending_orders = {}
 
+# ========== ФУНКЦИЯ РАСЧЕТА КОМИССИИ ==========
+def calculate_amount_with_fee(amount):
+    """Расчет суммы для оплаты с учетом комиссии"""
+    fee = max(amount * YOOMONEY_FEE_RATE, YOOMONEY_MIN_FEE)
+    total = amount + fee
+    # Округляем до целого числа
+    return int(round(total))
+
+def calculate_net_amount(payment_amount, product_price):
+    """Проверяет, что платеж соответствует цене с учетом комиссии"""
+    expected_amount = calculate_amount_with_fee(product_price)
+    # Позволяем погрешность в 1 рубль из-за округления
+    return abs(payment_amount - expected_amount) <= 1
+
 # ========== ПРОДУКТЫ ==========
 PRODUCTS = {
+    # Тестовый товар за 1₽ (для проверки)
+    "test_1rub": {
+        "name": "🎯 ТЕСТОВЫЙ ТОВАР | 1₽",
+        "price": 1,
+        "price_with_fee": calculate_amount_with_fee(1),
+        "price_stars": 5,
+        "platform": "Test",
+        "period": "ТЕСТ",
+        "platform_code": "test",
+        "emoji": "🧪",
+        "is_test": True
+    },
     "apk_week": {
         "name": "AimNoob Standoff 2 | НЕДЕЛЯ",
         "price": 150,
+        "price_with_fee": calculate_amount_with_fee(150),
         "price_stars": 350,
         "platform": "Android",
         "period": "НЕДЕЛЮ",
         "platform_code": "apk",
-        "emoji": "📱"
+        "emoji": "📱",
+        "is_test": False
     },
     "apk_month": {
         "name": "AimNoob Standoff 2 | МЕСЯЦ",
         "price": 350,
+        "price_with_fee": calculate_amount_with_fee(350),
         "price_stars": 800,
         "platform": "Android",
         "period": "МЕСЯЦ",
         "platform_code": "apk",
-        "emoji": "📱"
+        "emoji": "📱",
+        "is_test": False
     },
     "apk_forever": {
         "name": "AimNoob Standoff 2 | НАВСЕГДА",
         "price": 150,
+        "price_with_fee": calculate_amount_with_fee(150),
         "price_stars": 350,
         "platform": "Android",
         "period": "НАВСЕГДА",
         "platform_code": "apk",
-        "emoji": "📱"
+        "emoji": "📱",
+        "is_test": False
     },
     "ios_week": {
         "name": "AimNoob Standoff 2 | НЕДЕЛЯ",
         "price": 300,
+        "price_with_fee": calculate_amount_with_fee(300),
         "price_stars": 700,
         "platform": "iOS",
         "period": "НЕДЕЛЮ",
         "platform_code": "ios",
-        "emoji": "🍏"
+        "emoji": "🍏",
+        "is_test": False
     },
     "ios_month": {
         "name": "AimNoob Standoff 2 | МЕСЯЦ",
         "price": 450,
+        "price_with_fee": calculate_amount_with_fee(450),
         "price_stars": 1000,
         "platform": "iOS",
         "period": "МЕСЯЦ",
         "platform_code": "ios",
-        "emoji": "🍏"
+        "emoji": "🍏",
+        "is_test": False
     },
     "ios_forever": {
         "name": "AimNoob Standoff 2 | НАВСЕГДА",
         "price": 850,
+        "price_with_fee": calculate_amount_with_fee(850),
         "price_stars": 2000,
         "platform": "iOS",
         "period": "НАВСЕГДА",
         "platform_code": "ios",
-        "emoji": "🍏"
+        "emoji": "🍏",
+        "is_test": False
     }
 }
 
@@ -118,33 +160,40 @@ class OrderState(StatesGroup):
 # ========== КЛАВИАТУРЫ ==========
 def platform_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🧪 ТЕСТ (1₽)", callback_data="platform_test")],
         [InlineKeyboardButton(text="📱 Android (APK)", callback_data="platform_apk")],
         [InlineKeyboardButton(text="🍏 iOS", callback_data="platform_ios")],
         [InlineKeyboardButton(text="ℹ️ О чите", callback_data="about")],
         [InlineKeyboardButton(text="📞 Поддержка", url=f"https://t.me/{SUPPORT_CHAT_USERNAME}")]
     ])
 
+def test_subscription_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🧪 ТЕСТОВЫЙ ТОВАР | 1₽", callback_data="sub_test_1rub")],
+        [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_platform")]
+    ])
+
 def apk_subscription_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔓 НЕДЕЛЯ | 150₽ / 350⭐", callback_data="sub_apk_week")],
-        [InlineKeyboardButton(text="🔥 МЕСЯЦ | 350₽ / 800⭐", callback_data="sub_apk_month")],
-        [InlineKeyboardButton(text="⭐ НАВСЕГДА | 150₽ / 350⭐", callback_data="sub_apk_forever")],
+        [InlineKeyboardButton(text="🔓 НЕДЕЛЯ | 150₽ (+комиссия ≈156₽)", callback_data="sub_apk_week")],
+        [InlineKeyboardButton(text="🔥 МЕСЯЦ | 350₽ (+комиссия ≈365₽)", callback_data="sub_apk_month")],
+        [InlineKeyboardButton(text="⭐ НАВСЕГДА | 150₽ (+комиссия ≈156₽)", callback_data="sub_apk_forever")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_platform")]
     ])
 
 def ios_subscription_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔓 НЕДЕЛЯ | 300₽ / 700⭐", callback_data="sub_ios_week")],
-        [InlineKeyboardButton(text="🔥 МЕСЯЦ | 450₽ / 1000⭐", callback_data="sub_ios_month")],
-        [InlineKeyboardButton(text="⭐ НАВСЕГДА | 850₽ / 2000⭐", callback_data="sub_ios_forever")],
+        [InlineKeyboardButton(text="🔓 НЕДЕЛЯ | 300₽ (+комиссия ≈313₽)", callback_data="sub_ios_week")],
+        [InlineKeyboardButton(text="🔥 МЕСЯЦ | 450₽ (+комиссия ≈469₽)", callback_data="sub_ios_month")],
+        [InlineKeyboardButton(text="⭐ НАВСЕГДА | 850₽ (+комиссия ≈886₽)", callback_data="sub_ios_forever")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_platform")]
     ])
 
 def payment_methods_keyboard(product):
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💳 ЮMoney (Карта/СБП)", callback_data=f"pay_yoomoney_{product['platform_code']}_{product['period']}")],
+        [InlineKeyboardButton(text="💳 ЮMoney", callback_data=f"pay_yoomoney_{product['platform_code']}_{product['period']}")],
         [InlineKeyboardButton(text="⭐ Telegram Stars", callback_data=f"pay_stars_{product['platform_code']}_{product['period']}")],
-        [InlineKeyboardButton(text="💰 GOLD (ЮMoney Gold)", callback_data=f"pay_gold_{product['platform_code']}_{product['period']}")],
+        [InlineKeyboardButton(text="💰 GOLD", callback_data=f"pay_gold_{product['platform_code']}_{product['period']}")],
         [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_subscription")]
     ])
 
@@ -162,11 +211,6 @@ def support_keyboard():
         [InlineKeyboardButton(text="🔄 Новый заказ", callback_data="restart")]
     ])
 
-def restart_keyboard():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔄 Новый заказ", callback_data="restart")]
-    ])
-
 def about_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_platform")]
@@ -174,11 +218,10 @@ def about_keyboard():
 
 # ========== ФУНКЦИИ ==========
 def generate_order_id():
-    """Генерация уникального ID заказа"""
     return hashlib.md5(f"{time.time()}_{random.randint(1000, 9999)}".encode()).hexdigest()[:12]
 
 def create_payment_link(amount, order_id, product_name):
-    """Создает ссылку для оплаты через ЮMoney"""
+    """Создает ссылку для оплаты через ЮMoney с точной суммой"""
     comment = f"Заказ {order_id}: {product_name}"
     return (
         f"https://yoomoney.ru/quickpay/confirm.xml"
@@ -191,8 +234,11 @@ def create_payment_link(amount, order_id, product_name):
         f"&paymentType=AC"
     )
 
-async def check_yoomoney_payment(order_id, amount):
-    """Проверка платежа через API ЮMoney"""
+async def check_yoomoney_payment(order_id, expected_price):
+    """
+    Проверка платежа через API ЮMoney
+    Возвращает True если найден успешный платеж с правильной суммой
+    """
     if not YOOMONEY_ACCESS_TOKEN:
         logger.error("❌ ACCESS TOKEN не настроен!")
         return False
@@ -204,7 +250,7 @@ async def check_yoomoney_payment(order_id, amount):
     
     data = {
         "label": order_id,
-        "records": 10,
+        "records": 20,  # Больше записей для поиска
         "type": "incoming"
     }
     
@@ -218,22 +264,61 @@ async def check_yoomoney_payment(order_id, amount):
             ) as resp:
                 if resp.status == 200:
                     result = await resp.json()
-                    for op in result.get("operations", []):
-                        if op.get("label") == order_id and op.get("status") == "success":
-                            op_amount = float(op.get("amount", 0))
-                            if abs(op_amount - amount) < 0.01:
-                                logger.info(f"✅ Платеж {order_id} найден!")
-                                return True
+                    operations = result.get("operations", [])
+                    
+                    logger.info(f"🔍 Проверяем платеж {order_id}, ожидаем сумму: {expected_price} ₽")
+                    logger.info(f"📋 Найдено операций: {len(operations)}")
+                    
+                    for op in operations:
+                        op_label = op.get("label", "")
+                        op_status = op.get("status")
+                        op_amount = float(op.get("amount", 0))
+                        
+                        logger.info(f"   Операция: label={op_label}, status={op_status}, amount={op_amount}")
+                        
+                        # Проверяем совпадение по label
+                        if op_label == order_id:
+                            logger.info(f"   ✅ Найдена операция с нужным label!")
+                            
+                            if op_status == "success":
+                                # Проверяем сумму с учетом комиссии
+                                # Ищем продукт по order_id
+                                order = pending_orders.get(order_id)
+                                if order:
+                                    product = order["product"]
+                                    expected_amount = product["price_with_fee"]
+                                    
+                                    if abs(op_amount - expected_amount) <= 1:
+                                        logger.info(f"   ✅ Сумма совпадает! ({op_amount} ≈ {expected_amount})")
+                                        return True
+                                    else:
+                                        logger.warning(f"   ⚠️ Сумма не совпадает: {op_amount} vs {expected_amount}")
+                                else:
+                                    # Если не нашли в pending, пробуем по ожидаемой цене
+                                    if abs(op_amount - expected_price) <= 1:
+                                        logger.info(f"   ✅ Сумма совпадает с ожидаемой!")
+                                        return True
+                            else:
+                                logger.warning(f"   ⚠️ Статус операции: {op_status}")
+                    
+                    logger.info(f"❌ Платеж {order_id} не найден")
+                    
                 elif resp.status == 401:
                     logger.error("❌ Токен недействителен!")
+                else:
+                    logger.error(f"❌ Ошибка API: {resp.status}")
+                    
     except Exception as e:
-        logger.error(f"Ошибка проверки: {e}")
+        logger.error(f"❌ Ошибка проверки: {e}")
     
     return False
 
 async def send_to_admin(user, product, payment_method, price, order_id):
     """Отправка уведомления админу"""
     platform_name = "Android" if product['platform_code'] == 'apk' else "iOS"
+    if product['platform_code'] == 'test':
+        platform_name = "Тест"
+    
     message = (
         f"🆕 <b>НОВЫЙ ЗАКАЗ</b>\n\n"
         f"👤 {user.full_name}\n"
@@ -247,8 +332,10 @@ async def send_to_admin(user, product, payment_method, price, order_id):
     )
     await bot.send_message(ADMIN_ID, message, parse_mode="HTML")
 
-def generate_license_key(order_id, user_id):
+def generate_license_key(order_id, user_id, is_test=False):
     """Генерация лицензионного ключа"""
+    if is_test:
+        return f"TEST-KEY-{order_id[:8]}"
     return f"AIMNOOB-{order_id[:8]}-{user_id % 10000}"
 
 # ========== ОБРАБОТЧИКИ ==========
@@ -262,6 +349,8 @@ async def cmd_start(message: types.Message, state: FSMContext):
         "• 🎯 Идеальный AimLock\n"
         "• 👁️ WallHack через стены\n"
         "• 📊 ESP информация\n\n"
+        "⚠️ <b>Важно:</b> ЮMoney берет комиссию ~3%\n"
+        "Цена в кнопках уже с учетом комиссии!\n\n"
         "💎 <b>Выберите платформу:</b>"
     )
     await message.answer(text, parse_mode="HTML", reply_markup=platform_keyboard())
@@ -288,11 +377,14 @@ async def process_platform(callback: types.CallbackQuery, state: FSMContext):
     platform = callback.data.split("_")[1]
     await state.update_data(platform=platform)
     
-    if platform == "apk":
-        text = "📱 <b>Android (APK)</b>\n\n✅ Android 10+\n✅ Root не требуется\n\nВыберите срок:"
+    if platform == "test":
+        text = "🧪 <b>Тестовый режим</b>\n\n✅ Проверка оплаты за 1₽\n✅ Проверка работы бота\n\nВыберите тестовый товар:"
+        await callback.message.edit_text(text, parse_mode="HTML", reply_markup=test_subscription_keyboard())
+    elif platform == "apk":
+        text = "📱 <b>Android (APK)</b>\n\n✅ Android 10+\n✅ Root не требуется\n\n💰 Цены уже с учетом комиссии:\n• НЕДЕЛЯ: 156₽\n• МЕСЯЦ: 365₽\n• НАВСЕГДА: 156₽\n\nВыберите срок:"
         await callback.message.edit_text(text, parse_mode="HTML", reply_markup=apk_subscription_keyboard())
     else:
-        text = "🍏 <b>iOS</b>\n\n✅ iOS 14 - 18\n✅ Установка через AltStore\n\nВыберите срок:"
+        text = "🍏 <b>iOS</b>\n\n✅ iOS 14 - 18\n✅ Установка через AltStore\n\n💰 Цены уже с учетом комиссии:\n• НЕДЕЛЯ: 313₽\n• МЕСЯЦ: 469₽\n• НАВСЕГДА: 886₽\n\nВыберите срок:"
         await callback.message.edit_text(text, parse_mode="HTML", reply_markup=ios_subscription_keyboard())
     
     await state.set_state(OrderState.choosing_subscription)
@@ -315,7 +407,7 @@ async def process_subscription(callback: types.CallbackQuery, state: FSMContext)
         f"📦 {product['name']}\n"
         f"📱 {product['platform']}\n\n"
         f"💰 <b>Цены:</b>\n"
-        f"• ЮMoney: {product['price']} ₽\n"
+        f"• ЮMoney: {product['price']} ₽ + комиссия = {product['price_with_fee']} ₽\n"
         f"• STARS: {product['price_stars']} ⭐\n"
         f"• GOLD: {product['price_stars']} ⭐\n\n"
         f"💎 <b>Выберите способ оплаты:</b>"
@@ -339,7 +431,7 @@ async def process_yoomoney_payment(callback: types.CallbackQuery):
     
     user_id = callback.from_user.id
     order_id = generate_order_id()
-    amount = product["price"]
+    amount = product["price_with_fee"]  # Используем сумму с комиссией
     payment_url = create_payment_link(amount, order_id, product["name"])
     
     # Сохраняем заказ
@@ -348,6 +440,7 @@ async def process_yoomoney_payment(callback: types.CallbackQuery):
         "user_name": callback.from_user.full_name,
         "product": product,
         "amount": amount,
+        "original_price": product["price"],
         "payment_method": "ЮMoney",
         "status": "pending",
         "created_at": time.time()
@@ -356,11 +449,12 @@ async def process_yoomoney_payment(callback: types.CallbackQuery):
     text = (
         f"{product['emoji']} <b>Оплата ЮMoney</b>\n\n"
         f"📦 {product['name']}\n"
-        f"💰 Сумма: {amount} ₽\n"
+        f"💰 Сумма к оплате: <b>{amount} ₽</b>\n"
+        f"(включая комиссию ЮMoney 3%)\n"
         f"🆔 Заказ: <code>{order_id}</code>\n\n"
         f"📝 <b>Инструкция:</b>\n"
         f"1️⃣ Нажмите кнопку оплаты\n"
-        f"2️⃣ Оплатите {amount} ₽\n"
+        f"2️⃣ Оплатите <b>{amount} ₽</b>\n"
         f"3️⃣ Вернитесь и нажмите 'Проверить оплату'\n\n"
         f"⚠️ <b>Важно:</b> В комментарии укажите код: <code>{order_id}</code>"
     )
@@ -386,30 +480,46 @@ async def check_payment_callback(callback: types.CallbackQuery):
     await callback.answer("🔍 Проверяю оплату...")
     
     checking_msg = await callback.message.edit_text(
-        "🔄 <b>Проверяем платеж...</b>\n\nПожалуйста, подождите.",
+        "🔄 <b>Проверяем платеж...</b>\n\nПожалуйста, подождите до 30 секунд.",
         parse_mode="HTML"
     )
     
-    # Проверяем платеж
-    payment_received = await check_yoomoney_payment(order_id, order["amount"])
+    # Проверяем платеж несколько раз
+    payment_received = False
+    for attempt in range(3):
+        logger.info(f"Попытка {attempt+1} проверки платежа {order_id}")
+        payment_received = await check_yoomoney_payment(order_id, order["amount"])
+        if payment_received:
+            break
+        await asyncio.sleep(3)
     
     if payment_received:
         product = order["product"]
         user_id = order["user_id"]
-        license_key = generate_license_key(order_id, user_id)
+        is_test = product.get("is_test", False)
+        license_key = generate_license_key(order_id, user_id, is_test)
         
-        success_text = (
-            f"✅ <b>Оплата подтверждена!</b>\n\n"
-            f"🎉 Добро пожаловать в AimNoob!\n\n"
-            f"📦 <b>Ваш заказ:</b>\n"
-            f"• {product['name']}\n"
-            f"• {product['emoji']} {product['platform']}\n\n"
-            f"🔑 <b>Лицензионный ключ:</b>\n"
-            f"<code>{license_key}</code>\n\n"
-            f"📥 <b>Скачать:</b>\n"
-            f"{SHOP_URL}/download/{product['platform_code']}_{user_id}\n\n"
-            f"💬 Поддержка: @{SUPPORT_CHAT_USERNAME}"
-        )
+        if is_test:
+            success_text = (
+                f"✅ <b>ТЕСТОВАЯ ОПЛАТА ПОДТВЕРЖДЕНА!</b>\n\n"
+                f"🎉 Система работает корректно!\n\n"
+                f"🔑 <b>Тестовый ключ:</b>\n"
+                f"<code>{license_key}</code>\n\n"
+                f"💬 Поддержка: @{SUPPORT_CHAT_USERNAME}"
+            )
+        else:
+            success_text = (
+                f"✅ <b>Оплата подтверждена!</b>\n\n"
+                f"🎉 Добро пожаловать в AimNoob!\n\n"
+                f"📦 <b>Ваш заказ:</b>\n"
+                f"• {product['name']}\n"
+                f"• {product['emoji']} {product['platform']}\n\n"
+                f"🔑 <b>Лицензионный ключ:</b>\n"
+                f"<code>{license_key}</code>\n\n"
+                f"📥 <b>Скачать:</b>\n"
+                f"{SHOP_URL}/download/{product['platform_code']}_{user_id}\n\n"
+                f"💬 Поддержка: @{SUPPORT_CHAT_USERNAME}"
+            )
         
         await checking_msg.edit_text(success_text, parse_mode="HTML", reply_markup=support_keyboard())
         
@@ -419,7 +529,7 @@ async def check_payment_callback(callback: types.CallbackQuery):
             f"✅ <b>НОВАЯ ПРОДАЖА!</b>\n\n"
             f"👤 {order['user_name']}\n"
             f"📦 {product['name']}\n"
-            f"💰 {order['amount']} ₽\n"
+            f"💰 {order['amount']} ₽ (ориг. {order['original_price']} ₽ + комиссия)\n"
             f"🆔 Заказ: <code>{order_id}</code>\n"
             f"🔑 Ключ: <code>{license_key}</code>",
             parse_mode="HTML"
@@ -433,7 +543,7 @@ async def check_payment_callback(callback: types.CallbackQuery):
         
         fail_text = (
             f"❌ <b>Платеж не найден</b>\n\n"
-            f"💰 Сумма: {order['amount']} ₽\n"
+            f"💰 Сумма к оплате: {order['amount']} ₽\n"
             f"🆔 Заказ: <code>{order_id}</code>\n\n"
             f"<b>Проверьте:</b>\n"
             f"• Оплачена ли точная сумма {order['amount']} ₽\n"
@@ -457,6 +567,9 @@ async def process_gold_payment(callback: types.CallbackQuery):
         return
     
     platform_name = "Android" if product['platform_code'] == 'apk' else "iOS"
+    if product['platform_code'] == 'test':
+        platform_name = "Тест"
+    
     msg = (f"Привет! Хочу купить чит на Standoff 2 🔑 Версия 0.37.1, "
            f"подписка на {product['period']} ({platform_name}) — "
            f"готов купить за {product['price_stars']} голды прямо сейчас 💰")
@@ -554,19 +667,29 @@ async def successful_payment(message: types.Message):
         if order:
             product = order['product']
             user_id = message.from_user.id
-            license_key = generate_license_key(order_id, user_id)
+            is_test = product.get("is_test", False)
+            license_key = generate_license_key(order_id, user_id, is_test)
             
             order['status'] = "confirmed"
             
-            success_text = (
-                f"✅ <b>Оплата Stars подтверждена!</b>\n\n"
-                f"🎉 Добро пожаловать в AimNoob!\n\n"
-                f"📦 {product['name']}\n"
-                f"🔑 <b>Ключ:</b> <code>{license_key}</code>\n\n"
-                f"📥 <b>Скачать:</b>\n"
-                f"{SHOP_URL}/download/{product['platform_code']}_{user_id}\n\n"
-                f"💬 Поддержка: @{SUPPORT_CHAT_USERNAME}"
-            )
+            if is_test:
+                success_text = (
+                    f"✅ <b>ТЕСТОВАЯ ОПЛАТА STARS ПОДТВЕРЖДЕНА!</b>\n\n"
+                    f"🎉 Система работает корректно!\n\n"
+                    f"🔑 <b>Тестовый ключ:</b>\n"
+                    f"<code>{license_key}</code>\n\n"
+                    f"💬 Поддержка: @{SUPPORT_CHAT_USERNAME}"
+                )
+            else:
+                success_text = (
+                    f"✅ <b>Оплата Stars подтверждена!</b>\n\n"
+                    f"🎉 Добро пожаловать в AimNoob!\n\n"
+                    f"📦 {product['name']}\n"
+                    f"🔑 <b>Ключ:</b> <code>{license_key}</code>\n\n"
+                    f"📥 <b>Скачать:</b>\n"
+                    f"{SHOP_URL}/download/{product['platform_code']}_{user_id}\n\n"
+                    f"💬 Поддержка: @{SUPPORT_CHAT_USERNAME}"
+                )
             
             await message.answer(success_text, parse_mode="HTML", reply_markup=support_keyboard())
             
@@ -600,7 +723,13 @@ async def back_to_subscription(callback: types.CallbackQuery, state: FSMContext)
     data = await state.get_data()
     platform = data.get("platform", "apk")
     
-    if platform == "apk":
+    if platform == "test":
+        await callback.message.edit_text(
+            "🧪 <b>Тестовый режим</b>\n\nВыберите тестовый товар:",
+            parse_mode="HTML",
+            reply_markup=test_subscription_keyboard()
+        )
+    elif platform == "apk":
         await callback.message.edit_text(
             "📱 <b>Android (APK)</b>\n\nВыберите срок:",
             parse_mode="HTML",
@@ -645,6 +774,7 @@ async def main():
     me = await bot.get_me()
     print(f"\n✅ Бот @{me.username} запущен!")
     print(f"💳 Кошелек ЮMoney: {YOOMONEY_WALLET}")
+    print(f"💰 Комиссия: {YOOMONEY_FEE_RATE*100}% (мин. {YOOMONEY_MIN_FEE}₽)")
     print(f"💬 Поддержка: @{SUPPORT_CHAT_USERNAME}")
     print("="*60)
     print("✅ Ожидание сообщений...")
