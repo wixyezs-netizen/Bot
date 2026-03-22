@@ -14,6 +14,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
+from urllib.parse import quote_plus
 
 # ========== КОНФИГУРАЦИЯ ==========
 BOT_TOKEN = "8225924716:AAFzKnXZ8lJG_X1W9poH6Muyi-MMCXTWMy0"
@@ -165,7 +166,7 @@ def ios_subscription_keyboard():
 
 def payment_methods_keyboard(product):
     buttons = [
-        [InlineKeyboardButton(text="💳 Карта ЮMoney", callback_data=f"pay_yoomoney_{product['platform_code']}_{product['period']}")],
+        [InlineKeyboardButton(text="💳 ЮMoney", callback_data=f"pay_yoomoney_{product['platform_code']}_{product['period']}")],
         [InlineKeyboardButton(text="⭐ Telegram Stars", callback_data=f"pay_stars_{product['platform_code']}_{product['period']}")],
         [InlineKeyboardButton(text="₿ Криптобот", callback_data=f"pay_crypto_{product['platform_code']}_{product['period']}")],
         [InlineKeyboardButton(text="💰 GOLD", callback_data=f"pay_gold_{product['platform_code']}_{product['period']}")],
@@ -176,7 +177,7 @@ def payment_methods_keyboard(product):
 
 def payment_keyboard(payment_url, order_id):
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💳 Перейти к оплате", url=payment_url)],
+        [InlineKeyboardButton(text="💳 Оплатить ЮMoney", url=payment_url)],
         [InlineKeyboardButton(text="✅ Проверить оплату", callback_data=f"check_{order_id}")],
         [InlineKeyboardButton(text="❌ Отмена", callback_data="restart")]
     ])
@@ -533,7 +534,7 @@ async def process_subscription(callback: types.CallbackQuery, state: FSMContext)
         f"{product['emoji']} <b>{product['name']}</b>\n"
         f"⏱️ Длительность: {product['duration']}\n\n"
         f"💎 <b>Стоимость:</b>\n"
-        f"💳 Карта: {product['price']} ₽\n"
+        f"💳 ЮMoney: {product['price']} ₽\n"
         f"⭐ Stars: {product['price_stars']} ⭐\n"
         f"₿ Крипта: {product['price_crypto_usdt']} USDT\n"
         f"💰 GOLD: {product['price_gold']} 🪙\n"
@@ -577,13 +578,13 @@ async def process_yoomoney_payment(callback: types.CallbackQuery):
     }
     
     text = (
-        f"💳 <b>Оплата картой</b>\n\n"
+        f"💳 <b>Оплата ЮMoney</b>\n\n"
         f"{product['emoji']} {product['name']}\n"
         f"⏱️ {product['duration']}\n"
         f"💰 К оплате: <b>{amount} ₽</b>\n"
         f"🆔 Номер заказа: <code>{order_id}</code>\n\n"
         f"🔄 <b>Инструкция:</b>\n"
-        f"1️⃣ Нажмите «Перейти к оплате»\n"
+        f"1️⃣ Нажмите «Оплатить ЮMoney»\n"
         f"2️⃣ Оплатите через ЮMoney\n"
         f"3️⃣ Вернитесь и проверьте оплату\n\n"
         f"💫 <b>Автоматическая проверка платежа</b>"
@@ -841,8 +842,9 @@ async def process_gold_payment(callback: types.CallbackQuery):
         f"4️⃣ Ожидайте обработки заказа"
     )
     
-    # Создаем ссылку с предзаполненным текстом
-    support_url = f"https://t.me/{SUPPORT_CHAT_USERNAME}?text={chat_message.replace(' ', '%20').replace('\n', '%0A')}"
+    # Используем quote_plus для кодирования URL
+    encoded_message = quote_plus(chat_message)
+    support_url = f"https://t.me/{SUPPORT_CHAT_USERNAME}?text={encoded_message}"
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💰 Перейти к оплате", url=support_url)],
@@ -894,8 +896,9 @@ async def process_nft_payment(callback: types.CallbackQuery):
         f"4️⃣ Ожидайте обработки заказа"
     )
     
-    # Создаем ссылку с предзаполненным текстом
-    support_url = f"https://t.me/{SUPPORT_CHAT_USERNAME}?text={chat_message.replace(' ', '%20').replace('\n', '%0A')}"
+    # Используем quote_plus для кодирования URL
+    encoded_message = quote_plus(chat_message)
+    support_url = f"https://t.me/{SUPPORT_CHAT_USERNAME}?text={encoded_message}"
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🎨 Перейти к оплате", url=support_url)],
