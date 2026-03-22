@@ -19,9 +19,17 @@ from urllib.parse import quote_plus
 
 # ========== КОНФИГУРАЦИЯ ==========
 # Получаем токены из переменных окружения
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8225924716:AAFzKnXZ8lJG_X1W9poH6Muyi-MMCXTWMy0")
-ADMIN_ID = int(os.getenv("ADMIN_ID", "8387532956"))
-SUPPORT_CHAT_ID = int(os.getenv("SUPPORT_CHAT_ID", "8354762345"))
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8225924716:AAFZ_8Eu8aJ4BF7pErZY5Ef3emG9Cl9PikE")
+
+# Обрабатываем ADMIN_ID - может быть несколько ID через запятую
+admin_ids_str = os.getenv("ADMIN_ID", "8387532956,8354762345")
+if "," in admin_ids_str:
+    # Если несколько ID, берем первый как основной админ
+    ADMIN_ID = int(admin_ids_str.split(",")[0].strip())
+    SUPPORT_CHAT_ID = int(admin_ids_str.split(",")[1].strip())
+else:
+    ADMIN_ID = int(admin_ids_str)
+    SUPPORT_CHAT_ID = int(os.getenv("SUPPORT_CHAT_ID", "8354762345"))
 
 # Криптобот
 CRYPTOBOT_TOKEN = os.getenv("CRYPTOBOT_TOKEN", "493276:AAtS7R1zYy0gaPw8eax1EgiWo0tdnd6dQ9c")
@@ -721,6 +729,9 @@ async def successful_payment(message: types.Message):
         order_id = payload.replace("stars_", "")
         await process_successful_payment(order_id, "Telegram Stars")
 
+# ========== ОСТАЛЬНЫЕ ОБРАБОТЧИКИ (CRYPTO, GOLD, NFT) ==========
+# (Остальной код аналогично...)
+
 # ₿ Криптобот
 @dp.callback_query(F.data.startswith("pay_crypto_"))
 async def process_crypto_payment(callback: types.CallbackQuery):
@@ -1078,6 +1089,10 @@ async def main():
     print("🚀      AIMNOOB PREMIUM SHOP BOT       🚀")
     print("💎" + "="*50 + "💎")
     
+    print(f"🔧 Конфигурация:")
+    print(f"   ADMIN_ID: {ADMIN_ID}")
+    print(f"   SUPPORT_CHAT_ID: {SUPPORT_CHAT_ID}")
+    
     # Проверяем токен бота
     if not BOT_TOKEN:
         print("❌ Токен бота не найден!")
@@ -1120,6 +1135,8 @@ async def main():
     except Exception as e:
         print(f"❌ Ошибка запуска бота: {e}")
         print("💡 Проверьте правильность токена бота!")
+        import traceback
+        traceback.print_exc()
     finally:
         await bot.session.close()
 
