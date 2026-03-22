@@ -2,9 +2,10 @@ import asyncio
 import logging
 import sqlite3
 import secrets
-import random
+import json
+import aiohttp
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Optional
 
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import Command, StateFilter
@@ -21,11 +22,13 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 BOT_TOKEN = "8225924716:AAFZ_8Eu8aJ4BF7pErZY5Ef3emG9Cl9PikE"  # ВСТАВЬТЕ ВАШ ТОКЕН
 ADMIN_ID = 8387532956  # ВАШ Telegram ID (узнайте у @userinfobot)
 
-# ========== ЮMoney настройки (для кнопки) ==========
-YOOMONEY_RECEIVER = "4100118889570559"  # Ваш кошелек ЮMoney
-
 # ========== CryptoBot настройки ==========
 CRYPTO_BOT_TOKEN = "493276:AAtS7R1zYy0gaPw8eax1EgiWo0tdnd6dQ9c"
+CRYPTO_API_URL = "https://pay.crypt.bot/api"
+
+# ========== Карта для оплаты ==========
+CARD_NUMBER = "2200 7021 3256 9927"
+CARD_HOLDER = "AIMNOOB SHOP"
 
 # База данных
 DB_NAME = "shop_bot.db"
@@ -54,6 +57,7 @@ def init_db():
             product TEXT,
             price INTEGER,
             currency TEXT,
+            payment_id TEXT,
             status TEXT,
             created_at TIMESTAMP,
             paid_at TIMESTAMP
@@ -73,12 +77,12 @@ def init_db():
     conn.close()
     logger.info("База данных инициализирована")
 
-def add_order(user_id, username, product, price, currency, status="pending"):
+def add_order(user_id, username, product, price, currency, payment_id=None, status="pending"):
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO orders (user_id, username, product, price, currency, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (user_id, username, product, price, currency, status, datetime.now())
+        "INSERT INTO orders (user_id, username, product, price, currency, payment_id, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (user_id, username, product, price, currency, payment_id, status, datetime.now())
     )
     order_id = cur.lastrowid
     conn.commit()
@@ -171,32 +175,19 @@ def durations_kb(platform: str):
 
 def payment_methods_kb(product_name: str, price: int):
     builder = InlineKeyboardBuilder()
-    builder.button(text="💳 Карта (ЮMoney)", callback_data=f"pay_yoomoney_{product_name}_{price}")
+    builder.button(text="💳 Карта", callback_data=f"pay_card_{product_name}_{price}")
     builder.button(text="⭐ Telegram Stars", callback_data=f"pay_stars_{product_name}_{price}")
     builder.button(text="💰 CryptoBot", callback_data=f"pay_crypto_{product_name}_{price}")
-    builder.button(text="🪙 GOLD (Standoff 2)", callback_data=f"pay_gold_{product_name}_{price}")
+    builder.button(text="🪙 GOLD", callback_data=f"pay_gold_{product_name}_{price}")
     builder.button(text="🎨 NFT", callback_data=f"pay_nft_{product_name}_{price}")
     builder.button(text="◀️ Назад", callback_data="back_durations")
     builder.adjust(1)
     return builder.as_markup()
 
-def get_yoomoney_button_html(bill_number: str, amount: int, purpose: str):
-    """Генерирует HTML-код кнопки ЮMoney"""
-    import urllib.parse
-    encoded_purpose = urllib.parse.quote(purpose)
-    
-    return f'''<a href="https://yoomoney.ru/quickpay/confirm.xml?receiver={YOOMONEY_RECEIVER}&quickpay-form=shop&targets={encoded_purpose}&sum={amount}&paymentType=PC&label={bill_number}" target="_blank">
-        <img src="https://yoomoney.ru/i/shop/buttons/quickpay_button.png" width="330" height="50" alt="Оплатить через ЮMoney">
-    </a>'''
-
-# ==================== ЮMONEY ОПЛАТА (С ЧЕКОМ) ====================
-def generate_bill_number(order_id: int, user_id: int) -> str:
-    """Генерация уникального номера счета"""
-    return f"AIMNOOB_{order_id}_{user_id}_{secrets.token_hex(4)}"
-
-@dp.callback_query(F.data.startswith("pay_yoomoney_"))
-async def pay_yoomoney(callback: CallbackQuery, state: FSMContext):
-    """Обработка оплаты через ЮMoney"""
+# ==================== ОПЛАТА КАРТОЙ (С ЧЕКОМ) ====================
+@dp.callback_query(F.data.startswith("pay_card_"))
+async def pay_card(callback: CallbackQuery, state: FSMContext):
+    """Оплата картой с реквизитами"""
     try:
         _, _, product_name, price = callback.data.split("_", 3)
         price = int(price)
@@ -205,30 +196,24 @@ async def pay_yoomoney(callback: CallbackQuery, state: FSMContext):
         username = callback.from_user.username or "нет"
         
         # Создаем заказ
-        order_id = add_order(user_id, username, product_name, price, "yoomoney", status="pending")
-        
-        # Генерируем billNumber
-        bill_number = generate_bill_number(order_id, user_id)
+        order_id = add_order(user_id, username, product_name, price, "card", status="pending")
         
         await state.update_data(product=product_name, price=price, order_id=order_id)
         
-        # Описание платежа
-        purpose = f"Оплата {product_name} (заказ #{order_id})"
-        
-        # Генерируем кнопку
-        button_html = get_yoomoney_button_html(bill_number, price, purpose)
-        
         await callback.message.edit_text(
-            f"💳 <b>Оплата картой (ЮMoney)</b>\n\n"
+            f"💳 <b>Оплата картой</b>\n\n"
             f"📦 Товар: {product_name}\n"
             f"💰 Сумма: {price} ₽\n"
             f"🆔 Номер заказа: #{order_id}\n\n"
-            f"👇 <b>Нажмите на кнопку ниже для оплаты:</b>\n\n"
-            f"{button_html}\n\n"
-            f"✅ <b>После оплаты нажмите кнопку «Я оплатил» и пришлите чек</b>\n\n"
+            f"<b>💳 Реквизиты для оплаты:</b>\n"
+            f"<code>{CARD_NUMBER}</code>\n\n"
+            f"<b>Получатель:</b> {CARD_HOLDER}\n\n"
+            f"✅ <b>После оплаты:</b>\n"
+            f"1. Сохраните чек\n"
+            f"2. Нажмите кнопку «Я оплатил»\n"
+            f"3. Отправьте скриншот чека\n\n"
             f"<i>Если у вас есть вопросы: @aimnoob_support</i>",
-            parse_mode="HTML",
-            disable_web_page_preview=True
+            parse_mode="HTML"
         )
         
         # Кнопка "Я оплатил"
@@ -241,14 +226,289 @@ async def pay_yoomoney(callback: CallbackQuery, state: FSMContext):
         )
         
         await callback.answer()
-        logger.info(f"Создан заказ #{order_id} для ЮMoney")
+        logger.info(f"Создан заказ #{order_id} для оплаты картой")
         
     except Exception as e:
-        logger.error(f"Ошибка при создании оплаты ЮMoney: {e}")
+        logger.error(f"Ошибка: {e}")
+        await callback.message.edit_text("❌ Ошибка при создании заказа", parse_mode="HTML")
+
+# ==================== CRYPTOBOT (АВТОМАТИЧЕСКАЯ ОПЛАТА) ====================
+async def create_crypto_invoice(amount_usdt: float, order_id: int, product_name: str) -> Optional[str]:
+    """Создание инвойса в CryptoBot"""
+    try:
+        headers = {
+            "Crypto-Pay-API-Token": CRYPTO_BOT_TOKEN,
+            "Content-Type": "application/json"
+        }
+        
+        data = {
+            "asset": "USDT",
+            "amount": str(amount_usdt),
+            "description": f"Оплата {product_name} (заказ #{order_id})",
+            "payload": f"crypto_{order_id}",
+            "expires_in": 3600  # 1 час
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"{CRYPTO_API_URL}/createInvoice", headers=headers, json=data) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    if result.get("ok"):
+                        invoice = result.get("result")
+                        return invoice.get("pay_url")
+                else:
+                    logger.error(f"CryptoBot API error: {await response.text()}")
+        return None
+    except Exception as e:
+        logger.error(f"CryptoBot error: {e}")
+        return None
+
+async def check_crypto_payment(invoice_id: str) -> bool:
+    """Проверка статуса оплаты в CryptoBot"""
+    try:
+        headers = {
+            "Crypto-Pay-API-Token": CRYPTO_BOT_TOKEN
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{CRYPTO_API_URL}/getInvoices", headers=headers, params={"invoice_ids": invoice_id}) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    if result.get("ok"):
+                        invoices = result.get("result", {}).get("items", [])
+                        for invoice in invoices:
+                            if invoice.get("status") == "paid":
+                                return True
+        return False
+    except Exception as e:
+        logger.error(f"Check payment error: {e}")
+        return False
+
+@dp.callback_query(F.data.startswith("pay_crypto_"))
+async def pay_crypto(callback: CallbackQuery, state: FSMContext):
+    """Оплата через CryptoBot (автоматическая)"""
+    try:
+        _, _, product_name, price = callback.data.split("_", 3)
+        price = int(price)
+        usdt_price = round(price / 80, 2)  # 1 USDT ≈ 80 ₽
+        
+        user_id = callback.from_user.id
+        username = callback.from_user.username or "нет"
+        
+        # Создаем заказ
+        order_id = add_order(user_id, username, product_name, price, "crypto", status="pending")
+        
+        await state.update_data(product=product_name, price=price, order_id=order_id)
+        
+        # Создаем инвойс в CryptoBot
+        pay_url = await create_crypto_invoice(usdt_price, order_id, product_name)
+        
+        if pay_url:
+            await callback.message.edit_text(
+                f"💰 <b>Оплата криптовалютой (USDT)</b>\n\n"
+                f"📦 Товар: {product_name}\n"
+                f"💰 Сумма: {price} ₽ (~{usdt_price} USDT)\n"
+                f"🆔 Заказ: #{order_id}\n\n"
+                f"🔗 <a href='{pay_url}'>Нажмите для оплаты через CryptoBot</a>\n\n"
+                f"✅ <b>После оплаты чит придет автоматически!</b>\n"
+                f"⏱ Обычно это занимает 1-2 минуты.\n\n"
+                f"<i>Если оплата не прошла автоматически, свяжитесь с поддержкой: @aimnoob_support</i>",
+                parse_mode="HTML",
+                disable_web_page_preview=True
+            )
+            
+            # Кнопка проверки статуса
+            await callback.message.answer(
+                "🔄 <b>Проверить статус оплаты</b>",
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="🔄 Проверить оплату", callback_data=f"check_crypto_{order_id}")]
+                ]),
+                parse_mode="HTML"
+            )
+        else:
+            await callback.message.edit_text(
+                f"❌ <b>Ошибка при создании платежа</b>\n\n"
+                f"Пожалуйста, попробуйте позже или выберите другой способ оплаты.\n\n"
+                f"Связь с поддержкой: @aimnoob_support",
+                parse_mode="HTML"
+            )
+        
+        await callback.answer()
+        logger.info(f"Создан крипто-заказ #{order_id}")
+        
+    except Exception as e:
+        logger.error(f"Ошибка CryptoBot: {e}")
+        await callback.message.edit_text("❌ Ошибка при создании платежа", parse_mode="HTML")
+
+@dp.callback_query(F.data.startswith("check_crypto_"))
+async def check_crypto_payment_status(callback: CallbackQuery):
+    """Проверка статуса крипто-оплаты"""
+    try:
+        order_id = int(callback.data.split("_")[2])
+        
+        conn = sqlite3.connect(DB_NAME)
+        cur = conn.cursor()
+        cur.execute("SELECT status, product, price FROM orders WHERE id = ?", (order_id,))
+        order = cur.fetchone()
+        conn.close()
+        
+        if order:
+            status, product_name, price = order
+            if status == "paid":
+                await callback.message.answer(
+                    f"✅ <b>Оплата подтверждена!</b>\n\n"
+                    f"📦 Товар: {product_name}\n"
+                    f"💰 Сумма: {price} ₽\n"
+                    f"🆔 Заказ: #{order_id}\n\n"
+                    f"🔑 <b>Ваш чит:</b>\n"
+                    f"<code>https://example.com/cheat/{order_id}</code>\n\n"
+                    f"📖 <b>Инструкция:</b>\n"
+                    f"1. Скачайте файл по ссылке\n"
+                    f"2. Установите APK\n"
+                    f"3. Запустите и наслаждайтесь игрой!\n\n"
+                    f"Приятной игры! 🎮",
+                    parse_mode="HTML"
+                )
+            elif status == "pending":
+                await callback.message.answer(
+                    f"⏳ <b>Заказ #{order_id} ожидает оплаты</b>\n\n"
+                    f"Пожалуйста, оплатите счет. После оплаты чит придет автоматически.",
+                    parse_mode="HTML"
+                )
+            else:
+                await callback.message.answer(
+                    f"❌ Заказ #{order_id} не найден или отменен.",
+                    parse_mode="HTML"
+                )
+        
+        await callback.answer()
+        
+    except Exception as e:
+        logger.error(f"Ошибка проверки: {e}")
+
+# ==================== GOLD ОПЛАТА (ПЕРЕКИДЫВАЕТ В ЧАТ С АДМИНОМ) ====================
+@dp.callback_query(F.data.startswith("pay_gold_"))
+async def pay_gold(callback: CallbackQuery, state: FSMContext):
+    """Оплата GOLD - перекидывает в чат с админом"""
+    try:
+        _, _, product_name, price = callback.data.split("_", 3)
+        price = int(price)
+        gold_price = 350
+        
+        # Создаем заказ
+        order_id = add_order(callback.from_user.id, callback.from_user.username or "нет", 
+                            product_name, price, "gold", status="pending")
+        
+        # Текст для отправки админу
+        message_text = (
+            f"🪙 <b>НОВЫЙ ЗАКАЗ (GOLD)</b>\n\n"
+            f"👤 Пользователь: @{callback.from_user.username or callback.from_user.id}\n"
+            f"🆔 ID: {callback.from_user.id}\n"
+            f"📦 Товар: {product_name}\n"
+            f"💰 Сумма: {price} ₽ ({gold_price} голды)\n"
+            f"🆔 Заказ: #{order_id}\n\n"
+            f"📝 <b>Сообщение от пользователя:</b>\n"
+            f"Привет! Хочу купить чит на Standoff 2 🔑 Версия 0.37.1, "
+            f"подписка — готов купить за {gold_price} голды прямо сейчас 💰\n\n"
+            f"💬 Для связи с пользователем: @{callback.from_user.username or callback.from_user.id}\n"
+            f"📌 Для подтверждения заказа отправьте команду:\n"
+            f"<code>/approve {order_id}</code>"
+        )
+        
+        # Создаем клавиатуру для быстрого ответа
+        kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="✅ Подтвердить заказ", callback_data=f"approve_{order_id}")],
+            [InlineKeyboardButton(text="❌ Отклонить заказ", callback_data=f"reject_{order_id}")]
+        ])
+        
+        # Отправляем админу
+        await bot.send_message(ADMIN_ID, message_text, parse_mode="HTML", reply_markup=kb)
+        
+        # Создаем ссылку на чат с админом
+        admin_username = (await bot.get_chat(ADMIN_ID)).username or "aimnoob_support"
+        
         await callback.message.edit_text(
-            "❌ Произошла ошибка. Пожалуйста, попробуйте позже.",
+            f"🪙 <b>Оплата GOLD (Standoff 2)</b>\n\n"
+            f"📦 Товар: {product_name}\n"
+            f"💰 Сумма: {gold_price} голды\n"
+            f"🆔 Заказ: #{order_id}\n\n"
+            f"👇 <b>Для оплаты свяжитесь с администратором:</b>\n"
+            f"<a href='tg://user?id={ADMIN_ID}'>Написать администратору</a>\n\n"
+            f"📝 <b>Ваше сообщение будет автоматически содержать:</b>\n"
+            f"<i>Привет! Хочу купить чит на Standoff 2 🔑 Версия 0.37.1, "
+            f"подписка — готов купить за {gold_price} голды прямо сейчас 💰\n"
+            f"Заказ #{order_id}</i>\n\n"
+            f"⏳ После оплаты администратор подтвердит заказ и выдаст чит.",
+            parse_mode="HTML",
+            disable_web_page_preview=True
+        )
+        
+        # Кнопка для открытия чата с админом
+        await callback.message.answer(
+            "💬 <b>Связаться с администратором</b>",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="💬 Написать админу", url=f"tg://user?id={ADMIN_ID}")]
+            ]),
             parse_mode="HTML"
         )
+        
+        await state.clear()
+        await callback.answer()
+        logger.info(f"Создан заказ GOLD #{order_id}, отправлено уведомление админу")
+        
+    except Exception as e:
+        logger.error(f"Ошибка GOLD: {e}")
+
+# ==================== NFT ОПЛАТА ====================
+@dp.callback_query(F.data.startswith("pay_nft_"))
+async def pay_nft(callback: CallbackQuery, state: FSMContext):
+    """Оплата NFT - перекидывает в чат с админом"""
+    try:
+        _, _, product_name, price = callback.data.split("_", 3)
+        price = int(price)
+        nft_price = 250
+        
+        order_id = add_order(callback.from_user.id, callback.from_user.username or "нет", 
+                            product_name, price, "nft", status="pending")
+        
+        # Отправляем админу
+        await bot.send_message(
+            ADMIN_ID,
+            f"🎨 <b>НОВЫЙ ЗАКАЗ (NFT)</b>\n\n"
+            f"👤 Пользователь: @{callback.from_user.username or callback.from_user.id}\n"
+            f"📦 Товар: {product_name}\n"
+            f"💰 Сумма: {price} ₽ ({nft_price} NFT)\n"
+            f"🆔 Заказ: #{order_id}\n\n"
+            f"💬 Связь: @{callback.from_user.username or callback.from_user.id}\n"
+            f"📌 Для подтверждения: /approve {order_id}",
+            parse_mode="HTML"
+        )
+        
+        await callback.message.edit_text(
+            f"🎨 <b>Оплата NFT</b>\n\n"
+            f"📦 Товар: {product_name}\n"
+            f"💰 Сумма: {nft_price} NFT\n"
+            f"🆔 Заказ: #{order_id}\n\n"
+            f"👇 <b>Для оплаты свяжитесь с администратором:</b>\n"
+            f"<a href='tg://user?id={ADMIN_ID}'>Написать администратору</a>\n\n"
+            f"⏳ После оплаты администратор подтвердит заказ и выдаст чит.",
+            parse_mode="HTML"
+        )
+        
+        await callback.message.answer(
+            "💬 <b>Связаться с администратором</b>",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="💬 Написать админу", url=f"tg://user?id={ADMIN_ID}")]
+            ]),
+            parse_mode="HTML"
+        )
+        
+        await state.clear()
+        await callback.answer()
+        logger.info(f"Создан заказ NFT #{order_id}")
+        
+    except Exception as e:
+        logger.error(f"Ошибка NFT: {e}")
 
 # ==================== TELEGRAM STARS (АВТО) ====================
 @dp.callback_query(F.data.startswith("pay_stars_"))
@@ -260,7 +520,7 @@ async def pay_stars(callback: CallbackQuery, state: FSMContext):
         stars_price = max(1, price // 10)
         
         order_id = add_order(callback.from_user.id, callback.from_user.username or "нет", 
-                            product_name, price, "stars")
+                            product_name, price, "stars", status="pending")
         
         await state.update_data(product=product_name, price=price, order_id=order_id)
         
@@ -323,152 +583,15 @@ async def successful_payment(message: Message):
                     parse_mode="HTML"
                 )
                 
-                # Уведомляем админа
                 await bot.send_message(
                     ADMIN_ID,
-                    f"⭐ <b>ОПЛАТА STARS</b>\n\n"
-                    f"👤 {message.from_user.username or message.from_user.id}\n"
-                    f"📦 {product_name}\n"
-                    f"💰 {price} ₽\n"
-                    f"🆔 #{order_id}",
+                    f"⭐ <b>ОПЛАТА STARS</b>\n\n👤 {message.from_user.username}\n📦 {product_name}\n💰 {price} ₽\n🆔 #{order_id}",
                     parse_mode="HTML"
                 )
                 logger.info(f"Заказ #{order_id} оплачен через Stars")
                 
     except Exception as e:
-        logger.error(f"Ошибка при обработке оплаты Stars: {e}")
-
-# ==================== CRYPTOBOT (С ЧЕКОМ) ====================
-@dp.callback_query(F.data.startswith("pay_crypto_"))
-async def pay_crypto(callback: CallbackQuery, state: FSMContext):
-    """Оплата через CryptoBot"""
-    try:
-        _, _, product_name, price = callback.data.split("_", 3)
-        price = int(price)
-        usdt_price = round(price / 80, 2)
-        
-        order_id = add_order(callback.from_user.id, callback.from_user.username or "нет", 
-                            product_name, price, "crypto")
-        
-        await state.update_data(product=product_name, price=price, order_id=order_id)
-        
-        await callback.message.edit_text(
-            f"💰 <b>Оплата криптовалютой (USDT)</b>\n\n"
-            f"📦 Товар: {product_name}\n"
-            f"💰 Сумма: {price} ₽ (~{usdt_price} USDT)\n"
-            f"🆔 Заказ: #{order_id}\n\n"
-            f"💳 <b>Реквизиты для оплаты:</b>\n"
-            f"<code>USDT (TRC20): TXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</code>\n\n"
-            f"✅ <b>После оплаты нажмите кнопку и пришлите чек</b>\n\n"
-            f"<i>Связь с поддержкой: @aimnoob_support</i>",
-            parse_mode="HTML"
-        )
-        
-        await callback.message.answer(
-            "📸 <b>После оплаты нажмите кнопку и отправьте чек</b>",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="✅ Я оплатил", callback_data=f"send_receipt_{order_id}")]
-            ]),
-            parse_mode="HTML"
-        )
-        
-        await callback.answer()
-        logger.info(f"Создан заказ #{order_id} для CryptoBot")
-        
-    except Exception as e:
-        logger.error(f"Ошибка CryptoBot: {e}")
-        await callback.message.edit_text("❌ Ошибка при создании платежа", parse_mode="HTML")
-
-# ==================== GOLD ОПЛАТА ====================
-@dp.callback_query(F.data.startswith("pay_gold_"))
-async def pay_gold(callback: CallbackQuery, state: FSMContext):
-    """Оплата GOLD (ручная)"""
-    try:
-        _, _, product_name, price = callback.data.split("_", 3)
-        price = int(price)
-        gold_price = 350
-        
-        order_id = add_order(callback.from_user.id, callback.from_user.username or "нет", 
-                            product_name, price, "gold")
-        
-        # Отправляем уведомление админу в чат
-        await bot.send_message(
-            ADMIN_ID,
-            f"🪙 <b>НОВЫЙ ЗАКАЗ (GOLD)</b>\n\n"
-            f"👤 Пользователь: @{callback.from_user.username or callback.from_user.id}\n"
-            f"🆔 ID: {callback.from_user.id}\n"
-            f"📦 Товар: {product_name}\n"
-            f"💰 Сумма: {price} ₽ ({gold_price} голды)\n"
-            f"🆔 Заказ: #{order_id}\n\n"
-            f"📝 <b>Сообщение от пользователя:</b>\n"
-            f"Привет! Хочу купить чит на Standoff 2 🔑 Версия 0.37.1, "
-            f"подписка — готов купить за {gold_price} голды прямо сейчас 💰\n\n"
-            f"💬 Связь с пользователем: @{callback.from_user.username or callback.from_user.id}\n"
-            f"📌 Для подтверждения заказа отправьте команду:\n"
-            f"<code>/approve {order_id}</code>",
-            parse_mode="HTML"
-        )
-        
-        await callback.message.edit_text(
-            f"🪙 <b>Оплата GOLD (Standoff 2)</b>\n\n"
-            f"📦 Товар: {product_name}\n"
-            f"💰 Сумма: {gold_price} голды\n"
-            f"🆔 Заказ: #{order_id}\n"
-            f"👤 Контакт для оплаты: @aimnoob_support\n\n"
-            f"⏳ <b>Ваш заказ отправлен администратору!</b>\n"
-            f"Ожидайте подтверждения.",
-            parse_mode="HTML"
-        )
-        
-        await state.clear()
-        await callback.answer()
-        logger.info(f"Создан заказ GOLD #{order_id}")
-        
-    except Exception as e:
-        logger.error(f"Ошибка GOLD: {e}")
-
-# ==================== NFT ОПЛАТА ====================
-@dp.callback_query(F.data.startswith("pay_nft_"))
-async def pay_nft(callback: CallbackQuery, state: FSMContext):
-    """Оплата NFT (ручная)"""
-    try:
-        _, _, product_name, price = callback.data.split("_", 3)
-        price = int(price)
-        nft_price = 250
-        
-        order_id = add_order(callback.from_user.id, callback.from_user.username or "нет", 
-                            product_name, price, "nft")
-        
-        # Отправляем уведомление админу
-        await bot.send_message(
-            ADMIN_ID,
-            f"🎨 <b>НОВЫЙ ЗАКАЗ (NFT)</b>\n\n"
-            f"👤 Пользователь: @{callback.from_user.username or callback.from_user.id}\n"
-            f"📦 Товар: {product_name}\n"
-            f"💰 Сумма: {price} ₽ ({nft_price} NFT)\n"
-            f"🆔 Заказ: #{order_id}\n\n"
-            f"💬 Связь: @{callback.from_user.username or callback.from_user.id}\n"
-            f"📌 Для подтверждения заказа отправьте команду:\n"
-            f"<code>/approve {order_id}</code>",
-            parse_mode="HTML"
-        )
-        
-        await callback.message.edit_text(
-            f"🎨 <b>Оплата NFT</b>\n\n"
-            f"📦 Товар: {product_name}\n"
-            f"💰 Сумма: {nft_price} NFT\n"
-            f"🆔 Заказ: #{order_id}\n"
-            f"👤 Контакт: @aimnoob_support\n\n"
-            f"⏳ Заказ отправлен администратору!",
-            parse_mode="HTML"
-        )
-        
-        await state.clear()
-        await callback.answer()
-        logger.info(f"Создан заказ NFT #{order_id}")
-        
-    except Exception as e:
-        logger.error(f"Ошибка NFT: {e}")
+        logger.error(f"Ошибка Stars: {e}")
 
 # ==================== ПРИЕМ ЧЕКОВ ====================
 @dp.callback_query(F.data.startswith("send_receipt_"))
@@ -497,7 +620,6 @@ async def handle_receipt(message: Message, state: FSMContext):
         await state.clear()
         return
     
-    # Получаем заказ
     conn = sqlite3.connect(DB_NAME)
     cur = conn.cursor()
     cur.execute("SELECT user_id, product, price, currency FROM orders WHERE id = ?", (order_id,))
@@ -511,7 +633,6 @@ async def handle_receipt(message: Message, state: FSMContext):
     
     user_id, product_name, price, currency = order
     
-    # Отправляем чек админу
     photo = message.photo[-1]
     caption = (
         f"🧾 <b>НОВЫЙ ЧЕК ДЛЯ ПРОВЕРКИ</b>\n\n"
@@ -521,13 +642,15 @@ async def handle_receipt(message: Message, state: FSMContext):
         f"💰 Сумма: {price} ₽\n"
         f"💳 Способ: {currency.upper()}\n"
         f"🆔 Заказ: #{order_id}\n\n"
-        f"✅ <b>Для подтверждения отправьте:</b>\n"
-        f"<code>/approve {order_id}</code>\n\n"
-        f"❌ <b>Для отклонения отправьте:</b>\n"
-        f"<code>/reject {order_id}</code>"
+        f"✅ <b>Действия:</b>"
     )
     
-    await bot.send_photo(ADMIN_ID, photo.file_id, caption=caption, parse_mode="HTML")
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Подтвердить", callback_data=f"approve_{order_id}")],
+        [InlineKeyboardButton(text="❌ Отклонить", callback_data=f"reject_{order_id}")]
+    ])
+    
+    await bot.send_photo(ADMIN_ID, photo.file_id, caption=caption, parse_mode="HTML", reply_markup=kb)
     
     await message.answer(
         f"✅ <b>Чек отправлен на проверку!</b>\n\n"
@@ -543,75 +666,107 @@ async def handle_no_photo(message: Message):
     await message.answer("❌ Пожалуйста, отправьте фото чека.")
 
 # ==================== АДМИН-КОМАНДЫ ====================
+@dp.callback_query(F.data.startswith("approve_"))
+async def approve_order_callback(callback: CallbackQuery):
+    """Подтверждение заказа через кнопку"""
+    order_id = int(callback.data.split("_")[1])
+    await approve_order_logic(order_id, callback.message, callback.from_user.id)
+
+@dp.callback_query(F.data.startswith("reject_"))
+async def reject_order_callback(callback: CallbackQuery):
+    """Отклонение заказа через кнопку"""
+    order_id = int(callback.data.split("_")[1])
+    await reject_order_logic(order_id, callback.message, callback.from_user.id)
+
 @dp.message(F.from_user.id == ADMIN_ID, F.text.startswith("/approve"))
-async def approve_order(message: Message):
-    """Подтверждение заказа админом"""
+async def approve_order_command(message: Message):
+    """Подтверждение заказа командой"""
     try:
         order_id = int(message.text.split()[1])
-        update_order_status(order_id, "paid", datetime.now())
-        
-        conn = sqlite3.connect(DB_NAME)
-        cur = conn.cursor()
-        cur.execute("SELECT user_id, product, price, currency FROM orders WHERE id = ?", (order_id,))
-        result = cur.fetchone()
-        conn.close()
-        
-        if result:
-            user_id, product_name, price, currency = result
-            
-            await bot.send_message(
-                user_id,
-                f"✅ <b>Ваш заказ #{order_id} подтвержден!</b>\n\n"
-                f"📦 Товар: {product_name}\n"
-                f"💰 Сумма: {price} ₽\n"
-                f"💳 Способ: {currency.upper()}\n\n"
-                f"🔑 <b>Ваш чит:</b>\n"
-                f"<code>Ссылка на скачивание: https://example.com/cheat/{order_id}</code>\n\n"
-                f"📖 <b>Инструкция по установке:</b>\n"
-                f"1. Скачайте файл по ссылке\n"
-                f"2. Установите APK\n"
-                f"3. Запустите и наслаждайтесь игрой!\n\n"
-                f"Приятной игры! 🎮",
-                parse_mode="HTML"
-            )
-            
-            await message.reply(f"✅ Заказ #{order_id} подтвержден, чит отправлен пользователю.")
-            logger.info(f"Админ подтвердил заказ #{order_id}")
-        else:
-            await message.reply(f"❌ Заказ #{order_id} не найден.")
-            
+        await approve_order_logic(order_id, message, message.from_user.id)
     except Exception as e:
         await message.reply(f"❌ Ошибка: {e}")
 
 @dp.message(F.from_user.id == ADMIN_ID, F.text.startswith("/reject"))
-async def reject_order(message: Message):
-    """Отклонение заказа админом"""
+async def reject_order_command(message: Message):
+    """Отклонение заказа командой"""
     try:
         order_id = int(message.text.split()[1])
-        update_order_status(order_id, "rejected", datetime.now())
-        
-        conn = sqlite3.connect(DB_NAME)
-        cur = conn.cursor()
-        cur.execute("SELECT user_id FROM orders WHERE id = ?", (order_id,))
-        result = cur.fetchone()
-        conn.close()
-        
-        if result:
-            user_id = result[0]
-            await bot.send_message(
-                user_id,
-                f"❌ <b>Ваш заказ #{order_id} отклонен!</b>\n\n"
-                f"Пожалуйста, свяжитесь с поддержкой: @aimnoob_support",
-                parse_mode="HTML"
-            )
-            
-            await message.reply(f"❌ Заказ #{order_id} отклонен.")
-            logger.info(f"Админ отклонил заказ #{order_id}")
-        else:
-            await message.reply(f"❌ Заказ #{order_id} не найден.")
-            
+        await reject_order_logic(order_id, message, message.from_user.id)
     except Exception as e:
         await message.reply(f"❌ Ошибка: {e}")
+
+async def approve_order_logic(order_id: int, reply_obj, admin_id: int):
+    """Логика подтверждения заказа"""
+    update_order_status(order_id, "paid", datetime.now())
+    
+    conn = sqlite3.connect(DB_NAME)
+    cur = conn.cursor()
+    cur.execute("SELECT user_id, product, price, currency FROM orders WHERE id = ?", (order_id,))
+    result = cur.fetchone()
+    conn.close()
+    
+    if result:
+        user_id, product_name, price, currency = result
+        
+        await bot.send_message(
+            user_id,
+            f"✅ <b>Ваш заказ #{order_id} подтвержден!</b>\n\n"
+            f"📦 Товар: {product_name}\n"
+            f"💰 Сумма: {price} ₽\n"
+            f"💳 Способ: {currency.upper()}\n\n"
+            f"🔑 <b>Ваш чит:</b>\n"
+            f"<code>https://example.com/cheat/{order_id}</code>\n\n"
+            f"📖 <b>Инструкция по установке:</b>\n"
+            f"1. Скачайте файл по ссылке\n"
+            f"2. Установите APK\n"
+            f"3. Запустите и наслаждайтесь игрой!\n\n"
+            f"Приятной игры! 🎮",
+            parse_mode="HTML"
+        )
+        
+        if isinstance(reply_obj, types.Message):
+            await reply_obj.reply(f"✅ Заказ #{order_id} подтвержден, чит отправлен пользователю.")
+        else:
+            await reply_obj.edit_caption(
+                caption=f"{reply_obj.caption}\n\n✅ <b>ЗАКАЗ ПОДТВЕРЖДЕН</b>",
+                parse_mode="HTML"
+            )
+        
+        logger.info(f"Админ подтвердил заказ #{order_id}")
+    else:
+        await reply_obj.reply(f"❌ Заказ #{order_id} не найден.")
+
+async def reject_order_logic(order_id: int, reply_obj, admin_id: int):
+    """Логика отклонения заказа"""
+    update_order_status(order_id, "rejected", datetime.now())
+    
+    conn = sqlite3.connect(DB_NAME)
+    cur = conn.cursor()
+    cur.execute("SELECT user_id FROM orders WHERE id = ?", (order_id,))
+    result = cur.fetchone()
+    conn.close()
+    
+    if result:
+        user_id = result[0]
+        await bot.send_message(
+            user_id,
+            f"❌ <b>Ваш заказ #{order_id} отклонен!</b>\n\n"
+            f"Пожалуйста, свяжитесь с поддержкой: @aimnoob_support",
+            parse_mode="HTML"
+        )
+        
+        if isinstance(reply_obj, types.Message):
+            await reply_obj.reply(f"❌ Заказ #{order_id} отклонен.")
+        else:
+            await reply_obj.edit_caption(
+                caption=f"{reply_obj.caption}\n\n❌ <b>ЗАКАЗ ОТКЛОНЕН</b>",
+                parse_mode="HTML"
+            )
+        
+        logger.info(f"Админ отклонил заказ #{order_id}")
+    else:
+        await reply_obj.reply(f"❌ Заказ #{order_id} не найден.")
 
 @dp.message(F.from_user.id == ADMIN_ID, F.text == "/stats")
 async def stats(message: Message):
@@ -728,7 +883,7 @@ async def promo(callback: CallbackQuery):
         "🔑 <b>Промокоды:</b>\n"
         "• AIMNOOB10 - скидка 10% на первый заказ\n"
         "• STANDOFF25 - скидка 25% на подписку навсегда\n\n"
-        "<i>Промокоды вводятся при оплате через ЮMoney в комментарии</i>",
+        "<i>Промокоды вводятся при оплате в комментарии</i>",
         parse_mode="HTML"
     )
     await callback.answer()
