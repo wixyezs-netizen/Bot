@@ -20,7 +20,7 @@ from aiogram.types import (
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 # ==================== КОНФИГУРАЦИЯ ====================
-BOT_TOKEN = "8225924716:AAFzKnXZ8lJG_X1W9poH6Muyi-MMCXTWMy0"  # Токен от @BotFather
+BOT_TOKEN = "8225924716:AAFZ_8Eu8aJ4BF7pErZY5Ef3emG9Cl9PikE"  # Токен от @BotFather
 ADMIN_ID = 8387532956  # Ваш Telegram ID
 
 # ========== ЮMoney OAuth2 настройки ==========
