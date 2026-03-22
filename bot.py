@@ -609,7 +609,7 @@ async def process_yoomoney_payment(callback: types.CallbackQuery):
     }
 
     text = (
-        f"💳 <b>Оплата ЮMoney</b>\n\n"
+        f"💳 <b>Оплата Картой</b>\n\n"
         f"{product['emoji']} {product['name']}\n"
         f"⏱️ {product['duration']}\n"
         f"💰 К оплате: <b>{amount} ₽</b>\n"
@@ -622,7 +622,7 @@ async def process_yoomoney_payment(callback: types.CallbackQuery):
     )
 
     await callback.message.edit_text(text, parse_mode="HTML", reply_markup=payment_keyboard(payment_url, order_id))
-    await send_admin_notification(callback.from_user, product, "💳 ЮMoney", f"{amount} ₽", order_id)
+    await send_admin_notification(callback.from_user, product, "💳 Картой", f"{amount} ₽", order_id)
     await callback.answer()
 
 # ===== ИСПРАВЛЕНИЕ 4: Обработчик "checkym_" (ЮMoney) =====
@@ -1064,7 +1064,7 @@ async def main():
         print(f"🌐 Сайт: {SHOP_URL}")
 
         print(f"\n💳 СПОСОБЫ ОПЛАТЫ:")
-        print(f"• 💳 ЮMoney (карты)")
+        print(f"• 💳 Картой (карты)")
         print(f"• ⭐ Telegram Stars")
         print(f"• ₿  CryptoBot")
         print(f"• 💰 GOLD (ручная)")
