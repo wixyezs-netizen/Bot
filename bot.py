@@ -18,7 +18,7 @@ from aiogram.client.default import DefaultBotProperties
 from urllib.parse import quote_plus
 
 # ========== КОНФИГУРАЦИЯ ==========
-BOT_TOKEN = os.getenv("BOT_TOKEN", "8225924716:AAFzKnXZ8lJG_X1W9poH6Muyi-MMCXTWMy0")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "8225924716:AAFZ_8Eu8aJ4BF7pErZY5Ef3emG9Cl9PikE")
 
 # ===== ИСПРАВЛЕНИЕ 1: Безопасный разбор ADMIN_ID =====
 admin_ids_str = os.getenv("ADMIN_ID", "8387532956")
