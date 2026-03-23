@@ -43,7 +43,7 @@ class Config:
 
     SUPPORT_CHAT_USERNAME = os.environ.get("SUPPORT_CHAT_USERNAME", "aimnoob_support")
     SHOP_URL = os.environ.get("SHOP_URL", "https://aimnoob.ru")
-    MINIAPP_URL = os.environ.get("MINIAPP_URL", "https://aimnoob.bothost.ru")
+    MINIAPP_URL = os.environ.get("MINIAPP_URL", "https://AimNoobs.bothost.tech")
     DOWNLOAD_URL = os.environ.get("DOWNLOAD_URL", "https://go.linkify.ru/2GPF")
     WEB_PORT = int(os.environ.get("PORT", "8080"))
 
@@ -303,8 +303,7 @@ def validate_telegram_init_data(init_data, bot_token):
             if key != 'hash':
                 data_pairs.append("{}={}".format(key, values[0]))
         data_pairs.sort()
-        nl = '\n'
-        data_check_string = nl.join(data_pairs)
+        data_check_string = '\n'.join(data_pairs)
         secret_key = hmac.new(
             b"WebAppData", bot_token.encode(), hashlib.sha256
         ).digest()
@@ -364,7 +363,6 @@ class YooMoneyService:
     @staticmethod
     async def check_payment(order_id, expected_amount, order_time):
         if not Config.YOOMONEY_ACCESS_TOKEN:
-            logger.warning("YOOMONEY_ACCESS_TOKEN not set")
             return False
         headers = {"Authorization": "Bearer {}".format(Config.YOOMONEY_ACCESS_TOKEN)}
         data = {"type": "deposition", "records": 100}
@@ -373,24 +371,16 @@ class YooMoneyService:
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.post(
                     "https://yoomoney.ru/api/operation-history",
-                    headers=headers,
-                    data=data
+                    headers=headers, data=data
                 ) as resp:
                     if resp.status != 200:
-                        body = await resp.text()
-                        logger.error("YooMoney history %s: %s", resp.status, body)
                         return False
                     result = await resp.json()
                     operations = result.get("operations", [])
-                    logger.info(
-                        "YooMoney: %d ops, looking for label=%s, amount=%s",
-                        len(operations), order_id, expected_amount
-                    )
                     for op in operations:
                         if (op.get("label") == order_id
                                 and op.get("status") == "success"
                                 and abs(float(op.get("amount", 0)) - expected_amount) <= 5):
-                            logger.info("Found payment by label: %s", op)
                             return True
                     for op in operations:
                         if op.get("status") != "success":
@@ -404,7 +394,6 @@ class YooMoneyService:
                                 dt_str.replace("Z", "+00:00")
                             ).timestamp()
                             if abs(op_time - order_time) <= 1800:
-                                logger.info("Found payment by amount+time: %s", op)
                                 return True
                         except (ValueError, TypeError):
                             pass
@@ -636,13 +625,7 @@ async def process_successful_payment(order_id, source="API"):
     })
 
     if not confirmed:
-        logger.warning("Order %s confirm race condition, skipping", order_id)
         return False
-
-    product_emoji = product['emoji']
-    product_name = product['name']
-    product_duration = product['duration']
-    support_username = Config.SUPPORT_CHAT_USERNAME
 
     success_text = (
         "\U0001f389 <b>\u041e\u043f\u043b\u0430\u0442\u0430 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0430!</b>\n\n"
@@ -662,19 +645,13 @@ async def process_successful_payment(order_id, source="API"):
         "4\ufe0f\u20e3 \u041d\u0430\u0441\u043b\u0430\u0436\u0434\u0430\u0439\u0442\u0435\u0441\u044c \u0438\u0433\u0440\u043e\u0439! \U0001f3ae\n\n"
         "\U0001f4ac \u041f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430: @{support}"
     ).format(
-        emoji=product_emoji,
-        name=product_name,
-        duration=product_duration,
-        source=source,
-        key=license_key,
-        support=support_username
+        emoji=product['emoji'], name=product['name'],
+        duration=product['duration'], source=source,
+        key=license_key, support=Config.SUPPORT_CHAT_USERNAME
     )
 
     try:
-        await bot.send_message(
-            user_id, success_text,
-            reply_markup=download_keyboard()
-        )
+        await bot.send_message(user_id, success_text, reply_markup=download_keyboard())
     except Exception as e:
         logger.error("Error sending to user %s: %s", user_id, e)
 
@@ -691,15 +668,10 @@ async def process_successful_payment(order_id, source="API"):
         "\U0001f511 <code>{key}</code>\n"
         "\U0001f4c5 {now}"
     ).format(
-        source=source,
-        user_name=order['user_name'],
-        user_id=user_id,
-        product_name=product_name,
-        duration=product_duration,
-        amount=order_amount,
-        currency=order_currency,
-        key=license_key,
-        now=now_str
+        source=source, user_name=order['user_name'],
+        user_id=user_id, product_name=product['name'],
+        duration=product['duration'], amount=order_amount,
+        currency=order_currency, key=license_key, now=now_str
     )
     for aid in Config.ADMIN_IDS:
         try:
@@ -722,21 +694,14 @@ async def send_admin_notification(user, product, payment_method, price, order_id
         "\U0001f194 <code>{order_id}</code>\n\n"
         "\U0001f4c5 {now}"
     ).format(
-        full_name=user.full_name,
-        user_id=user.id,
-        product_name=product['name'],
-        duration=product['duration'],
-        price=price,
-        payment_method=payment_method,
-        order_id=order_id,
-        now=now_str
+        full_name=user.full_name, user_id=user.id,
+        product_name=product['name'], duration=product['duration'],
+        price=price, payment_method=payment_method,
+        order_id=order_id, now=now_str
     )
     for aid in Config.ADMIN_IDS:
         try:
-            await bot.send_message(
-                aid, message,
-                reply_markup=admin_confirm_keyboard(order_id)
-            )
+            await bot.send_message(aid, message, reply_markup=admin_confirm_keyboard(order_id))
         except Exception as e:
             logger.error("Error sending to admin %s: %s", aid, e)
 
@@ -768,11 +733,9 @@ async def send_start_message(target, state):
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message, state: FSMContext):
     await state.clear()
-
     args = message.text.split()
     if len(args) > 1:
         deep_link = args[1]
-
         if deep_link.startswith("buy_stars_"):
             product_id = deep_link.replace("buy_stars_", "", 1)
             product = find_product_by_id(product_id)
@@ -788,43 +751,35 @@ async def cmd_start(message: types.Message, state: FSMContext):
                     "status": "pending",
                     "created_at": time.time()
                 })
-                title = "AimNoob \u2014 {}".format(product['name'])
-                desc = "\u041f\u043e\u0434\u043f\u0438\u0441\u043a\u0430 \u043d\u0430 {} \u0434\u043b\u044f {}".format(product['duration'], product['platform'])
+                title = "AimNoob - {}".format(product['name'])
+                desc = "Подписка на {} для {}".format(product['duration'], product['platform'])
                 payload = "stars_{}".format(order_id)
                 await bot.send_invoice(
                     chat_id=message.from_user.id,
-                    title=title,
-                    description=desc,
-                    payload=payload,
-                    provider_token="",
+                    title=title, description=desc,
+                    payload=payload, provider_token="",
                     currency="XTR",
                     prices=[LabeledPrice(label="XTR", amount=product['price_stars'])],
                     start_parameter="aimnoob_payment"
                 )
                 return
-
     await send_start_message(message, state)
 
 
 @dp.callback_query(F.data == "about")
 async def about_cheat(callback: types.CallbackQuery):
-    support = Config.SUPPORT_CHAT_USERNAME
     text = (
         "\U0001f4cb <b>\u041f\u043e\u0434\u0440\u043e\u0431\u043d\u0430\u044f \u0438\u043d\u0444\u043e\u0440\u043c\u0430\u0446\u0438\u044f</b>\n\n"
-        "\U0001f3ae <b>\u0412\u0435\u0440\u0441\u0438\u044f:</b> 0.37.1 (\u041c\u0430\u0440\u0442 2026)\n"
-        "\U0001f525 <b>\u0421\u0442\u0430\u0442\u0443\u0441:</b> \u0410\u043a\u0442\u0438\u0432\u043d\u043e \u043e\u0431\u043d\u043e\u0432\u043b\u044f\u0435\u0442\u0441\u044f\n\n"
+        "\U0001f3ae <b>\u0412\u0435\u0440\u0441\u0438\u044f:</b> 0.37.1\n"
+        "\U0001f525 <b>\u0421\u0442\u0430\u0442\u0443\u0441:</b> \u0410\u043a\u0442\u0438\u0432\u043d\u043e\n\n"
         "\U0001f6e0\ufe0f <b>\u0424\u0443\u043d\u043a\u0446\u0438\u043e\u043d\u0430\u043b:</b>\n"
-        "\u2022 \U0001f3af \u0423\u043c\u043d\u044b\u0439 AimBot \u0441 \u043f\u043b\u0430\u0432\u043d\u043e\u0441\u0442\u044c\u044e\n"
-        "\u2022 \U0001f441\ufe0f WallHack \u0447\u0435\u0440\u0435\u0437 \u043f\u0440\u0435\u043f\u044f\u0442\u0441\u0442\u0432\u0438\u044f\n"
-        "\u2022 \U0001f4cd ESP \u0441 \u0438\u043d\u0444\u043e\u0440\u043c\u0430\u0446\u0438\u0435\u0439 \u043e\u0431 \u0438\u0433\u0440\u043e\u043a\u0430\u0445\n"
-        "\u2022 \U0001f5fa\ufe0f \u041c\u0438\u043d\u0438-\u0440\u0430\u0434\u0430\u0440\n"
-        "\u2022 \u2699\ufe0f \u0413\u0438\u0431\u043a\u0438\u0435 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438\n\n"
-        "\U0001f6e1\ufe0f <b>\u0411\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u044c:</b>\n"
-        "\u2022 \u041e\u0431\u0445\u043e\u0434 \u0430\u043d\u0442\u0438\u0447\u0438\u0442\u043e\u0432\n"
-        "\u2022 \u0420\u0435\u0433\u0443\u043b\u044f\u0440\u043d\u044b\u0435 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u044f\n"
-        "\u2022 \u0422\u0435\u0441\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435 \u043d\u0430 \u0431\u0435\u0437\u043e\u043f\u0430\u0441\u043d\u043e\u0441\u0442\u044c\n\n"
-        "\U0001f4ac \u041f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430: @{support}"
-    ).format(support=support)
+        "\u2022 \U0001f3af AimBot\n"
+        "\u2022 \U0001f441\ufe0f WallHack\n"
+        "\u2022 \U0001f4cd ESP\n"
+        "\u2022 \U0001f5fa\ufe0f \u0420\u0430\u0434\u0430\u0440\n"
+        "\u2022 \u2699\ufe0f \u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438\n\n"
+        "\U0001f4ac \u041f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430: @{}"
+    ).format(Config.SUPPORT_CHAT_USERNAME)
     await callback.message.edit_text(text, reply_markup=about_keyboard())
     await callback.answer()
 
@@ -835,37 +790,27 @@ async def process_platform(callback: types.CallbackQuery, state: FSMContext):
     if platform not in ("apk", "ios"):
         await callback.answer("\u274c \u041d\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043d\u0430\u044f \u043f\u043b\u0430\u0442\u0444\u043e\u0440\u043c\u0430", show_alert=True)
         return
-
     await state.update_data(platform=platform)
-
     platform_info = {
         "apk": {
             "title": "\U0001f4f1 <b>Android Version</b>",
-            "requirements": "\u2022 Android 10.0+\n\u2022 2 \u0413\u0411 \u0441\u0432\u043e\u0431\u043e\u0434\u043d\u043e\u0439 \u043f\u0430\u043c\u044f\u0442\u0438\n\u2022 Root \u043d\u0435 \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044f",
-            "includes": "\u2022 APK \u0444\u0430\u0439\u043b \u0441 \u0447\u0438\u0442\u043e\u043c\n\u2022 \u0418\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u044f \u043f\u043e \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0435\n\u2022 \u0422\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0430\u044f \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430"
+            "requirements": "\u2022 Android 10.0+\n\u2022 2 \u0413\u0411 RAM\n\u2022 Root \u043d\u0435 \u043d\u0443\u0436\u0435\u043d",
+            "includes": "\u2022 APK \u0444\u0430\u0439\u043b\n\u2022 \u0418\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u044f\n\u2022 \u041f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430"
         },
         "ios": {
             "title": "\U0001f34e <b>iOS Version</b>",
-            "requirements": "\u2022 iOS 14.0 - 18.0\n\u2022 \u0423\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0430 \u0447\u0435\u0440\u0435\u0437 AltStore\n\u2022 Jailbreak \u043d\u0435 \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044f",
-            "includes": "\u2022 IPA \u0444\u0430\u0439\u043b \u0441 \u0447\u0438\u0442\u043e\u043c\n\u2022 \u041f\u043e\u0434\u0440\u043e\u0431\u043d\u0430\u044f \u0438\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u044f\n\u2022 \u041f\u043e\u043c\u043e\u0449\u044c \u0432 \u0443\u0441\u0442\u0430\u043d\u043e\u0432\u043a\u0435"
+            "requirements": "\u2022 iOS 14.0 - 18.0\n\u2022 AltStore\n\u2022 Jailbreak \u043d\u0435 \u043d\u0443\u0436\u0435\u043d",
+            "includes": "\u2022 IPA \u0444\u0430\u0439\u043b\n\u2022 \u0418\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u044f\n\u2022 \u041f\u043e\u043c\u043e\u0449\u044c"
         }
     }
-
     info = platform_info[platform]
     text = (
         "{title}\n\n"
         "\U0001f527 <b>\u0422\u0440\u0435\u0431\u043e\u0432\u0430\u043d\u0438\u044f:</b>\n{requirements}\n\n"
-        "\U0001f4e6 <b>\u0427\u0442\u043e \u0432\u0445\u043e\u0434\u0438\u0442:</b>\n{includes}\n\n"
-        "\U0001f4b0 <b>\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0442\u0430\u0440\u0438\u0444:</b>"
-    ).format(
-        title=info['title'],
-        requirements=info['requirements'],
-        includes=info['includes']
-    )
-
-    await callback.message.edit_text(
-        text, reply_markup=subscription_keyboard(platform)
-    )
+        "\U0001f4e6 <b>\u0412\u0445\u043e\u0434\u0438\u0442:</b>\n{includes}\n\n"
+        "\U0001f4b0 <b>\u0422\u0430\u0440\u0438\u0444:</b>"
+    ).format(title=info['title'], requirements=info['requirements'], includes=info['includes'])
+    await callback.message.edit_text(text, reply_markup=subscription_keyboard(platform))
     await state.set_state(OrderState.choosing_subscription)
     await callback.answer()
 
@@ -876,20 +821,16 @@ async def process_subscription(callback: types.CallbackQuery, state: FSMContext)
     if len(parts) < 3:
         await callback.answer("\u274c \u041e\u0448\u0438\u0431\u043a\u0430", show_alert=True)
         return
-
     product_key = "{}_{}".format(parts[1], parts[2])
     product = find_product_by_id(product_key)
-
     if not product:
-        await callback.answer("\u274c \u041f\u0440\u043e\u0434\u0443\u043a\u0442 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d", show_alert=True)
+        await callback.answer("\u274c \u041d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e", show_alert=True)
         return
-
     await state.update_data(selected_product=product)
-
     text = (
-        "\U0001f6d2 <b>\u041e\u0444\u043e\u0440\u043c\u043b\u0435\u043d\u0438\u0435 \u043f\u043e\u043a\u0443\u043f\u043a\u0438</b>\n\n"
+        "\U0001f6d2 <b>\u041e\u0444\u043e\u0440\u043c\u043b\u0435\u043d\u0438\u0435</b>\n\n"
         "{emoji} <b>{name}</b>\n"
-        "\u23f1\ufe0f \u0414\u043b\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c: {duration}\n\n"
+        "\u23f1\ufe0f {duration}\n\n"
         "\U0001f48e <b>\u0421\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u044c:</b>\n"
         "\U0001f4b3 \u041a\u0430\u0440\u0442\u043e\u0439: {price} \u20bd\n"
         "\u2b50 Stars: {price_stars} \u2b50\n"
@@ -898,19 +839,14 @@ async def process_subscription(callback: types.CallbackQuery, state: FSMContext)
         "\U0001f3a8 NFT: {price_nft} \U0001f5bc\ufe0f\n\n"
         "\U0001f3af <b>\u0421\u043f\u043e\u0441\u043e\u0431 \u043e\u043f\u043b\u0430\u0442\u044b:</b>"
     ).format(
-        emoji=product['emoji'],
-        name=product['name'],
-        duration=product['duration'],
-        price=product['price'],
+        emoji=product['emoji'], name=product['name'],
+        duration=product['duration'], price=product['price'],
         price_stars=product['price_stars'],
         price_crypto=product['price_crypto_usdt'],
         price_gold=product['price_gold'],
         price_nft=product['price_nft']
     )
-
-    await callback.message.edit_text(
-        text, reply_markup=payment_methods_keyboard(product)
-    )
+    await callback.message.edit_text(text, reply_markup=payment_methods_keyboard(product))
     await state.set_state(OrderState.choosing_payment)
     await callback.answer()
 
@@ -919,185 +855,122 @@ async def process_subscription(callback: types.CallbackQuery, state: FSMContext)
 @dp.callback_query(F.data.startswith("pay_yoomoney_"))
 async def process_yoomoney_payment(callback: types.CallbackQuery):
     if not Config.YOOMONEY_WALLET:
-        await callback.answer("\u274c \u041e\u043f\u043b\u0430\u0442\u0430 \u043a\u0430\u0440\u0442\u043e\u0439 \u0432\u0440\u0435\u043c\u0435\u043d\u043d\u043e \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430", show_alert=True)
+        await callback.answer("\u274c \u041d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u043e", show_alert=True)
         return
-
     parts = callback.data.split("_")
     if len(parts) < 4:
         await callback.answer("\u274c \u041e\u0448\u0438\u0431\u043a\u0430", show_alert=True)
         return
-
     product = find_product(parts[2], parts[3])
     if not product:
-        await callback.answer("\u274c \u041f\u0440\u043e\u0434\u0443\u043a\u0442 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d", show_alert=True)
+        await callback.answer("\u274c \u041d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e", show_alert=True)
         return
-
     user_id = callback.from_user.id
     if not rate_limiter.check(user_id):
-        await callback.answer("\u23f3 \u041f\u043e\u0434\u043e\u0436\u0434\u0438\u0442\u0435 \u043d\u0435\u043c\u043d\u043e\u0433\u043e...", show_alert=True)
+        await callback.answer("\u23f3 \u041f\u043e\u0434\u043e\u0436\u0434\u0438\u0442\u0435...", show_alert=True)
         return
-
     order_id = generate_order_id()
     amount = product["price"]
     product_desc = "{} ({})".format(product['name'], product['duration'])
     payment_url = create_payment_link(amount, order_id, product_desc)
-
     await orders.add_pending(order_id, {
-        "user_id": user_id,
-        "user_name": callback.from_user.full_name,
-        "product": product,
-        "amount": amount,
-        "currency": "\u20bd",
+        "user_id": user_id, "user_name": callback.from_user.full_name,
+        "product": product, "amount": amount, "currency": "\u20bd",
         "payment_method": "\u041a\u0430\u0440\u0442\u043e\u0439",
-        "status": "pending",
-        "created_at": time.time()
+        "status": "pending", "created_at": time.time()
     })
-
     text = (
         "\U0001f4b3 <b>\u041e\u043f\u043b\u0430\u0442\u0430 \u043a\u0430\u0440\u0442\u043e\u0439</b>\n\n"
-        "{emoji} {name}\n"
-        "\u23f1\ufe0f {duration}\n"
-        "\U0001f4b0 \u041a \u043e\u043f\u043b\u0430\u0442\u0435: <b>{amount} \u20bd</b>\n"
-        "\U0001f194 \u041d\u043e\u043c\u0435\u0440 \u0437\u0430\u043a\u0430\u0437\u0430: <code>{order_id}</code>\n\n"
-        "\U0001f504 <b>\u0418\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u044f:</b>\n"
-        "1\ufe0f\u20e3 \u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u00ab\u041e\u043f\u043b\u0430\u0442\u0438\u0442\u044c \u043a\u0430\u0440\u0442\u043e\u0439\u00bb\n"
-        "2\ufe0f\u20e3 \u041e\u043f\u043b\u0430\u0442\u0438\u0442\u0435 \u0431\u0430\u043d\u043a\u043e\u0432\u0441\u043a\u043e\u0439 \u043a\u0430\u0440\u0442\u043e\u0439\n"
-        "3\ufe0f\u20e3 \u0412\u0435\u0440\u043d\u0438\u0442\u0435\u0441\u044c \u0438 \u043d\u0430\u0436\u043c\u0438\u0442\u0435 \u00ab\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043e\u043f\u043b\u0430\u0442\u0443\u00bb\n\n"
-        "\U0001f4ab <b>\u0410\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u0435\u0441\u043a\u0430\u044f \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043f\u043b\u0430\u0442\u0435\u0436\u0430</b>"
+        "{emoji} {name}\n\u23f1\ufe0f {duration}\n"
+        "\U0001f4b0 <b>{amount} \u20bd</b>\n"
+        "\U0001f194 <code>{order_id}</code>\n\n"
+        "1\ufe0f\u20e3 \u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u00ab\u041e\u043f\u043b\u0430\u0442\u0438\u0442\u044c\u00bb\n"
+        "2\ufe0f\u20e3 \u041e\u043f\u043b\u0430\u0442\u0438\u0442\u0435\n"
+        "3\ufe0f\u20e3 \u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u00ab\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c\u00bb"
     ).format(
-        emoji=product['emoji'],
-        name=product['name'],
-        duration=product['duration'],
-        amount=amount,
-        order_id=order_id
+        emoji=product['emoji'], name=product['name'],
+        duration=product['duration'], amount=amount, order_id=order_id
     )
-
-    await callback.message.edit_text(
-        text, reply_markup=payment_keyboard(payment_url, order_id)
-    )
-    price_str = "{} \u20bd".format(amount)
-    await send_admin_notification(
-        callback.from_user, product, "\U0001f4b3 \u041a\u0430\u0440\u0442\u043e\u0439", price_str, order_id
-    )
+    await callback.message.edit_text(text, reply_markup=payment_keyboard(payment_url, order_id))
+    await send_admin_notification(callback.from_user, product, "\U0001f4b3 \u041a\u0430\u0440\u0442\u043e\u0439", "{} \u20bd".format(amount), order_id)
     await callback.answer()
 
 
-# ========== ПРОВЕРКА ЮMONEY ==========
 @dp.callback_query(F.data.startswith("checkym_"))
 async def check_yoomoney_callback(callback: types.CallbackQuery):
     order_id = callback.data.replace("checkym_", "", 1)
     order = await orders.get_pending(order_id)
-
     if not order:
         if await orders.is_confirmed(order_id):
-            await callback.answer("\u2705 \u0417\u0430\u043a\u0430\u0437 \u0443\u0436\u0435 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d!", show_alert=True)
+            await callback.answer("\u2705 \u0423\u0436\u0435 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d!", show_alert=True)
         else:
-            await callback.answer("\u274c \u0417\u0430\u043a\u0430\u0437 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d \u0438\u043b\u0438 \u0438\u0441\u0442\u0451\u043a", show_alert=True)
+            await callback.answer("\u274c \u041d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d", show_alert=True)
         return
-
-    user_id = callback.from_user.id
-    if not rate_limiter.check(user_id):
-        await callback.answer("\u23f3 \u041f\u043e\u0434\u043e\u0436\u0434\u0438\u0442\u0435 \u043f\u0435\u0440\u0435\u0434 \u043f\u043e\u0432\u0442\u043e\u0440\u043d\u043e\u0439 \u043f\u0440\u043e\u0432\u0435\u0440\u043a\u043e\u0439...", show_alert=True)
+    if not rate_limiter.check(callback.from_user.id):
+        await callback.answer("\u23f3 \u041f\u043e\u0434\u043e\u0436\u0434\u0438\u0442\u0435...", show_alert=True)
         return
-
-    await callback.answer("\U0001f50d \u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u043c \u043f\u043b\u0430\u0442\u0435\u0436...")
-
+    await callback.answer("\U0001f50d \u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u043c...")
     checking_msg = await callback.message.edit_text(
-        "\U0001f504 <b>\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430 \u043f\u043b\u0430\u0442\u0435\u0436\u0430...</b>\n\n"
-        "\U0001f50d \u041f\u043e\u0438\u0441\u043a \u0442\u0440\u0430\u043d\u0437\u0430\u043a\u0446\u0438\u0438 \u0432 \u0441\u0438\u0441\u0442\u0435\u043c\u0435\n"
-        "\u23f3 \u041f\u043e\u0434\u043e\u0436\u0434\u0438\u0442\u0435 15-25 \u0441\u0435\u043a\u0443\u043d\u0434..."
+        "\U0001f504 <b>\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430...</b>\n\u23f3 15-25 \u0441\u0435\u043a\u0443\u043d\u0434"
     )
-
     payment_found = False
     for attempt in range(Config.MAX_PAYMENT_CHECK_ATTEMPTS):
-        logger.info("Checking YooMoney %s, attempt %d", order_id, attempt + 1)
         payment_found = await YooMoneyService.check_payment(
             order_id, order["amount"], order.get("created_at", time.time())
         )
         if payment_found:
             break
         await asyncio.sleep(Config.PAYMENT_CHECK_INTERVAL)
-
     if payment_found:
         success = await process_successful_payment(order_id, "\u0410\u0432\u0442\u043e\u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430")
         if success:
             await checking_msg.edit_text(
-                "\u2705 <b>\u041f\u043b\u0430\u0442\u0435\u0436 \u043d\u0430\u0439\u0434\u0435\u043d!</b>\n\n"
-                "\U0001f389 \u0412\u0430\u0448 \u0437\u0430\u043a\u0430\u0437 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u0430\u043d\n"
-                "\U0001f4e8 \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u043d\u043e\u0432\u043e\u0435 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u2b06\ufe0f",
+                "\u2705 <b>\u041f\u043b\u0430\u0442\u0435\u0436 \u043d\u0430\u0439\u0434\u0435\u043d!</b>\n\U0001f4e8 \u041f\u0440\u043e\u0432\u0435\u0440\u044c\u0442\u0435 \u043d\u043e\u0432\u043e\u0435 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u2b06\ufe0f",
                 reply_markup=support_keyboard()
             )
         else:
-            await checking_msg.edit_text(
-                "\u2705 <b>\u0417\u0430\u043a\u0430\u0437 \u0443\u0436\u0435 \u0431\u044b\u043b \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u0430\u043d</b>",
-                reply_markup=support_keyboard()
-            )
+            await checking_msg.edit_text("\u2705 <b>\u0423\u0436\u0435 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u0430\u043d</b>", reply_markup=support_keyboard())
     else:
         product = order['product']
         product_desc = "{} ({})".format(product['name'], product['duration'])
         payment_url = create_payment_link(order["amount"], order_id, product_desc)
-        fail_text = (
-            "\u23f3 <b>\u041f\u043b\u0430\u0442\u0435\u0436 \u043f\u043e\u043a\u0430 \u043d\u0435 \u043e\u0431\u043d\u0430\u0440\u0443\u0436\u0435\u043d</b>\n\n"
-            "\U0001f4b0 \u0421\u0443\u043c\u043c\u0430: {amount} \u20bd\n"
-            "\U0001f194 \u0417\u0430\u043a\u0430\u0437: <code>{order_id}</code>\n\n"
-            "\U0001f50d <b>\u0412\u043e\u0437\u043c\u043e\u0436\u043d\u044b\u0435 \u043f\u0440\u0438\u0447\u0438\u043d\u044b:</b>\n"
-            "\u2022 \u041f\u043b\u0430\u0442\u0435\u0436 \u0435\u0449\u0435 \u043e\u0431\u0440\u0430\u0431\u0430\u0442\u044b\u0432\u0430\u0435\u0442\u0441\u044f (1-3 \u043c\u0438\u043d)\n"
-            "\u2022 \u041e\u043f\u043b\u0430\u0447\u0435\u043d\u0430 \u043d\u0435\u0442\u043e\u0447\u043d\u0430\u044f \u0441\u0443\u043c\u043c\u0430\n"
-            "\u2022 \u041f\u0440\u043e\u0431\u043b\u0435\u043c\u0430 \u043d\u0430 \u0441\u0442\u043e\u0440\u043e\u043d\u0435 \u0431\u0430\u043d\u043a\u0430\n\n"
-            "\u23f0 \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0447\u0435\u0440\u0435\u0437 1-2 \u043c\u0438\u043d\u0443\u0442\u044b\n"
-            "\U0001f4ac \u0418\u043b\u0438 \u043e\u0431\u0440\u0430\u0442\u0438\u0442\u0435\u0441\u044c \u0432 \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0443"
-        ).format(amount=order['amount'], order_id=order_id)
         await checking_msg.edit_text(
-            fail_text,
+            "\u23f3 <b>\u041d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d</b>\n\u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0447\u0435\u0440\u0435\u0437 1-2 \u043c\u0438\u043d",
             reply_markup=payment_keyboard(payment_url, order_id)
         )
 
 
-# ========== ОПЛАТА STARS ==========
+# ========== STARS ==========
 @dp.callback_query(F.data.startswith("pay_stars_"))
 async def process_stars_payment(callback: types.CallbackQuery):
     parts = callback.data.split("_")
     if len(parts) < 4:
-        await callback.answer("\u274c \u041e\u0448\u0438\u0431\u043a\u0430", show_alert=True)
+        await callback.answer("\u274c", show_alert=True)
         return
-
     product = find_product(parts[2], parts[3])
     if not product:
-        await callback.answer("\u274c \u041f\u0440\u043e\u0434\u0443\u043a\u0442 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d", show_alert=True)
+        await callback.answer("\u274c \u041d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e", show_alert=True)
         return
-
-    user_id = callback.from_user.id
-    if not rate_limiter.check(user_id):
-        await callback.answer("\u23f3 \u041f\u043e\u0434\u043e\u0436\u0434\u0438\u0442\u0435...", show_alert=True)
+    if not rate_limiter.check(callback.from_user.id):
+        await callback.answer("\u23f3", show_alert=True)
         return
-
     order_id = generate_order_id()
     await orders.add_pending(order_id, {
-        "user_id": user_id,
+        "user_id": callback.from_user.id,
         "user_name": callback.from_user.full_name,
-        "product": product,
-        "amount": product['price_stars'],
-        "currency": "\u2b50",
-        "payment_method": "Telegram Stars",
-        "status": "pending",
-        "created_at": time.time()
+        "product": product, "amount": product['price_stars'],
+        "currency": "\u2b50", "payment_method": "Telegram Stars",
+        "status": "pending", "created_at": time.time()
     })
-
-    title = "AimNoob \u2014 {}".format(product['name'])
-    desc = "\u041f\u043e\u0434\u043f\u0438\u0441\u043a\u0430 \u043d\u0430 {} \u0434\u043b\u044f {}".format(product['duration'], product['platform'])
-    payload = "stars_{}".format(order_id)
-
     await bot.send_invoice(
-        chat_id=user_id,
-        title=title,
-        description=desc,
-        payload=payload,
-        provider_token="",
-        currency="XTR",
+        chat_id=callback.from_user.id,
+        title="AimNoob - {}".format(product['name']),
+        description="Подписка на {} для {}".format(product['duration'], product['platform']),
+        payload="stars_{}".format(order_id),
+        provider_token="", currency="XTR",
         prices=[LabeledPrice(label="XTR", amount=product['price_stars'])],
         start_parameter="aimnoob_payment"
     )
-
     try:
         await callback.message.delete()
     except Exception:
@@ -1118,82 +991,48 @@ async def successful_payment(message: types.Message):
         await process_successful_payment(order_id, "Telegram Stars")
 
 
-# ========== ОПЛАТА КРИПТО ==========
+# ========== КРИПТО ==========
 @dp.callback_query(F.data.startswith("pay_crypto_"))
 async def process_crypto_payment(callback: types.CallbackQuery):
     if not Config.CRYPTOBOT_TOKEN:
-        await callback.answer("\u274c \u041a\u0440\u0438\u043f\u0442\u043e\u043e\u043f\u043b\u0430\u0442\u0430 \u0432\u0440\u0435\u043c\u0435\u043d\u043d\u043e \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u0430", show_alert=True)
+        await callback.answer("\u274c \u041d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u043e", show_alert=True)
         return
-
     parts = callback.data.split("_")
     if len(parts) < 4:
-        await callback.answer("\u274c \u041e\u0448\u0438\u0431\u043a\u0430", show_alert=True)
+        await callback.answer("\u274c", show_alert=True)
         return
-
     product = find_product(parts[2], parts[3])
     if not product:
-        await callback.answer("\u274c \u041f\u0440\u043e\u0434\u0443\u043a\u0442 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d", show_alert=True)
+        await callback.answer("\u274c", show_alert=True)
         return
-
-    user_id = callback.from_user.id
-    if not rate_limiter.check(user_id):
-        await callback.answer("\u23f3 \u041f\u043e\u0434\u043e\u0436\u0434\u0438\u0442\u0435...", show_alert=True)
+    if not rate_limiter.check(callback.from_user.id):
+        await callback.answer("\u23f3", show_alert=True)
         return
-
     order_id = generate_order_id()
     amount_usdt = product["price_crypto_usdt"]
     description = "AimNoob {} ({})".format(product['name'], product['duration'])
-
-    invoice_data = await CryptoBotService.create_invoice(
-        amount_usdt, order_id, description
-    )
+    invoice_data = await CryptoBotService.create_invoice(amount_usdt, order_id, description)
     if not invoice_data:
-        await callback.answer(
-            "\u274c \u041e\u0448\u0438\u0431\u043a\u0430 \u0441\u043e\u0437\u0434\u0430\u043d\u0438\u044f \u0438\u043d\u0432\u043e\u0439\u0441\u0430. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u043f\u043e\u0437\u0436\u0435.",
-            show_alert=True
-        )
+        await callback.answer("\u274c \u041e\u0448\u0438\u0431\u043a\u0430 \u0438\u043d\u0432\u043e\u0439\u0441\u0430", show_alert=True)
         return
-
     await orders.add_pending(order_id, {
-        "user_id": user_id,
+        "user_id": callback.from_user.id,
         "user_name": callback.from_user.full_name,
-        "product": product,
-        "amount": amount_usdt,
-        "currency": "USDT",
-        "payment_method": "CryptoBot",
-        "status": "pending",
-        "invoice_id": invoice_data["invoice_id"],
-        "created_at": time.time()
+        "product": product, "amount": amount_usdt, "currency": "USDT",
+        "payment_method": "CryptoBot", "status": "pending",
+        "invoice_id": invoice_data["invoice_id"], "created_at": time.time()
     })
-
     text = (
-        "\u20bf <b>\u041a\u0440\u0438\u043f\u0442\u043e\u043e\u043f\u043b\u0430\u0442\u0430</b>\n\n"
-        "{emoji} {name}\n"
-        "\u23f1\ufe0f {duration}\n"
-        "\U0001f4b0 \u041a \u043e\u043f\u043b\u0430\u0442\u0435: <b>{amount} USDT</b>\n"
-        "\U0001f194 \u0417\u0430\u043a\u0430\u0437: <code>{order_id}</code>\n\n"
-        "\U0001fa99 <b>\u041f\u0440\u0438\u043d\u0438\u043c\u0430\u0435\u043c\u044b\u0435 \u0432\u0430\u043b\u044e\u0442\u044b:</b>\n"
-        "USDT, BTC, ETH, TON, LTC, BNB, TRX \u0438 \u0434\u0440.\n\n"
-        "\U0001f504 <b>\u0418\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u044f:</b>\n"
-        "1\ufe0f\u20e3 \u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u00ab\u041e\u043f\u043b\u0430\u0442\u0438\u0442\u044c \u043a\u0440\u0438\u043f\u0442\u043e\u0439\u00bb\n"
-        "2\ufe0f\u20e3 \u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0432\u0430\u043b\u044e\u0442\u0443 \u0438 \u043f\u0435\u0440\u0435\u0432\u0435\u0434\u0438\u0442\u0435\n"
-        "3\ufe0f\u20e3 \u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u00ab\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u043f\u043b\u0430\u0442\u0435\u0436\u00bb"
+        "\u20bf <b>\u041a\u0440\u0438\u043f\u0442\u043e</b>\n\n"
+        "{emoji} {name}\n\u23f1\ufe0f {duration}\n"
+        "\U0001f4b0 <b>{amount} USDT</b>\n"
+        "\U0001f194 <code>{order_id}</code>"
     ).format(
-        emoji=product['emoji'],
-        name=product['name'],
-        duration=product['duration'],
-        amount=amount_usdt,
-        order_id=order_id
+        emoji=product['emoji'], name=product['name'],
+        duration=product['duration'], amount=amount_usdt, order_id=order_id
     )
-
-    await callback.message.edit_text(
-        text,
-        reply_markup=crypto_payment_keyboard(invoice_data["pay_url"], order_id)
-    )
-    price_str = "{} USDT".format(amount_usdt)
-    await send_admin_notification(
-        callback.from_user, product, "\u20bf CryptoBot", price_str, order_id
-    )
+    await callback.message.edit_text(text, reply_markup=crypto_payment_keyboard(invoice_data["pay_url"], order_id))
+    await send_admin_notification(callback.from_user, product, "\u20bf CryptoBot", "{} USDT".format(amount_usdt), order_id)
     await callback.answer()
 
 
@@ -1201,44 +1040,33 @@ async def process_crypto_payment(callback: types.CallbackQuery):
 async def check_crypto_callback(callback: types.CallbackQuery):
     order_id = callback.data.replace("checkcr_", "", 1)
     order = await orders.get_pending(order_id)
-
     if not order:
         if await orders.is_confirmed(order_id):
             await callback.answer("\u2705 \u0423\u0436\u0435 \u043e\u043f\u043b\u0430\u0447\u0435\u043d\u043e!", show_alert=True)
         else:
-            await callback.answer("\u274c \u0417\u0430\u043a\u0430\u0437 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d", show_alert=True)
+            await callback.answer("\u274c \u041d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d", show_alert=True)
         return
-
-    user_id = callback.from_user.id
-    if not rate_limiter.check(user_id):
-        await callback.answer("\u23f3 \u041f\u043e\u0434\u043e\u0436\u0434\u0438\u0442\u0435...", show_alert=True)
+    if not rate_limiter.check(callback.from_user.id):
+        await callback.answer("\u23f3", show_alert=True)
         return
-
     await callback.answer("\U0001f50d \u041f\u0440\u043e\u0432\u0435\u0440\u044f\u0435\u043c...")
-
     invoice_id = order.get("invoice_id")
     if not invoice_id:
-        await callback.answer("\u274c \u041e\u0448\u0438\u0431\u043a\u0430: \u043d\u0435\u0442 invoice_id", show_alert=True)
+        await callback.answer("\u274c \u041d\u0435\u0442 invoice_id", show_alert=True)
         return
-
     is_paid = await CryptoBotService.check_invoice(invoice_id)
     if is_paid:
         success = await process_successful_payment(order_id, "CryptoBot")
         if success:
             await callback.message.edit_text(
-                "\u2705 <b>\u041a\u0440\u0438\u043f\u0442\u043e\u043f\u043b\u0430\u0442\u0435\u0436 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d!</b>\n\n"
-                "\U0001f389 \u0417\u0430\u043a\u0430\u0437 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u0430\u043d\n"
-                "\U0001f4e8 \u041a\u043b\u044e\u0447 \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d \u0432 \u043d\u043e\u0432\u043e\u043c \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0438 \u2b06\ufe0f",
+                "\u2705 <b>\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u043e!</b>\n\U0001f4e8 \u041a\u043b\u044e\u0447 \u0432 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0438 \u2b06\ufe0f",
                 reply_markup=support_keyboard()
             )
     else:
-        await callback.answer(
-            "\u23f3 \u041f\u043b\u0430\u0442\u0435\u0436 \u043f\u043e\u043a\u0430 \u043d\u0435 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u0447\u0435\u0440\u0435\u0437 \u043c\u0438\u043d\u0443\u0442\u0443.",
-            show_alert=True
-        )
+        await callback.answer("\u23f3 \u041d\u0435 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u043f\u043e\u0437\u0436\u0435.", show_alert=True)
 
 
-# ========== ОПЛАТА GOLD / NFT ==========
+# ========== GOLD / NFT ==========
 @dp.callback_query(F.data.startswith("pay_gold_"))
 async def process_gold_payment(callback: types.CallbackQuery):
     await _process_manual_payment(callback, "gold")
@@ -1252,173 +1080,106 @@ async def process_nft_payment(callback: types.CallbackQuery):
 async def _process_manual_payment(callback, method):
     parts = callback.data.split("_")
     if len(parts) < 4:
-        await callback.answer("\u274c \u041e\u0448\u0438\u0431\u043a\u0430", show_alert=True)
+        await callback.answer("\u274c", show_alert=True)
         return
-
     product = find_product(parts[2], parts[3])
     if not product:
-        await callback.answer("\u274c \u041f\u0440\u043e\u0434\u0443\u043a\u0442 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d", show_alert=True)
+        await callback.answer("\u274c", show_alert=True)
         return
-
-    user_id = callback.from_user.id
-    if not rate_limiter.check(user_id):
-        await callback.answer("\u23f3 \u041f\u043e\u0434\u043e\u0436\u0434\u0438\u0442\u0435...", show_alert=True)
+    if not rate_limiter.check(callback.from_user.id):
+        await callback.answer("\u23f3", show_alert=True)
         return
-
-    method_config = {
-        "gold": {
-            "name": "GOLD",
-            "icon": "\U0001f4b0",
-            "price_key": "price_gold",
-            "emoji": "\U0001fa99"
-        },
-        "nft": {
-            "name": "NFT",
-            "icon": "\U0001f3a8",
-            "price_key": "price_nft",
-            "emoji": "\U0001f5bc\ufe0f"
-        }
-    }
-
-    cfg = method_config[method]
+    cfg = {
+        "gold": {"name": "GOLD", "icon": "\U0001f4b0", "price_key": "price_gold", "emoji": "\U0001fa99"},
+        "nft": {"name": "NFT", "icon": "\U0001f3a8", "price_key": "price_nft", "emoji": "\U0001f5bc\ufe0f"}
+    }[method]
     price = product[cfg["price_key"]]
-
-    chat_message = (
-        "\u041f\u0440\u0438\u0432\u0435\u0442! \u0425\u043e\u0447\u0443 \u043a\u0443\u043f\u0438\u0442\u044c \u0447\u0438\u0442 \u043d\u0430 Standoff 2. "
-        "\u0412\u0435\u0440\u0441\u0438\u044f 0.37.1, \u043f\u043e\u0434\u043f\u0438\u0441\u043a\u0430 \u043d\u0430 {period} "
-        "({platform}). "
-        "\u0413\u043e\u0442\u043e\u0432 \u043a\u0443\u043f\u0438\u0442\u044c \u0437\u0430 {price} {method_name} \u043f\u0440\u044f\u043c\u043e \u0441\u0435\u0439\u0447\u0430\u0441"
-    ).format(
-        period=product['period_text'],
-        platform=product['platform'],
-        price=price,
-        method_name=cfg['name']
+    chat_message = "Привет! Хочу купить чит на Standoff 2. {} ({}) за {} {}".format(
+        product['platform'], product['period_text'], price, cfg['name']
     )
     encoded_message = quote(chat_message, safe='')
     support_url = "https://t.me/{}?text={}".format(Config.SUPPORT_CHAT_USERNAME, encoded_message)
-
     text = (
         "{icon} <b>\u041e\u043f\u043b\u0430\u0442\u0430 {method_name}</b>\n\n"
-        "{emoji} {product_name}\n"
-        "\u23f1\ufe0f {duration}\n"
-        "\U0001f4b0 \u0421\u0442\u043e\u0438\u043c\u043e\u0441\u0442\u044c: <b>{price} {method_name}</b>\n\n"
-        "\U0001f4dd <b>\u0412\u0430\u0448\u0435 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u0434\u043b\u044f \u0447\u0430\u0442\u0430:</b>\n"
-        "<code>{chat_message}</code>\n\n"
-        "\U0001f504 <b>\u0418\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u044f:</b>\n"
-        "1\ufe0f\u20e3 \u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u00ab\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u043a \u043e\u043f\u043b\u0430\u0442\u0435\u00bb\n"
-        "2\ufe0f\u20e3 \u041e\u0442\u043f\u0440\u0430\u0432\u044c\u0442\u0435 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435 \u0432 \u0447\u0430\u0442\n"
-        "3\ufe0f\u20e3 \u041e\u0436\u0438\u0434\u0430\u0439\u0442\u0435 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0438"
+        "{emoji} {product_name}\n\u23f1\ufe0f {duration}\n"
+        "\U0001f4b0 <b>{price} {method_name}</b>\n\n"
+        "1\ufe0f\u20e3 \u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u00ab\u041f\u0435\u0440\u0435\u0439\u0442\u0438\u00bb\n"
+        "2\ufe0f\u20e3 \u041e\u0442\u043f\u0440\u0430\u0432\u044c\u0442\u0435 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435\n"
+        "3\ufe0f\u20e3 \u041e\u0436\u0438\u0434\u0430\u0439\u0442\u0435"
     ).format(
-        icon=cfg['icon'],
-        method_name=cfg['name'],
-        emoji=product['emoji'],
-        product_name=product['name'],
-        duration=product['duration'],
-        price=price,
-        chat_message=chat_message
+        icon=cfg['icon'], method_name=cfg['name'],
+        emoji=product['emoji'], product_name=product['name'],
+        duration=product['duration'], price=price
     )
-
     order_id = generate_order_id()
     await orders.add_pending(order_id, {
-        "user_id": user_id,
+        "user_id": callback.from_user.id,
         "user_name": callback.from_user.full_name,
-        "product": product,
-        "amount": price,
-        "currency": cfg["name"],
-        "payment_method": cfg["name"],
-        "status": "pending",
-        "created_at": time.time()
+        "product": product, "amount": price,
+        "currency": cfg["name"], "payment_method": cfg["name"],
+        "status": "pending", "created_at": time.time()
     })
-
-    sent_callback = "{}_sent".format(method)
     await callback.message.edit_text(
-        text,
-        reply_markup=manual_payment_keyboard(support_url, sent_callback)
+        text, reply_markup=manual_payment_keyboard(support_url, "{}_sent".format(method))
     )
-    price_str = "{} {}".format(price, cfg['emoji'])
-    admin_method = "{} {}".format(cfg['icon'], cfg['name'])
     await send_admin_notification(
-        callback.from_user, product, admin_method, price_str, order_id
+        callback.from_user, product,
+        "{} {}".format(cfg['icon'], cfg['name']),
+        "{} {}".format(price, cfg['emoji']), order_id
     )
     await callback.answer()
 
 
 @dp.callback_query(F.data.in_({"gold_sent", "nft_sent"}))
 async def manual_payment_sent(callback: types.CallbackQuery):
-    if callback.data == "gold_sent":
-        method_name = "GOLD"
-        icon = "\U0001f4b0"
-    else:
-        method_name = "NFT"
-        icon = "\U0001f3a8"
-
-    support = Config.SUPPORT_CHAT_USERNAME
+    method_name = "GOLD" if callback.data == "gold_sent" else "NFT"
+    icon = "\U0001f4b0" if callback.data == "gold_sent" else "\U0001f3a8"
     text = (
-        "\u2705 <b>\u041e\u0442\u043b\u0438\u0447\u043d\u043e!</b>\n\n"
-        "{icon} \u0412\u0430\u0448 {method_name} \u0437\u0430\u043a\u0430\u0437 \u043f\u0440\u0438\u043d\u044f\u0442 \u0432 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0443\n"
-        "\u23f1\ufe0f \u0412\u0440\u0435\u043c\u044f \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0438: \u0434\u043e 30 \u043c\u0438\u043d\u0443\u0442\n"
-        "\U0001f4e8 \u0423\u0432\u0435\u0434\u043e\u043c\u0438\u043c \u043e \u0433\u043e\u0442\u043e\u0432\u043d\u043e\u0441\u0442\u0438 \u0437\u0430\u043a\u0430\u0437\u0430\n\n"
-        "\U0001f4ac \u041f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0430: @{support}"
-    ).format(icon=icon, method_name=method_name, support=support)
-
+        "\u2705 <b>\u041f\u0440\u0438\u043d\u044f\u0442\u043e!</b>\n\n"
+        "{icon} {method_name} \u0437\u0430\u043a\u0430\u0437 \u0432 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u043a\u0435\n"
+        "\u23f1\ufe0f \u0414\u043e 30 \u043c\u0438\u043d\u0443\u0442\n"
+        "\U0001f4ac @{support}"
+    ).format(icon=icon, method_name=method_name, support=Config.SUPPORT_CHAT_USERNAME)
     await callback.message.edit_text(text, reply_markup=support_keyboard())
     await callback.answer()
 
 
-# ========== АДМИНСКИЕ КОМАНДЫ ==========
+# ========== АДМИН ==========
 @dp.callback_query(F.data.startswith("admin_confirm_"))
 async def admin_confirm_payment(callback: types.CallbackQuery):
     if not is_admin(callback.from_user.id):
-        await callback.answer("\u274c \u0414\u043e\u0441\u0442\u0443\u043f \u0437\u0430\u043f\u0440\u0435\u0449\u0435\u043d", show_alert=True)
+        await callback.answer("\u274c", show_alert=True)
         return
-
     order_id = callback.data.replace("admin_confirm_", "", 1)
     success = await process_successful_payment(order_id, "\U0001f468\u200d\U0001f4bc \u0410\u0434\u043c\u0438\u043d")
-
     if success:
-        text = (
-            "\u2705 <b>\u0417\u0430\u043a\u0430\u0437 \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d</b>\n\n"
-            "\U0001f194 {order_id}\n"
-            "\U0001f468\u200d\U0001f4bc \u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u043b: {name}\n"
-            "\U0001f4e8 \u041a\u043b\u044e\u0447 \u043e\u0442\u043f\u0440\u0430\u0432\u043b\u0435\u043d \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044e"
-        ).format(order_id=order_id, name=callback.from_user.full_name)
-        await callback.message.edit_text(text)
-        await callback.answer("\u2705 \u0413\u043e\u0442\u043e\u0432\u043e!")
-    else:
-        await callback.answer(
-            "\u274c \u0417\u0430\u043a\u0430\u0437 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d \u0438\u043b\u0438 \u0443\u0436\u0435 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u0430\u043d",
-            show_alert=True
+        await callback.message.edit_text(
+            "\u2705 <b>\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d</b>\n\U0001f194 {}\n\U0001f468\u200d\U0001f4bc {}".format(
+                order_id, callback.from_user.full_name
+            )
         )
+        await callback.answer("\u2705")
+    else:
+        await callback.answer("\u274c \u041d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d / \u0443\u0436\u0435 \u043e\u0431\u0440\u0430\u0431\u043e\u0442\u0430\u043d", show_alert=True)
 
 
 @dp.callback_query(F.data.startswith("admin_reject_"))
 async def admin_reject_payment(callback: types.CallbackQuery):
     if not is_admin(callback.from_user.id):
-        await callback.answer("\u274c \u0414\u043e\u0441\u0442\u0443\u043f \u0437\u0430\u043f\u0440\u0435\u0449\u0435\u043d", show_alert=True)
+        await callback.answer("\u274c", show_alert=True)
         return
-
     order_id = callback.data.replace("admin_reject_", "", 1)
     order = await orders.remove_pending(order_id)
-
     if order:
-        text = (
-            "\u274c <b>\u0417\u0430\u043a\u0430\u0437 \u043e\u0442\u043a\u043b\u043e\u043d\u0435\u043d</b>\n\n"
-            "\U0001f194 {order_id}\n"
-            "\U0001f468\u200d\U0001f4bc \u041e\u0442\u043a\u043b\u043e\u043d\u0438\u043b: {name}"
-        ).format(order_id=order_id, name=callback.from_user.full_name)
-        await callback.message.edit_text(text)
+        await callback.message.edit_text(
+            "\u274c <b>\u041e\u0442\u043a\u043b\u043e\u043d\u0435\u043d</b>\n\U0001f194 {}".format(order_id)
+        )
         try:
-            support = Config.SUPPORT_CHAT_USERNAME
-            user_text = (
-                "\u274c <b>\u0417\u0430\u043a\u0430\u0437 \u043e\u0442\u043a\u043b\u043e\u043d\u0435\u043d</b>\n\n"
-                "\U0001f194 {order_id}\n"
-                "\U0001f4de \u041e\u0431\u0440\u0430\u0442\u0438\u0442\u0435\u0441\u044c \u0432 \u043f\u043e\u0434\u0434\u0435\u0440\u0436\u043a\u0443\n"
-                "\U0001f4ac @{support}"
-            ).format(order_id=order_id, support=support)
-            await bot.send_message(order['user_id'], user_text)
+            await bot.send_message(order['user_id'],
+                "\u274c <b>\u0417\u0430\u043a\u0430\u0437 \u043e\u0442\u043a\u043b\u043e\u043d\u0435\u043d</b>\n\U0001f4ac @{}".format(Config.SUPPORT_CHAT_USERNAME)
+            )
         except Exception:
             pass
-
     await callback.answer("\u274c \u041e\u0442\u043a\u043b\u043e\u043d\u0435\u043d")
 
 
@@ -1426,24 +1187,13 @@ async def admin_reject_payment(callback: types.CallbackQuery):
 async def cmd_orders(message: types.Message):
     if not is_admin(message.from_user.id):
         return
-
     stats = await orders.get_stats()
-    text = "\U0001f4ca <b>\u0421\u0422\u0410\u0422\u0418\u0421\u0422\u0418\u041a\u0410 \u0417\u0410\u041a\u0410\u0417\u041e\u0412</b>\n\n"
-
-    recent = await orders.get_recent_pending(5)
-    text += "\u23f3 <b>\u041e\u0436\u0438\u0434\u0430\u044e\u0442 \u043e\u043f\u043b\u0430\u0442\u044b:</b> {}\n".format(stats['pending'])
-    for oid, order in recent:
-        t = datetime.fromtimestamp(order['created_at']).strftime('%H:%M')
-        text += "\u2022 {} | {} | {}\n".format(t, order['user_name'], order['product']['name'])
-
-    text += "\n\u2705 <b>\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u043e:</b> {}\n".format(stats['confirmed'])
-
+    text = "\U0001f4ca <b>\u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430</b>\n\n"
+    text += "\u23f3 \u041e\u0436\u0438\u0434\u0430\u044e\u0442: {}\n".format(stats['pending'])
+    text += "\u2705 \u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u043e: {}\n".format(stats['confirmed'])
     balance = await YooMoneyService.get_balance()
     if balance is not None:
-        text += "\U0001f4b0 <b>\u0411\u0430\u043b\u0430\u043d\u0441 \u042e\u041c\u043e\u043d\u0435\u0439:</b> {} \u20bd\n".format(balance)
-    else:
-        text += "\U0001f4b0 <b>\u0411\u0430\u043b\u0430\u043d\u0441 \u042e\u041c\u043e\u043d\u0435\u0439:</b> \u043e\u0448\u0438\u0431\u043a\u0430\n"
-
+        text += "\U0001f4b0 \u0411\u0430\u043b\u0430\u043d\u0441: {} \u20bd\n".format(balance)
     await message.answer(text)
 
 
@@ -1451,13 +1201,10 @@ async def cmd_orders(message: types.Message):
 async def cmd_help(message: types.Message):
     if not is_admin(message.from_user.id):
         return
-
     await message.answer(
-        "\U0001f527 <b>\u0410\u0434\u043c\u0438\u043d-\u043a\u043e\u043c\u0430\u043d\u0434\u044b:</b>\n\n"
-        "/orders \u2014 \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430 \u0437\u0430\u043a\u0430\u0437\u043e\u0432\n"
-        "/help \u2014 \u042d\u0442\u0430 \u0441\u043f\u0440\u0430\u0432\u043a\u0430\n\n"
-        "\u041f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u0435/\u043e\u0442\u043a\u043b\u043e\u043d\u0435\u043d\u0438\u0435 \u0437\u0430\u043a\u0430\u0437\u043e\u0432 \u2014 "
-        "\u0447\u0435\u0440\u0435\u0437 \u043a\u043d\u043e\u043f\u043a\u0438 \u0432 \u0443\u0432\u0435\u0434\u043e\u043c\u043b\u0435\u043d\u0438\u044f\u0445"
+        "\U0001f527 <b>\u0410\u0434\u043c\u0438\u043d:</b>\n\n"
+        "/orders \u2014 \u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043a\u0430\n"
+        "/help \u2014 \u0421\u043f\u0440\u0430\u0432\u043a\u0430"
     )
 
 
@@ -1480,299 +1227,686 @@ async def back_to_platform(callback: types.CallbackQuery, state: FSMContext):
 async def back_to_subscription(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     platform = data.get("platform", "apk")
-
-    platform_info = {
-        "apk": "\U0001f4f1 <b>Android Version</b>",
-        "ios": "\U0001f34e <b>iOS Version</b>"
-    }
-
-    title = platform_info.get(platform, "\U0001f4f1 <b>Version</b>")
-    text = "{}\n\n\U0001f4b0 <b>\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0442\u0430\u0440\u0438\u0444:</b>".format(title)
-    await callback.message.edit_text(
-        text, reply_markup=subscription_keyboard(platform)
-    )
+    title = "\U0001f4f1 <b>Android</b>" if platform == "apk" else "\U0001f34e <b>iOS</b>"
+    text = "{}\n\n\U0001f4b0 <b>\u0422\u0430\u0440\u0438\u0444:</b>".format(title)
+    await callback.message.edit_text(text, reply_markup=subscription_keyboard(platform))
     await state.set_state(OrderState.choosing_subscription)
     await callback.answer()
 
 
-# ========== MINIAPP HTML ==========
-MINIAPP_HTML_TEMPLATE = """<!DOCTYPE html>
+# =============================================
+# ========== НОВЫЙ КРАСИВЫЙ MINIAPP ===========
+# =============================================
+
+MINIAPP_HTML = """<!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AimNoob | Premium Shop</title>
-    <style>
-        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        :root {{
-            --primary: #7c3aed; --primary-dark: #5b21b6; --primary-light: #8b5cf6;
-            --secondary: #ec489a; --accent: #f59e0b; --dark: #0f0f1a; --darker: #0a0a0f;
-            --glass: rgba(15, 15, 26, 0.8); --glass-light: rgba(255, 255, 255, 0.1);
-            --success: #10b981; --danger: #ef4444; --warning: #f59e0b;
-        }}
-        body {{ font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, var(--darker), var(--dark)); min-height: 100vh; color: #fff; overflow-x: hidden; }}
-        .animated-bg {{ position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }}
-        .animated-bg::before {{ content: ''; position: absolute; width: 200%; height: 200%; background: radial-gradient(circle at 20% 50%, rgba(124,58,237,0.3), transparent 50%), radial-gradient(circle at 80% 80%, rgba(236,72,153,0.3), transparent 50%); animation: bgMove 20s ease-in-out infinite; }}
-        @keyframes bgMove {{ 0%,100% {{ transform: translate(-10%,-10%) rotate(0deg); }} 50% {{ transform: translate(10%,10%) rotate(5deg); }} }}
-        .app {{ max-width: 500px; margin: 0 auto; padding: 20px; padding-bottom: 90px; position: relative; z-index: 1; }}
-        .header {{ text-align: center; padding: 20px 0 30px; animation: fadeInDown 0.6s cubic-bezier(0.68,-0.55,0.265,1.55); }}
-        .logo {{ width: 80px; height: 80px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 25px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 42px; box-shadow: 0 10px 30px rgba(124,58,237,0.3); animation: float 3s ease-in-out infinite; }}
-        @keyframes float {{ 0%,100% {{ transform: translateY(0); }} 50% {{ transform: translateY(-8px); }} }}
-        h1 {{ font-size: 28px; font-weight: 800; background: linear-gradient(135deg, #fff, var(--primary-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px; }}
-        .subtitle {{ opacity: 0.7; font-size: 13px; }}
-        .platform-group {{ margin-bottom: 30px; }}
-        .platform-header {{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; padding: 0 8px; }}
-        .platform-title {{ font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px; }}
-        .platform-badge {{ background: var(--glass-light); padding: 4px 10px; border-radius: 20px; font-size: 12px; }}
-        .products-grid {{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }}
-        .product-card {{ background: var(--glass); backdrop-filter: blur(20px); border-radius: 20px; border: 1px solid var(--glass-light); overflow: hidden; transition: all 0.3s; cursor: pointer; position: relative; }}
-        .product-card::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent)); transform: scaleX(0); transition: transform 0.3s; }}
-        .product-card:hover {{ transform: translateY(-4px); border-color: var(--primary); box-shadow: 0 10px 25px rgba(124,58,237,0.2); }}
-        .product-card:hover::before {{ transform: scaleX(1); }}
-        .card-content {{ padding: 16px; }}
-        .popular-badge {{ position: absolute; top: 10px; right: 10px; background: linear-gradient(135deg, var(--accent), #ff6b6b); padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; z-index: 2; }}
-        .card-header {{ text-align: center; margin-bottom: 12px; }}
-        .product-icon {{ width: 50px; height: 50px; background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(236,72,153,0.2)); border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 10px; }}
-        .product-name {{ font-size: 16px; font-weight: 700; margin-bottom: 2px; }}
-        .product-platform {{ font-size: 10px; opacity: 0.6; }}
-        .price-section {{ text-align: center; margin: 12px 0; }}
-        .price-current {{ font-size: 22px; font-weight: 800; color: var(--accent); }}
-        .price-old {{ font-size: 12px; opacity: 0.5; text-decoration: line-through; margin-left: 6px; }}
-        .price-save {{ font-size: 10px; background: rgba(16,185,129,0.2); color: var(--success); padding: 2px 6px; border-radius: 12px; display: inline-block; margin-top: 4px; }}
-        .duration-badge {{ display: inline-flex; align-items: center; gap: 4px; background: var(--glass-light); padding: 4px 8px; border-radius: 16px; font-size: 10px; margin-bottom: 12px; }}
-        .features-list {{ display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; justify-content: center; }}
-        .feature {{ font-size: 9px; background: rgba(255,255,255,0.05); padding: 3px 8px; border-radius: 10px; display: flex; align-items: center; gap: 3px; }}
-        .buy-btn {{ width: 100%; margin-top: 12px; padding: 10px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border: none; border-radius: 12px; color: white; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.3s; position: relative; overflow: hidden; }}
-        .buy-btn:active {{ transform: scale(0.98); }}
-        .modal {{ display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }}
-        .modal.active {{ display: flex; }}
-        .modal-content {{ background: linear-gradient(135deg, var(--dark), var(--darker)); border-radius: 28px; padding: 20px; max-width: 400px; width: 100%; max-height: 85vh; overflow-y: auto; border: 1px solid var(--glass-light); animation: slideUp 0.4s cubic-bezier(0.68,-0.55,0.265,1.55); }}
-        @keyframes slideUp {{ from {{ opacity: 0; transform: translateY(30px); }} to {{ opacity: 1; transform: translateY(0); }} }}
-        .modal-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--glass-light); }}
-        .modal-title {{ font-size: 20px; font-weight: 700; background: linear-gradient(135deg, #fff, var(--primary-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }}
-        .close-modal {{ background: var(--glass-light); border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 18px; color: #fff; cursor: pointer; transition: all 0.2s; }}
-        .close-modal:hover {{ background: var(--danger); transform: rotate(90deg); }}
-        .payment-methods {{ display: flex; flex-direction: column; gap: 10px; margin: 15px 0; }}
-        .payment-method-card {{ background: var(--glass-light); border-radius: 16px; padding: 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.3s; border: 1px solid transparent; }}
-        .payment-method-card:hover {{ border-color: var(--primary); transform: translateX(4px); background: rgba(124,58,237,0.1); }}
-        .payment-method-left {{ display: flex; align-items: center; gap: 12px; }}
-        .payment-icon {{ width: 44px; height: 44px; background: rgba(255,255,255,0.1); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; }}
-        .payment-info h4 {{ font-size: 14px; margin-bottom: 2px; }}
-        .payment-info p {{ font-size: 10px; opacity: 0.6; }}
-        .payment-amount {{ font-size: 16px; font-weight: 700; color: var(--accent); }}
-        .pay-btn {{ width: 100%; padding: 14px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border: none; border-radius: 14px; color: white; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 10px; transition: all 0.3s; }}
-        .pay-btn:active {{ transform: scale(0.98); }}
-        .payment-status {{ text-align: center; padding: 20px; }}
-        .status-icon {{ font-size: 56px; margin-bottom: 12px; }}
-        .status-loading {{ animation: spin 1s linear infinite; }}
-        @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
-        .bottom-nav {{ position: fixed; bottom: 0; left: 0; right: 0; background: var(--glass); backdrop-filter: blur(20px); display: flex; justify-content: space-around; padding: 10px 20px; border-top: 1px solid var(--glass-light); z-index: 100; }}
-        .nav-item {{ display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; color: rgba(255,255,255,0.5); font-size: 11px; cursor: pointer; transition: all 0.3s; padding: 6px 12px; border-radius: 30px; }}
-        .nav-item.active {{ color: var(--accent); background: rgba(245,158,11,0.1); }}
-        .nav-icon {{ font-size: 22px; }}
-        .toast {{ position: fixed; bottom: 90px; left: 20px; right: 20px; background: rgba(0,0,0,0.95); backdrop-filter: blur(10px); padding: 12px 16px; border-radius: 14px; display: flex; align-items: center; gap: 10px; z-index: 1100; animation: slideUp 0.3s; border-left: 3px solid var(--success); }}
-        .toast.error {{ border-left-color: var(--danger); }}
-        @keyframes fadeIn {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
-        @keyframes fadeInDown {{ from {{ opacity: 0; transform: translateY(-20px); }} to {{ opacity: 1; transform: translateY(0); }} }}
-        ::-webkit-scrollbar {{ width: 4px; }}
-        ::-webkit-scrollbar-track {{ background: rgba(255,255,255,0.05); }}
-        ::-webkit-scrollbar-thumb {{ background: var(--primary); border-radius: 10px; }}
-        .license-key {{ background: rgba(0,0,0,0.5); padding: 10px; border-radius: 10px; font-family: monospace; font-size: 11px; text-align: center; word-break: break-all; margin: 10px 0; }}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<title>AimNoob Shop</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+*{{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}}
+:root{{
+--bg:#050510;--surface:rgba(255,255,255,.04);--surface2:rgba(255,255,255,.07);
+--surface3:rgba(255,255,255,.12);--text:#fff;--text2:rgba(255,255,255,.6);
+--text3:rgba(255,255,255,.35);--accent:#8b5cf6;--accent2:#a78bfa;
+--pink:#ec4899;--amber:#f59e0b;--emerald:#10b981;--red:#ef4444;
+--blue:#3b82f6;--grad1:linear-gradient(135deg,#8b5cf6,#ec4899);
+--grad2:linear-gradient(135deg,#6366f1,#8b5cf6);--grad3:linear-gradient(135deg,#f59e0b,#ef4444);
+--radius:16px;--radius2:20px;--radius3:28px;
+--shadow:0 8px 32px rgba(0,0,0,.4);--shadow2:0 20px 60px rgba(0,0,0,.5)
+}}
+html{{height:100%}}
+body{{
+font-family:'Inter',system-ui,-apple-system,sans-serif;
+background:var(--bg);color:var(--text);min-height:100%;
+overflow-x:hidden;-webkit-font-smoothing:antialiased
+}}
+
+/* === CANVAS PARTICLES === */
+#particles{{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}}
+
+/* === GLOW ORBS === */
+.orb{{position:fixed;border-radius:50%;filter:blur(80px);opacity:.15;z-index:0;pointer-events:none}}
+.orb1{{width:300px;height:300px;background:#8b5cf6;top:-100px;left:-80px;animation:orbFloat1 15s ease-in-out infinite}}
+.orb2{{width:250px;height:250px;background:#ec4899;bottom:-50px;right:-60px;animation:orbFloat2 18s ease-in-out infinite}}
+.orb3{{width:200px;height:200px;background:#3b82f6;top:40%;left:50%;animation:orbFloat3 20s ease-in-out infinite}}
+@keyframes orbFloat1{{0%,100%{{transform:translate(0,0)}}50%{{transform:translate(40px,60px)}}}}
+@keyframes orbFloat2{{0%,100%{{transform:translate(0,0)}}50%{{transform:translate(-50px,-40px)}}}}
+@keyframes orbFloat3{{0%,100%{{transform:translate(-50%,-50%)}}50%{{transform:translate(-30%,-30%)}}}}
+
+/* === LAYOUT === */
+.app{{max-width:480px;margin:0 auto;padding:16px 16px 100px;position:relative;z-index:1}}
+
+/* === HEADER === */
+.header{{text-align:center;padding:24px 0 28px;animation:fadeDown .6s ease}}
+@keyframes fadeDown{{from{{opacity:0;transform:translateY(-20px)}}to{{opacity:1;transform:translateY(0)}}}}
+.logo-wrap{{position:relative;display:inline-block;margin-bottom:14px}}
+.logo{{
+width:72px;height:72px;border-radius:22px;
+background:var(--grad1);display:flex;align-items:center;justify-content:center;
+font-size:36px;box-shadow:0 10px 40px rgba(139,92,246,.4);
+animation:logoPulse 3s ease-in-out infinite
+}}
+@keyframes logoPulse{{0%,100%{{transform:scale(1)}}50%{{transform:scale(1.05)}}}}
+.logo-ring{{
+position:absolute;inset:-4px;border-radius:26px;
+border:2px solid rgba(139,92,246,.3);
+animation:ringRotate 8s linear infinite
+}}
+@keyframes ringRotate{{from{{transform:rotate(0)}}to{{transform:rotate(360deg)}}}}
+.logo-dot{{
+position:absolute;width:8px;height:8px;background:var(--amber);
+border-radius:50%;top:-4px;left:50%;transform:translateX(-50%);
+box-shadow:0 0 10px var(--amber)
+}}
+h1{{
+font-size:26px;font-weight:900;letter-spacing:-.5px;
+background:linear-gradient(135deg,#fff 0%,var(--accent2) 100%);
+-webkit-background-clip:text;-webkit-text-fill-color:transparent
+}}
+.tagline{{color:var(--text2);font-size:12px;margin-top:4px;font-weight:500}}
+
+/* === STATUS BAR === */
+.status-bar{{
+display:flex;align-items:center;justify-content:center;gap:8px;
+padding:8px 16px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);
+border-radius:30px;margin:0 auto 24px;width:fit-content;font-size:11px;font-weight:600
+}}
+.status-dot{{width:6px;height:6px;background:var(--emerald);border-radius:50%;animation:blink 2s infinite}}
+@keyframes blink{{0%,100%{{opacity:1}}50%{{opacity:.3}}}}
+
+/* === TABS === */
+.tabs{{
+display:flex;gap:4px;background:var(--surface);border-radius:14px;
+padding:4px;margin-bottom:20px;position:sticky;top:0;z-index:50;
+backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)
+}}
+.tab{{
+flex:1;padding:10px;border-radius:11px;border:none;
+background:transparent;color:var(--text2);font-size:12px;
+font-weight:600;cursor:pointer;transition:.3s;
+display:flex;flex-direction:column;align-items:center;gap:3px
+}}
+.tab.active{{background:var(--surface3);color:var(--text);box-shadow:0 2px 12px rgba(0,0,0,.2)}}
+.tab-icon{{font-size:18px}}
+
+/* === PLATFORM SECTION === */
+.section{{margin-bottom:24px;animation:fadeUp .5s ease}}
+@keyframes fadeUp{{from{{opacity:0;transform:translateY(16px)}}to{{opacity:1;transform:translateY(0)}}}}
+.section-head{{
+display:flex;align-items:center;justify-content:space-between;
+margin-bottom:14px;padding:0 4px
+}}
+.section-title{{font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px}}
+.section-badge{{
+font-size:10px;font-weight:700;padding:3px 10px;
+border-radius:20px;background:var(--surface2);color:var(--text2)
+}}
+
+/* === PRODUCT CARDS === */
+.cards{{display:grid;grid-template-columns:1fr 1fr;gap:12px}}
+.card{{
+background:var(--surface);border:1px solid rgba(255,255,255,.06);
+border-radius:var(--radius2);overflow:hidden;cursor:pointer;
+transition:all .35s cubic-bezier(.4,0,.2,1);position:relative
+}}
+.card:active{{transform:scale(.97)}}
+.card::after{{
+content:'';position:absolute;inset:0;border-radius:var(--radius2);
+background:linear-gradient(135deg,rgba(139,92,246,.08),transparent 60%);
+opacity:0;transition:.3s
+}}
+.card:hover::after,.card:active::after{{opacity:1}}
+.card-shine{{
+position:absolute;top:0;left:0;right:0;height:1px;
+background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);
+transform:translateX(-100%);animation:shine 4s ease-in-out infinite
+}}
+@keyframes shine{{0%{{transform:translateX(-100%)}}40%,100%{{transform:translateX(100%)}}}}
+.card-badge{{
+position:absolute;top:8px;right:8px;z-index:2;
+font-size:9px;font-weight:800;padding:3px 8px;border-radius:10px;
+background:var(--grad3);color:#fff;text-transform:uppercase;letter-spacing:.5px
+}}
+.card-body{{padding:14px 12px;position:relative;z-index:1}}
+.card-icon{{
+width:44px;height:44px;border-radius:14px;
+background:var(--surface2);display:flex;align-items:center;
+justify-content:center;font-size:24px;margin:0 auto 10px
+}}
+.card-name{{font-size:14px;font-weight:700;text-align:center;margin-bottom:2px}}
+.card-period{{font-size:10px;color:var(--text3);text-align:center;margin-bottom:10px;font-weight:500}}
+.card-price{{text-align:center;margin-bottom:10px}}
+.price-main{{font-size:20px;font-weight:900;color:var(--amber)}}
+.price-old{{font-size:11px;color:var(--text3);text-decoration:line-through;margin-left:4px}}
+.price-per{{font-size:9px;color:var(--text3);margin-top:2px}}
+.card-features{{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-bottom:10px}}
+.feat{{
+font-size:8px;padding:2px 6px;border-radius:6px;
+background:rgba(139,92,246,.1);color:var(--accent2);font-weight:600
+}}
+.card-btn{{
+width:100%;padding:9px;border:none;border-radius:12px;
+background:var(--grad1);color:#fff;font-size:12px;
+font-weight:700;cursor:pointer;transition:.2s;
+position:relative;overflow:hidden
+}}
+.card-btn:active{{transform:scale(.98)}}
+
+/* === FULL WIDTH CARD === */
+.card-full{{grid-column:1/-1}}
+.card-full .card-body{{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}}
+.card-full .card-icon{{margin:0}}
+.card-full .card-info{{text-align:left}}
+.card-full .card-info .card-name{{text-align:left;font-size:15px}}
+.card-full .card-info .card-period{{text-align:left}}
+.card-full .card-right{{text-align:right}}
+.card-full .card-right .price-main{{font-size:22px}}
+.card-full .card-btn{{grid-column:1/-1}}
+
+/* === MODAL === */
+.modal-overlay{{
+display:none;position:fixed;inset:0;z-index:200;
+background:rgba(0,0,0,.85);backdrop-filter:blur(12px);
+-webkit-backdrop-filter:blur(12px);
+align-items:flex-end;justify-content:center
+}}
+.modal-overlay.open{{display:flex}}
+.modal{{
+background:linear-gradient(180deg,#131325 0%,#0a0a18 100%);
+border-radius:var(--radius3) var(--radius3) 0 0;
+width:100%;max-width:480px;max-height:92vh;overflow-y:auto;
+padding:0;animation:modalUp .4s cubic-bezier(.32,.72,.24,1.02);
+border-top:1px solid rgba(255,255,255,.08)
+}}
+@keyframes modalUp{{from{{transform:translateY(100%)}}to{{transform:translateY(0)}}}}
+.modal-handle{{
+width:36px;height:4px;background:rgba(255,255,255,.2);
+border-radius:4px;margin:10px auto 0
+}}
+.modal-head{{
+display:flex;align-items:center;justify-content:space-between;
+padding:16px 20px 12px;position:sticky;top:0;z-index:10;
+background:linear-gradient(180deg,#131325,rgba(19,19,37,.95))
+}}
+.modal-title{{font-size:18px;font-weight:800}}
+.modal-close{{
+width:30px;height:30px;border-radius:50%;border:none;
+background:var(--surface2);color:var(--text2);font-size:16px;
+cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center
+}}
+.modal-close:hover{{background:var(--red);color:#fff;transform:rotate(90deg)}}
+.modal-body{{padding:0 20px 24px}}
+
+/* === PAYMENT METHODS === */
+.pay-list{{display:flex;flex-direction:column;gap:8px;margin:16px 0}}
+.pay-item{{
+display:flex;align-items:center;justify-content:space-between;
+padding:14px 16px;background:var(--surface);border:1px solid transparent;
+border-radius:var(--radius);cursor:pointer;transition:.3s
+}}
+.pay-item:active{{transform:scale(.98);border-color:var(--accent)}}
+.pay-left{{display:flex;align-items:center;gap:12px}}
+.pay-icon{{
+width:42px;height:42px;border-radius:13px;background:var(--surface2);
+display:flex;align-items:center;justify-content:center;font-size:20px
+}}
+.pay-name{{font-size:13px;font-weight:700}}
+.pay-desc{{font-size:10px;color:var(--text3);margin-top:1px}}
+.pay-amount{{font-size:15px;font-weight:800;color:var(--amber)}}
+
+/* === ACTION BUTTON === */
+.action-btn{{
+width:100%;padding:15px;border:none;border-radius:var(--radius);
+background:var(--grad1);color:#fff;font-size:15px;font-weight:700;
+cursor:pointer;transition:.2s;position:relative;overflow:hidden;
+box-shadow:0 4px 20px rgba(139,92,246,.3)
+}}
+.action-btn:active{{transform:scale(.98)}}
+.action-btn.secondary{{background:var(--surface2);box-shadow:none;font-size:13px;padding:12px}}
+
+/* === STATUS === */
+.status-view{{text-align:center;padding:30px 0}}
+.status-emoji{{font-size:56px;margin-bottom:12px}}
+.status-emoji.spin{{animation:spin 1.2s linear infinite}}
+@keyframes spin{{to{{transform:rotate(360deg)}}}}
+.status-title{{font-size:18px;font-weight:700;margin-bottom:6px}}
+.status-desc{{font-size:12px;color:var(--text2);line-height:1.5}}
+
+/* === KEY BOX === */
+.key-box{{
+background:rgba(0,0,0,.4);border:1px solid var(--surface2);
+padding:14px;border-radius:14px;font-family:'Courier New',monospace;
+font-size:12px;text-align:center;word-break:break-all;
+margin:12px 0;color:var(--amber);letter-spacing:1px;
+cursor:pointer;transition:.2s
+}}
+.key-box:active{{background:rgba(139,92,246,.1)}}
+
+/* === LICENSE CARD === */
+.license-card{{
+background:var(--surface);border:1px solid rgba(255,255,255,.06);
+border-radius:var(--radius2);padding:16px;margin-bottom:10px
+}}
+.license-header{{display:flex;align-items:center;gap:10px;margin-bottom:10px}}
+.license-icon{{
+width:38px;height:38px;border-radius:12px;background:var(--grad1);
+display:flex;align-items:center;justify-content:center;font-size:18px
+}}
+.license-name{{font-size:14px;font-weight:700}}
+.license-date{{font-size:10px;color:var(--text3)}}
+.license-key{{
+background:rgba(0,0,0,.3);padding:10px;border-radius:10px;
+font-family:monospace;font-size:11px;text-align:center;
+color:var(--amber);cursor:pointer;margin-bottom:10px;
+word-break:break-all;transition:.2s
+}}
+.license-key:active{{background:rgba(139,92,246,.1)}}
+.license-copy{{
+width:100%;padding:8px;border:none;border-radius:10px;
+background:var(--surface2);color:var(--text);font-size:11px;
+font-weight:600;cursor:pointer
+}}
+
+/* === PROFILE === */
+.profile-card{{
+background:var(--surface);border-radius:var(--radius3);
+padding:24px;text-align:center;margin-bottom:16px;
+border:1px solid rgba(255,255,255,.06)
+}}
+.profile-avatar{{
+width:64px;height:64px;border-radius:20px;background:var(--grad2);
+display:flex;align-items:center;justify-content:center;
+font-size:30px;margin:0 auto 12px;
+box-shadow:0 8px 24px rgba(99,102,241,.3)
+}}
+.profile-name{{font-size:18px;font-weight:800;margin-bottom:2px}}
+.profile-username{{font-size:12px;color:var(--text3)}}
+.profile-stats{{
+display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px
+}}
+.stat-box{{
+background:var(--surface2);border-radius:14px;padding:12px;text-align:center
+}}
+.stat-num{{font-size:20px;font-weight:900;color:var(--accent2)}}
+.stat-label{{font-size:10px;color:var(--text3);margin-top:2px}}
+
+/* === EMPTY === */
+.empty{{text-align:center;padding:50px 20px}}
+.empty-icon{{font-size:48px;margin-bottom:12px;opacity:.5}}
+.empty-text{{font-size:14px;color:var(--text2);margin-bottom:16px}}
+
+/* === PRODUCT SUMMARY IN MODAL === */
+.product-summary{{
+text-align:center;padding:16px;background:var(--surface);
+border-radius:var(--radius);margin-bottom:16px
+}}
+.product-summary .ps-icon{{font-size:40px;margin-bottom:6px}}
+.product-summary .ps-name{{font-size:16px;font-weight:700}}
+.product-summary .ps-period{{font-size:11px;color:var(--text2)}}
+.product-summary .ps-price{{font-size:24px;font-weight:900;color:var(--amber);margin-top:6px}}
+
+/* === TOAST === */
+.toast{{
+position:fixed;bottom:80px;left:16px;right:16px;
+padding:12px 16px;border-radius:14px;z-index:300;
+display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;
+animation:toastIn .3s ease;max-width:480px;margin:0 auto;
+backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)
+}}
+.toast.success{{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:var(--emerald)}}
+.toast.error{{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:var(--red)}}
+@keyframes toastIn{{from{{opacity:0;transform:translateY(20px)}}to{{opacity:1;transform:translateY(0)}}}}
+
+/* === NAV === */
+.nav{{
+position:fixed;bottom:0;left:0;right:0;z-index:100;
+background:rgba(10,10,22,.92);backdrop-filter:blur(20px);
+-webkit-backdrop-filter:blur(20px);
+border-top:1px solid rgba(255,255,255,.06);
+display:flex;justify-content:space-around;padding:8px 16px 12px;
+max-width:480px;margin:0 auto
+}}
+.nav-btn{{
+display:flex;flex-direction:column;align-items:center;gap:2px;
+background:none;border:none;color:var(--text3);font-size:10px;
+font-weight:600;cursor:pointer;padding:6px 16px;border-radius:14px;transition:.3s
+}}
+.nav-btn.active{{color:var(--accent2);background:rgba(139,92,246,.1)}}
+.nav-btn .ni{{font-size:20px;transition:.2s}}
+
+.page{{display:none}}
+.page.active{{display:block;animation:fadeUp .3s ease}}
+
+/* scrollbar */
+::-webkit-scrollbar{{width:3px}}
+::-webkit-scrollbar-track{{background:transparent}}
+::-webkit-scrollbar-thumb{{background:var(--surface3);border-radius:10px}}
+</style>
 </head>
 <body>
-    <div class="animated-bg"></div>
-    <div class="app">
-        <div class="header">
-            <div class="logo">&#127919;</div>
-            <h1>AimNoob</h1>
-            <div class="subtitle">Премиум чит для Standoff 2</div>
-        </div>
-        <div id="content"></div>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+<canvas id="particles"></canvas>
+
+<div class="app">
+  <div class="header">
+    <div class="logo-wrap">
+      <div class="logo">&#127919;</div>
+      <div class="logo-ring"><div class="logo-dot"></div></div>
     </div>
-    <div class="bottom-nav">
-        <button class="nav-item active" data-page="shop"><span class="nav-icon">&#128722;</span><span>Магазин</span></button>
-        <button class="nav-item" data-page="orders"><span class="nav-icon">&#128273;</span><span>Ключи</span></button>
-        <button class="nav-item" data-page="profile"><span class="nav-icon">&#128100;</span><span>Профиль</span></button>
+    <h1>AimNoob</h1>
+    <div class="tagline">Premium Cheat &#8226; Standoff 2</div>
+  </div>
+
+  <div class="status-bar">
+    <span class="status-dot"></span>
+    <span>v0.37.1 &#8226; Online &#8226; Undetected</span>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="shop"><span class="tab-icon">&#128722;</span>&#1052;&#1072;&#1075;&#1072;&#1079;&#1080;&#1085;</button>
+    <button class="tab" data-tab="keys"><span class="tab-icon">&#128273;</span>&#1050;&#1083;&#1102;&#1095;&#1080;</button>
+    <button class="tab" data-tab="profile"><span class="tab-icon">&#128100;</span>&#1055;&#1088;&#1086;&#1092;&#1080;&#1083;&#1100;</button>
+  </div>
+
+  <div id="page-shop" class="page active"></div>
+  <div id="page-keys" class="page"></div>
+  <div id="page-profile" class="page"></div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" data-tab="shop"><span class="ni">&#128722;</span><span>&#1064;&#1086;&#1087;</span></button>
+  <button class="nav-btn" data-tab="keys"><span class="ni">&#128273;</span><span>&#1050;&#1083;&#1102;&#1095;&#1080;</span></button>
+  <button class="nav-btn" data-tab="profile"><span class="ni">&#128100;</span><span>&#1055;&#1088;&#1086;&#1092;&#1080;&#1083;&#1100;</span></button>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <div class="modal-title" id="mTitle">&#1047;&#1072;&#1082;&#1072;&#1079;</div>
+      <button class="modal-close" id="mClose">&times;</button>
     </div>
-    <div id="modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title" id="modal-title">Оформление заказа</div>
-                <button class="close-modal">&times;</button>
-            </div>
-            <div id="modal-body"></div>
-        </div>
-    </div>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script>
-        var DOWNLOAD_URL = '{download_url}';
-        var tg = window.Telegram.WebApp;
-        tg.expand(); tg.enableClosingConfirmation(); tg.MainButton.hide();
-        var API_BASE = window.location.origin + '/api';
-        var PRODUCTS = {{
-            android: [
-                {{ id:"apk_week", name:"Android", period:"Неделя", duration:"7 дней", price:150, price_stars:350, price_gold:350, price_nft:250, price_crypto_usdt:2, icon:"📱", features:["AimBot","WallHack","ESP"], popular:false, discount:0 }},
-                {{ id:"apk_month", name:"Android", period:"Месяц", duration:"30 дней", price:350, price_stars:800, price_gold:800, price_nft:600, price_crypto_usdt:5, icon:"📱", features:["AimBot","WallHack","ESP","Anti-Ban"], popular:true, discount:15 }},
-                {{ id:"apk_forever", name:"Android", period:"Навсегда", duration:"∞", price:800, price_stars:1800, price_gold:1800, price_nft:1400, price_crypto_usdt:12, icon:"📱", features:["AimBot","WallHack","ESP","Anti-Ban","Обновления"], popular:false, discount:30 }}
-            ],
-            ios: [
-                {{ id:"ios_week", name:"iOS", period:"Неделя", duration:"7 дней", price:300, price_stars:700, price_gold:700, price_nft:550, price_crypto_usdt:4, icon:"🍎", features:["AimBot","WallHack","ESP"], popular:false, discount:0 }},
-                {{ id:"ios_month", name:"iOS", period:"Месяц", duration:"30 дней", price:450, price_stars:1000, price_gold:1000, price_nft:800, price_crypto_usdt:6, icon:"🍎", features:["AimBot","WallHack","ESP","Anti-Ban"], popular:true, discount:10 }},
-                {{ id:"ios_forever", name:"iOS", period:"Навсегда", duration:"∞", price:850, price_stars:2000, price_gold:2000, price_nft:1600, price_crypto_usdt:12, icon:"🍎", features:["AimBot","WallHack","ESP","Anti-Ban","Обновления"], popular:false, discount:25 }}
-            ]
-        }};
-        var currentUser = null, selectedProduct = null, userLicenses = [];
-        document.addEventListener('DOMContentLoaded', function() {{
-            currentUser = tg.initDataUnsafe && tg.initDataUnsafe.user ? tg.initDataUnsafe.user : {{ id: Date.now(), first_name: 'Гость', username: 'user' }};
-            loadUserLicenses(); renderShop();
-            document.querySelectorAll('.nav-item').forEach(function(btn) {{ btn.addEventListener('click', function() {{ switchPage(btn.dataset.page); }}); }});
-            document.querySelector('.close-modal').addEventListener('click', closeModal);
-            document.getElementById('modal').addEventListener('click', function(e) {{ if (e.target === document.getElementById('modal')) closeModal(); }});
-        }});
-        function switchPage(page) {{
-            document.querySelectorAll('.nav-item').forEach(function(btn) {{ btn.classList.toggle('active', btn.dataset.page === page); }});
-            if (page === 'shop') renderShop();
-            else if (page === 'orders') renderOrders();
-            else if (page === 'profile') renderProfile();
-        }}
-        function renderShop() {{
-            var content = document.getElementById('content');
-            content.innerHTML = ['android','ios'].map(function(platform) {{
-                var icon = platform === 'android' ? '📱' : '🍎';
-                var name = platform === 'android' ? 'Android' : 'iOS';
-                return '<div class="platform-group"><div class="platform-header"><div class="platform-title"><span>'+icon+'</span><span>'+name+'</span></div><div class="platform-badge">3 тарифа</div></div><div class="products-grid">'+PRODUCTS[platform].map(function(p) {{ return renderProductCard(p); }}).join('')+'</div></div>';
-            }}).join('');
-            document.querySelectorAll('.product-card').forEach(function(card) {{
-                card.querySelector('.buy-btn').addEventListener('click', function(e) {{ e.stopPropagation(); var allP = PRODUCTS.android.concat(PRODUCTS.ios); var p = allP.find(function(x) {{ return x.id === card.dataset.productId; }}); if(p) showPaymentModal(p); }});
-                card.addEventListener('click', function(e) {{ if(!e.target.classList.contains('buy-btn')){{ var allP = PRODUCTS.android.concat(PRODUCTS.ios); var p = allP.find(function(x) {{ return x.id === card.dataset.productId; }}); if(p) showProductDetail(p); }} }});
-            }});
-        }}
-        function renderProductCard(p) {{
-            var oldPrice = p.discount ? Math.round(p.price*(1+p.discount/100)) : null;
-            var days = parseInt(p.duration); var ppd = (!isNaN(days)&&days>0) ? (p.price/days).toFixed(0) : null;
-            return '<div class="product-card" data-product-id="'+p.id+'">'+(p.popular?'<div class="popular-badge">🔥 ХИТ</div>':'')+'<div class="card-content"><div class="card-header"><div class="product-icon">'+p.icon+'</div><div class="product-name">'+p.name+'</div><div class="product-platform">'+p.period+'</div></div><div class="price-section"><span class="price-current">'+p.price+' ₽</span>'+(oldPrice?'<span class="price-old">'+oldPrice+' ₽</span>':'')+(p.discount?'<div class="price-save">-'+p.discount+'%</div>':'')+'</div>'+(ppd?'<div class="duration-badge">📅 '+ppd+' ₽/день</div>':'')+'<div class="features-list">'+p.features.map(function(f){{ return '<span class="feature">✨ '+f+'</span>'; }}).join('')+'</div><button class="buy-btn">'+(p.popular?'🔥 Купить':'🛒 Купить')+'</button></div></div>';
-        }}
-        function showProductDetail(p) {{
-            document.getElementById('modal-title').textContent = p.name+' • '+p.period;
-            var oldPrice = p.discount ? Math.round(p.price*(1+p.discount/100)) : null;
-            document.getElementById('modal-body').innerHTML = '<div style="text-align:center;margin-bottom:20px"><div style="font-size:56px;margin-bottom:8px">'+p.icon+'</div><div style="font-size:20px;font-weight:700">'+p.name+'</div><div style="font-size:14px;opacity:0.7">'+p.period+' • '+p.duration+'</div></div><div class="price-section"><span class="price-current" style="font-size:32px">'+p.price+' ₽</span>'+(oldPrice?'<span class="price-old">'+oldPrice+' ₽</span>':'')+'</div><div class="features-list" style="justify-content:center;margin-bottom:20px">'+p.features.map(function(f){{ return '<span class="feature">✨ '+f+'</span>'; }}).join('')+'</div><button class="pay-btn" id="detailBuyBtn">💳 Перейти к оплате</button>';
-            document.getElementById('detailBuyBtn').addEventListener('click', function() {{ closeModal(); setTimeout(function() {{ var allP = PRODUCTS.android.concat(PRODUCTS.ios); var pr = allP.find(function(x){{ return x.id === p.id; }}); if(pr) showPaymentModal(pr); }}, 100); }});
-            openModal();
-        }}
-        function showPaymentModal(p) {{
-            selectedProduct = p;
-            document.getElementById('modal-title').textContent = 'Способ оплаты';
-            var methods = [
-                {{m:'yoomoney',i:'💳',t:'Картой',d:'Карты, СБП, Apple Pay',a:p.price+' ₽'}},
-                {{m:'stars',i:'⭐',t:'Telegram Stars',d:'Встроенные платежи',a:p.price_stars+' ⭐'}},
-                {{m:'crypto',i:'₿',t:'Криптовалюта',d:'USDT, BTC, ETH, TON',a:p.price_crypto_usdt+' USDT'}},
-                {{m:'gold',i:'💰',t:'GOLD',d:'Игровая валюта',a:p.price_gold+' 🪙'}},
-                {{m:'nft',i:'🎨',t:'NFT',d:'Коллекционные токены',a:p.price_nft+' 🖼'}}
-            ];
-            document.getElementById('modal-body').innerHTML = '<div style="text-align:center;margin-bottom:16px"><div style="font-size:40px">'+p.icon+'</div><div style="font-size:16px;font-weight:600">'+p.name+' • '+p.period+'</div><div style="font-size:20px;font-weight:700;color:var(--accent);margin-top:5px">'+p.price+' ₽</div></div><div class="payment-methods">'+methods.map(function(x){{ return '<div class="payment-method-card" data-method="'+x.m+'"><div class="payment-method-left"><div class="payment-icon">'+x.i+'</div><div class="payment-info"><h4>'+x.t+'</h4><p>'+x.d+'</p></div></div><div class="payment-amount">'+x.a+'</div></div>'; }}).join('')+'</div>';
-            document.querySelectorAll('.payment-method-card').forEach(function(c) {{ c.addEventListener('click', function() {{ processPayment(c.dataset.method); }}); }});
-            openModal();
-        }}
-        function processPayment(method) {{
-            document.getElementById('modal-body').innerHTML = '<div class="payment-status"><div class="status-icon status-loading">⏳</div><h3>Создание платежа...</h3></div>';
-            fetch(API_BASE+'/create_payment',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{product_id:selectedProduct.id,method:method,user_id:currentUser.id,user_name:currentUser.first_name+' '+(currentUser.last_name||''),init_data:tg.initData}})}})
-            .then(function(r){{ return r.json(); }})
-            .then(function(res){{
-                if(!res.success) throw new Error(res.error||'Ошибка');
-                if(method==='yoomoney') showUrlPayment(res.payment_url,res.order_id,'💳',selectedProduct.price+' ₽','checkPayment');
-                else if(method==='stars') document.getElementById('modal-body').innerHTML='<div class="payment-status"><div class="status-icon">⭐</div><h3>'+selectedProduct.price_stars+' Stars</h3><p style="opacity:0.7;margin:8px 0">Перейдите в бота для оплаты</p><button class="pay-btn" onclick="tg.openTelegramLink(\'https://t.me/aimnoob_bot?start=buy_stars_'+selectedProduct.id+'\')">⭐ Оплатить в боте</button></div>';
-                else if(method==='crypto') showCryptoPayment(res.payment_url,res.order_id,res.invoice_id);
-                else showManualPayment(method,res.order_id);
-            }})
-            .catch(function(e){{ showToast(e.message,'error'); setTimeout(function(){{ showPaymentModal(selectedProduct); }},1500); }});
-        }}
-        function showUrlPayment(url,orderId,icon,amount,checkFn) {{
-            document.getElementById('modal-body').innerHTML='<div class="payment-status"><div class="status-icon">'+icon+'</div><h3>'+amount+'</h3><p style="opacity:0.7;margin:8px 0">Заказ #'+orderId.slice(-8)+'</p><button class="pay-btn" id="payBtn">🔗 Оплатить</button><button class="pay-btn" style="background:var(--glass-light);margin-top:8px" id="checkBtn">✅ Проверить оплату</button></div>';
-            document.getElementById('payBtn').addEventListener('click', function() {{ window.open(url, '_blank'); }});
-            document.getElementById('checkBtn').addEventListener('click', function() {{ checkPayment(orderId); }});
-        }}
-        function showCryptoPayment(url,orderId,invoiceId) {{
-            document.getElementById('modal-body').innerHTML='<div class="payment-status"><div class="status-icon">₿</div><h3>'+selectedProduct.price_crypto_usdt+' USDT</h3><p style="opacity:0.7;margin:8px 0">Заказ #'+orderId.slice(-8)+'</p><button class="pay-btn" id="cryptoPayBtn">🔗 Оплатить криптой</button><button class="pay-btn" style="background:var(--glass-light);margin-top:8px" id="cryptoCheckBtn">✅ Проверить оплату</button></div>';
-            document.getElementById('cryptoPayBtn').addEventListener('click', function() {{ window.open(url, '_blank'); }});
-            document.getElementById('cryptoCheckBtn').addEventListener('click', function() {{ checkCrypto(orderId, invoiceId); }});
-        }}
-        function showManualPayment(method,orderId) {{
-            var names={{gold:'GOLD',nft:'NFT'}}, amounts={{gold:selectedProduct.price_gold,nft:selectedProduct.price_nft}}, icons={{gold:'💰',nft:'🎨'}};
-            var msg='Привет! Хочу купить чит на Standoff 2. Подписка на '+selectedProduct.period+' ('+selectedProduct.name+'). Готов купить за '+amounts[method]+' '+names[method];
-            document.getElementById('modal-body').innerHTML='<div class="payment-status"><div class="status-icon">'+icons[method]+'</div><h3>'+amounts[method]+' '+names[method]+'</h3><div style="background:var(--glass-light);padding:10px;border-radius:12px;margin:10px 0;font-size:11px">'+msg+'</div><button class="pay-btn" id="manualPayBtn">💬 Написать в поддержку</button><button class="pay-btn" style="background:var(--glass-light);margin-top:8px" id="manualDoneBtn">✅ Я написал</button></div>';
-            document.getElementById('manualPayBtn').addEventListener('click', function() {{ window.open('https://t.me/aimnoob_support?text='+encodeURIComponent(msg), '_blank'); }});
-            document.getElementById('manualDoneBtn').addEventListener('click', function() {{ closeModal(); showToast('Заказ создан!'); }});
-        }}
-        function checkPayment(orderId) {{
-            document.getElementById('modal-body').innerHTML='<div class="payment-status"><div class="status-icon status-loading">⏳</div><h3>Проверка...</h3></div>';
-            fetch(API_BASE+'/check_payment',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{order_id:orderId}})}})
-            .then(function(r){{ return r.json(); }})
-            .then(function(res){{
-                if(res.paid) {{ showSuccess(res.license_key); }}
-                else {{ document.getElementById('modal-body').innerHTML='<div class="payment-status"><div class="status-icon">⏳</div><h3>Платеж не найден</h3><p style="opacity:0.7;margin:8px 0">Попробуйте через 1-2 минуты</p><button class="pay-btn" id="retryCheckBtn">🔄 Проверить снова</button></div>'; document.getElementById('retryCheckBtn').addEventListener('click', function(){{ checkPayment(orderId); }}); }}
-            }})
-            .catch(function(){{ showToast('Ошибка проверки','error'); }});
-        }}
-        function checkCrypto(orderId,invoiceId) {{
-            document.getElementById('modal-body').innerHTML='<div class="payment-status"><div class="status-icon status-loading">⏳</div><h3>Проверка...</h3></div>';
-            fetch(API_BASE+'/check_crypto',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{invoice_id:invoiceId,order_id:orderId}})}})
-            .then(function(r){{ return r.json(); }})
-            .then(function(res){{
-                if(res.paid) {{ showSuccess(res.license_key); }}
-                else {{ document.getElementById('modal-body').innerHTML='<div class="payment-status"><div class="status-icon">⏳</div><h3>Платеж в обработке</h3><button class="pay-btn" id="retryCryptoBtn">🔄 Проверить снова</button></div>'; document.getElementById('retryCryptoBtn').addEventListener('click', function(){{ checkCrypto(orderId, invoiceId); }}); }}
-            }})
-            .catch(function(){{ showToast('Ошибка','error'); }});
-        }}
-        function showSuccess(key) {{
-            userLicenses.push({{key:key,product:selectedProduct.name+' • '+selectedProduct.period,date:new Date().toISOString()}});
-            saveUserLicenses();
-            document.getElementById('modal-body').innerHTML='<div class="payment-status"><div class="status-icon">✅</div><h3>Оплата подтверждена!</h3><div class="license-key">🔑 '+key+'</div><button class="pay-btn" id="downloadBtn">📥 Скачать AimNoob</button><button class="pay-btn" style="background:var(--glass-light);margin-top:8px" id="toKeysBtn">📋 Перейти к ключам</button></div>';
-            document.getElementById('downloadBtn').addEventListener('click', function() {{ window.open(DOWNLOAD_URL, '_blank'); }});
-            document.getElementById('toKeysBtn').addEventListener('click', function() {{ closeModal(); switchPage('orders'); }});
-        }}
-        function renderOrders() {{
-            var content=document.getElementById('content');
-            if(!userLicenses.length){{ content.innerHTML='<div style="text-align:center;padding:50px 20px"><div style="font-size:56px;margin-bottom:16px">🔑</div><div style="font-size:18px;font-weight:600;margin-bottom:8px">Нет активных ключей</div><div style="opacity:0.7;margin-bottom:20px">Приобретите подписку</div><button class="pay-btn" id="toShopBtn">🛒 В магазин</button></div>'; document.getElementById('toShopBtn').addEventListener('click', function(){{ switchPage('shop'); }}); return; }}
-            content.innerHTML='<div class="platform-group"><div class="platform-header"><div class="platform-title"><span>🔑</span><span>Мои лицензии</span></div><div class="platform-badge">'+userLicenses.length+' шт</div></div><div class="products-grid">'+userLicenses.map(function(l,i){{ return '<div class="product-card"><div class="card-content"><div class="card-header"><div class="product-icon">🎯</div><div class="product-name">'+l.product+'</div><div class="product-platform">'+new Date(l.date).toLocaleDateString('ru-RU')+'</div></div><div class="license-key">'+l.key+'</div><button class="buy-btn copy-btn" data-key="'+l.key+'">📋 Скопировать</button></div></div>'; }}).join('')+'</div></div>';
-            document.querySelectorAll('.copy-btn').forEach(function(btn){{ btn.addEventListener('click', function(){{ copyToClipboard(btn.dataset.key); }}); }});
-        }}
-        function renderProfile() {{
-            var emojis=['🎯','🔥','⚡','💎','🌟','🎮','🚀','💪'];
-            var avatar=emojis[Math.abs(currentUser.id)%emojis.length];
-            var lastName = currentUser.last_name || '';
-            var username = currentUser.username || 'user';
-            document.getElementById('content').innerHTML='<div class="platform-group"><div class="platform-header"><div class="platform-title"><span>👤</span><span>Профиль</span></div></div><div class="product-card"><div class="card-content" style="text-align:center"><div class="product-icon" style="margin:0 auto 12px">'+avatar+'</div><div class="product-name">'+currentUser.first_name+' '+lastName+'</div><div class="product-platform">@'+username+'</div><div style="margin:15px 0;padding:12px;background:var(--glass-light);border-radius:14px"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Активных ключей:</span><span style="font-weight:700">'+userLicenses.length+'</span></div></div><button class="pay-btn" id="supportBtn">💬 Поддержка</button></div></div></div>';
-            document.getElementById('supportBtn').addEventListener('click', function(){{ window.open('https://t.me/aimnoob_support', '_blank'); }});
-        }}
-        function copyToClipboard(t){{ navigator.clipboard.writeText(t); showToast('Ключ скопирован!'); }}
-        function loadUserLicenses(){{ var s=localStorage.getItem('aimnoob_licenses'); if(s) userLicenses=JSON.parse(s); }}
-        function saveUserLicenses(){{ localStorage.setItem('aimnoob_licenses',JSON.stringify(userLicenses)); }}
-        function showToast(msg,type){{ type=type||'success'; var t=document.createElement('div'); t.className='toast '+type; t.innerHTML='<span>'+(type==='success'?'✅':'❌')+'</span><span>'+msg+'</span>'; document.body.appendChild(t); setTimeout(function(){{ t.remove(); }},3000); }}
-        function openModal(){{ document.getElementById('modal').classList.add('active'); }}
-        function closeModal(){{ document.getElementById('modal').classList.remove('active'); }}
-        window.checkPayment=checkPayment; window.checkCrypto=checkCrypto; window.copyToClipboard=copyToClipboard;
-        window.switchPage=switchPage; window.closeModal=closeModal; window.showToast=showToast; window.showPaymentModal=showPaymentModal;
-        tg.ready();
-    </script>
+    <div class="modal-body" id="mBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){{
+var DOWNLOAD_URL='{download_url}';
+var SUPPORT='{support}';
+var tg=window.Telegram.WebApp;
+tg.expand();tg.enableClosingConfirmation();
+try{{tg.MainButton.hide()}}catch(e){{}}
+
+var API=window.location.origin+'/api';
+var user=tg.initDataUnsafe&&tg.initDataUnsafe.user?tg.initDataUnsafe.user:{{id:Date.now(),first_name:'Guest',username:'user'}};
+var licenses=JSON.parse(localStorage.getItem('an_lic')||'[]');
+var selected=null;
+
+var P={{
+android:[
+{{id:'apk_week',name:'Android',per:'&#1053;&#1077;&#1076;&#1077;&#1083;&#1103;',dur:'7 &#1076;&#1085;&#1077;&#1081;',price:150,stars:350,gold:350,nft:250,usdt:2,icon:'&#128241;',feats:['AimBot','WallHack','ESP'],pop:false,disc:0}},
+{{id:'apk_month',name:'Android',per:'&#1052;&#1077;&#1089;&#1103;&#1094;',dur:'30 &#1076;&#1085;&#1077;&#1081;',price:350,stars:800,gold:800,nft:600,usdt:5,icon:'&#128241;',feats:['AimBot','WallHack','ESP','Anti-Ban'],pop:true,disc:15}},
+{{id:'apk_forever',name:'Android',per:'&#1053;&#1072;&#1074;&#1089;&#1077;&#1075;&#1076;&#1072;',dur:'&#8734;',price:800,stars:1800,gold:1800,nft:1400,usdt:12,icon:'&#128241;',feats:['AimBot','WallHack','ESP','Anti-Ban','Updates'],pop:false,disc:30}}
+],
+ios:[
+{{id:'ios_week',name:'iOS',per:'&#1053;&#1077;&#1076;&#1077;&#1083;&#1103;',dur:'7 &#1076;&#1085;&#1077;&#1081;',price:300,stars:700,gold:700,nft:550,usdt:4,icon:'&#127822;',feats:['AimBot','WallHack','ESP'],pop:false,disc:0}},
+{{id:'ios_month',name:'iOS',per:'&#1052;&#1077;&#1089;&#1103;&#1094;',dur:'30 &#1076;&#1085;&#1077;&#1081;',price:450,stars:1000,gold:1000,nft:800,usdt:6,icon:'&#127822;',feats:['AimBot','WallHack','ESP','Anti-Ban'],pop:true,disc:10}},
+{{id:'ios_forever',name:'iOS',per:'&#1053;&#1072;&#1074;&#1089;&#1077;&#1075;&#1076;&#1072;',dur:'&#8734;',price:850,stars:2000,gold:2000,nft:1600,usdt:12,icon:'&#127822;',feats:['AimBot','WallHack','ESP','Anti-Ban','Updates'],pop:false,disc:25}}
+]
+}};
+
+// === PARTICLES ===
+var cv=document.getElementById('particles'),cx=cv.getContext('2d');
+function resizeCanvas(){{cv.width=window.innerWidth;cv.height=window.innerHeight}}
+resizeCanvas();window.addEventListener('resize',resizeCanvas);
+var pts=[];for(var i=0;i<40;i++)pts.push({{x:Math.random()*cv.width,y:Math.random()*cv.height,r:Math.random()*1.5+.5,dx:(Math.random()-.5)*.3,dy:(Math.random()-.5)*.3,o:Math.random()*.4+.1}});
+function drawParticles(){{
+cx.clearRect(0,0,cv.width,cv.height);
+for(var i=0;i<pts.length;i++){{
+var p=pts[i];p.x+=p.dx;p.y+=p.dy;
+if(p.x<0||p.x>cv.width)p.dx*=-1;
+if(p.y<0||p.y>cv.height)p.dy*=-1;
+cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);
+cx.fillStyle='rgba(139,92,246,'+p.o+')';cx.fill();
+for(var j=i+1;j<pts.length;j++){{
+var q=pts[j],d=Math.hypot(p.x-q.x,p.y-q.y);
+if(d<120){{cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(q.x,q.y);cx.strokeStyle='rgba(139,92,246,'+(1-d/120)*.08+')';cx.stroke()}}
+}}
+}}
+requestAnimationFrame(drawParticles);
+}}
+drawParticles();
+
+// === TABS ===
+function switchTab(t){{
+document.querySelectorAll('.tab,.nav-btn').forEach(function(b){{b.classList.toggle('active',b.dataset.tab===t)}});
+document.querySelectorAll('.page').forEach(function(p){{p.classList.toggle('active',p.id==='page-'+t)}});
+if(t==='shop')renderShop();
+else if(t==='keys')renderKeys();
+else if(t==='profile')renderProfile();
+}}
+document.querySelectorAll('.tab,.nav-btn').forEach(function(b){{b.addEventListener('click',function(){{switchTab(b.dataset.tab)}})}});
+
+// === RENDER SHOP ===
+function renderShop(){{
+var h='';
+['android','ios'].forEach(function(pl){{
+var icon=pl==='android'?'&#128241;':'&#127822;';
+var name=pl==='android'?'Android':'iOS';
+h+='<div class="section"><div class="section-head"><div class="section-title"><span>'+icon+'</span><span>'+name+'</span></div><div class="section-badge">3 &#1090;&#1072;&#1088;&#1080;&#1092;&#1072;</div></div><div class="cards">';
+P[pl].forEach(function(p,i){{
+var old=p.disc?Math.round(p.price*(1+p.disc/100)):'';
+var days=parseInt(p.dur);var ppd=(!isNaN(days)&&days>0)?(p.price/days).toFixed(0)+'&#8381;/&#1076;&#1077;&#1085;&#1100;':'&#1083;&#1091;&#1095;&#1096;&#1072;&#1103; &#1094;&#1077;&#1085;&#1072;';
+if(i===2){{
+h+='<div class="card card-full" data-pid="'+p.id+'">';
+h+='<div class="card-shine"></div>';
+if(p.pop)h+='<div class="card-badge">&#128293; HIT</div>';
+h+='<div class="card-body">';
+h+='<div class="card-icon">'+p.icon+'</div>';
+h+='<div class="card-info"><div class="card-name">'+p.name+' '+p.per+'</div><div class="card-period">'+p.dur+' &#8226; '+ppd+'</div></div>';
+h+='<div class="card-right"><div class="price-main">'+p.price+' &#8381;</div>'+(old?'<div class="price-old">'+old+' &#8381;</div>':'')+'</div>';
+h+='<button class="card-btn buy-btn" data-pid="'+p.id+'">&#128142; &#1050;&#1091;&#1087;&#1080;&#1090;&#1100;</button>';
+h+='</div></div>';
+}}else{{
+h+='<div class="card" data-pid="'+p.id+'">';
+h+='<div class="card-shine"></div>';
+if(p.pop)h+='<div class="card-badge">&#128293; HIT</div>';
+h+='<div class="card-body">';
+h+='<div class="card-icon">'+p.icon+'</div>';
+h+='<div class="card-name">'+p.name+'</div>';
+h+='<div class="card-period">'+p.per+' &#8226; '+p.dur+'</div>';
+h+='<div class="card-price"><span class="price-main">'+p.price+'&#8381;</span>'+(old?'<span class="price-old">'+old+'&#8381;</span>':'')+'</div>';
+h+='<div class="price-per">'+ppd+'</div>';
+h+='<div class="card-features">'+p.feats.map(function(f){{return '<span class="feat">'+f+'</span>'}}).join('')+'</div>';
+h+='<button class="card-btn buy-btn" data-pid="'+p.id+'">'+(p.pop?'&#128293;':'&#128722;')+' &#1050;&#1091;&#1087;&#1080;&#1090;&#1100;</button>';
+h+='</div></div>';
+}}
+}});
+h+='</div></div>';
+}});
+document.getElementById('page-shop').innerHTML=h;
+document.querySelectorAll('.buy-btn').forEach(function(b){{
+b.addEventListener('click',function(e){{e.stopPropagation();var p=findP(b.dataset.pid);if(p)openPayModal(p)}});
+}});
+}}
+
+function findP(id){{
+var all=P.android.concat(P.ios);return all.find(function(x){{return x.id===id}})
+}}
+
+// === MODAL ===
+function openModal(title){{document.getElementById('mTitle').textContent=title;document.getElementById('modal').classList.add('open')}}
+function closeModal(){{document.getElementById('modal').classList.remove('open')}}
+document.getElementById('mClose').addEventListener('click',closeModal);
+document.getElementById('modal').addEventListener('click',function(e){{if(e.target===this)closeModal()}});
+
+// === PAYMENT MODAL ===
+function openPayModal(p){{
+selected=p;
+openModal('&#1057;&#1087;&#1086;&#1089;&#1086;&#1073; &#1086;&#1087;&#1083;&#1072;&#1090;&#1099;');
+var mb=document.getElementById('mBody');
+mb.innerHTML='<div class="product-summary"><div class="ps-icon">'+p.icon+'</div><div class="ps-name">'+p.name+' &#8226; '+p.per+'</div><div class="ps-period">'+p.dur+'</div><div class="ps-price">'+p.price+' &#8381;</div></div>'
++'<div class="pay-list">'
++'<div class="pay-item" data-m="yoomoney"><div class="pay-left"><div class="pay-icon">&#128179;</div><div><div class="pay-name">&#1050;&#1072;&#1088;&#1090;&#1086;&#1081;</div><div class="pay-desc">Visa, MC, &#1052;&#1080;&#1088;, SBP</div></div></div><div class="pay-amount">'+p.price+' &#8381;</div></div>'
++'<div class="pay-item" data-m="stars"><div class="pay-left"><div class="pay-icon">&#11088;</div><div><div class="pay-name">Telegram Stars</div><div class="pay-desc">&#1042;&#1089;&#1090;&#1088;&#1086;&#1077;&#1085;&#1085;&#1099;&#1077; &#1087;&#1083;&#1072;&#1090;&#1077;&#1078;&#1080;</div></div></div><div class="pay-amount">'+p.stars+' &#11088;</div></div>'
++'<div class="pay-item" data-m="crypto"><div class="pay-left"><div class="pay-icon">&#8383;</div><div><div class="pay-name">&#1050;&#1088;&#1080;&#1087;&#1090;&#1072;</div><div class="pay-desc">USDT, BTC, ETH, TON</div></div></div><div class="pay-amount">'+p.usdt+' USDT</div></div>'
++'<div class="pay-item" data-m="gold"><div class="pay-left"><div class="pay-icon">&#128176;</div><div><div class="pay-name">GOLD</div><div class="pay-desc">&#1048;&#1075;&#1088;&#1086;&#1074;&#1072;&#1103; &#1074;&#1072;&#1083;&#1102;&#1090;&#1072;</div></div></div><div class="pay-amount">'+p.gold+' &#129689;</div></div>'
++'<div class="pay-item" data-m="nft"><div class="pay-left"><div class="pay-icon">&#127912;</div><div><div class="pay-name">NFT</div><div class="pay-desc">&#1050;&#1086;&#1083;&#1083;&#1077;&#1082;&#1094;&#1080;&#1086;&#1085;&#1085;&#1099;&#1077;</div></div></div><div class="pay-amount">'+p.nft+' &#128444;</div></div>'
++'</div>';
+mb.querySelectorAll('.pay-item').forEach(function(el){{
+el.addEventListener('click',function(){{processPayment(el.dataset.m)}});
+}});
+}}
+
+function processPayment(method){{
+var mb=document.getElementById('mBody');
+mb.innerHTML='<div class="status-view"><div class="status-emoji spin">&#9203;</div><div class="status-title">&#1057;&#1086;&#1079;&#1076;&#1072;&#1085;&#1080;&#1077; &#1087;&#1083;&#1072;&#1090;&#1077;&#1078;&#1072;...</div></div>';
+fetch(API+'/create_payment',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{product_id:selected.id,method:method,user_id:user.id,user_name:user.first_name+' '+(user.last_name||''),init_data:tg.initData}})}}
+).then(function(r){{return r.json()}}).then(function(res){{
+if(!res.success)throw new Error(res.error||'Error');
+if(method==='yoomoney')showPayView(res.payment_url,res.order_id,'&#128179;',selected.price+' &#8381;','ym');
+else if(method==='stars'){{
+mb.innerHTML='<div class="status-view"><div class="status-emoji">&#11088;</div><div class="status-title">'+selected.stars+' Stars</div><div class="status-desc">&#1054;&#1087;&#1083;&#1072;&#1090;&#1080;&#1090;&#1077; &#1074; &#1073;&#1086;&#1090;&#1077;</div></div><button class="action-btn" id="starsBtn">&#11088; &#1054;&#1087;&#1083;&#1072;&#1090;&#1080;&#1090;&#1100; &#1074; &#1073;&#1086;&#1090;&#1077;</button>';
+document.getElementById('starsBtn').addEventListener('click',function(){{tg.openTelegramLink('https://t.me/aimnoob_bot?start=buy_stars_'+selected.id)}});
+}}
+else if(method==='crypto')showPayView(res.payment_url,res.order_id,'&#8383;',selected.usdt+' USDT','cr',res.invoice_id);
+else showManual(method,res.order_id);
+}}).catch(function(e){{toast(e.message,'error');setTimeout(function(){{openPayModal(selected)}},1200)}});
+}}
+
+function showPayView(url,oid,icon,amount,type,invoiceId){{
+var mb=document.getElementById('mBody');
+mb.innerHTML='<div class="status-view"><div class="status-emoji">'+icon+'</div><div class="status-title">'+amount+'</div><div class="status-desc">&#1047;&#1072;&#1082;&#1072;&#1079; #'+oid.slice(-8)+'</div></div><button class="action-btn" id="goPayBtn">&#128279; &#1054;&#1087;&#1083;&#1072;&#1090;&#1080;&#1090;&#1100;</button><button class="action-btn secondary" id="goCheckBtn" style="margin-top:8px">&#9989; &#1055;&#1088;&#1086;&#1074;&#1077;&#1088;&#1080;&#1090;&#1100; &#1086;&#1087;&#1083;&#1072;&#1090;&#1091;</button>';
+document.getElementById('goPayBtn').addEventListener('click',function(){{window.open(url,'_blank')}});
+document.getElementById('goCheckBtn').addEventListener('click',function(){{
+if(type==='ym')checkYM(oid);else checkCR(oid,invoiceId);
+}});
+}}
+
+function showManual(method,oid){{
+var names={{gold:'GOLD',nft:'NFT'}},amounts={{gold:selected.gold,nft:selected.nft}},icons={{gold:'&#128176;',nft:'&#127912;'}};
+var msg='&#1055;&#1088;&#1080;&#1074;&#1077;&#1090;! &#1061;&#1086;&#1095;&#1091; &#1082;&#1091;&#1087;&#1080;&#1090;&#1100; AimNoob '+selected.name+' &#1085;&#1072; '+selected.per+' &#1079;&#1072; '+amounts[method]+' '+names[method];
+var mb=document.getElementById('mBody');
+mb.innerHTML='<div class="status-view"><div class="status-emoji">'+icons[method]+'</div><div class="status-title">'+amounts[method]+' '+names[method]+'</div><div class="status-desc" style="background:var(--surface);padding:10px;border-radius:10px;margin:8px 0;font-size:11px;color:var(--text)">'+msg+'</div></div><button class="action-btn" id="manPayBtn">&#128172; &#1053;&#1072;&#1087;&#1080;&#1089;&#1072;&#1090;&#1100;</button><button class="action-btn secondary" id="manDoneBtn" style="margin-top:8px">&#9989; &#1071; &#1085;&#1072;&#1087;&#1080;&#1089;&#1072;&#1083;</button>';
+document.getElementById('manPayBtn').addEventListener('click',function(){{window.open('https://t.me/'+SUPPORT+'?text='+encodeURIComponent(msg),'_blank')}});
+document.getElementById('manDoneBtn').addEventListener('click',function(){{closeModal();toast('&#1047;&#1072;&#1082;&#1072;&#1079; &#1089;&#1086;&#1079;&#1076;&#1072;&#1085;!')}});
+}}
+
+function checkYM(oid){{
+var mb=document.getElementById('mBody');
+mb.innerHTML='<div class="status-view"><div class="status-emoji spin">&#9203;</div><div class="status-title">&#1055;&#1088;&#1086;&#1074;&#1077;&#1088;&#1082;&#1072;...</div><div class="status-desc">15-25 &#1089;&#1077;&#1082;&#1091;&#1085;&#1076;</div></div>';
+fetch(API+'/check_payment',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{order_id:oid}})}}).then(function(r){{return r.json()}}).then(function(res){{
+if(res.paid)showSuccess(res.license_key);
+else{{mb.innerHTML='<div class="status-view"><div class="status-emoji">&#9203;</div><div class="status-title">&#1053;&#1077; &#1085;&#1072;&#1081;&#1076;&#1077;&#1085;</div><div class="status-desc">&#1055;&#1086;&#1087;&#1088;&#1086;&#1073;&#1091;&#1081;&#1090;&#1077; &#1095;&#1077;&#1088;&#1077;&#1079; 1-2 &#1084;&#1080;&#1085;</div></div><button class="action-btn secondary" id="retryBtn">&#128260; &#1055;&#1086;&#1074;&#1090;&#1086;&#1088;&#1080;&#1090;&#1100;</button>';document.getElementById('retryBtn').addEventListener('click',function(){{checkYM(oid)}})}}
+}}).catch(function(){{toast('&#1054;&#1096;&#1080;&#1073;&#1082;&#1072;','error')}});
+}}
+
+function checkCR(oid,iid){{
+var mb=document.getElementById('mBody');
+mb.innerHTML='<div class="status-view"><div class="status-emoji spin">&#9203;</div><div class="status-title">&#1055;&#1088;&#1086;&#1074;&#1077;&#1088;&#1082;&#1072;...</div></div>';
+fetch(API+'/check_crypto',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{invoice_id:iid,order_id:oid}})}}).then(function(r){{return r.json()}}).then(function(res){{
+if(res.paid)showSuccess(res.license_key);
+else{{mb.innerHTML='<div class="status-view"><div class="status-emoji">&#9203;</div><div class="status-title">&#1042; &#1086;&#1073;&#1088;&#1072;&#1073;&#1086;&#1090;&#1082;&#1077;</div></div><button class="action-btn secondary" id="retryCBtn">&#128260; &#1055;&#1086;&#1074;&#1090;&#1086;&#1088;&#1080;&#1090;&#1100;</button>';document.getElementById('retryCBtn').addEventListener('click',function(){{checkCR(oid,iid)}})}}
+}}).catch(function(){{toast('&#1054;&#1096;&#1080;&#1073;&#1082;&#1072;','error')}});
+}}
+
+function showSuccess(key){{
+licenses.push({{key:key,product:selected.name+' &#8226; '+selected.per,date:new Date().toISOString()}});
+localStorage.setItem('an_lic',JSON.stringify(licenses));
+var mb=document.getElementById('mBody');
+document.getElementById('mTitle').textContent='&#1059;&#1089;&#1087;&#1077;&#1093;!';
+mb.innerHTML='<div class="status-view"><div class="status-emoji">&#9989;</div><div class="status-title">&#1054;&#1087;&#1083;&#1072;&#1090;&#1072; &#1087;&#1086;&#1076;&#1090;&#1074;&#1077;&#1088;&#1078;&#1076;&#1077;&#1085;&#1072;!</div><div class="status-desc">&#1042;&#1072;&#1096; &#1082;&#1083;&#1102;&#1095; &#1072;&#1082;&#1090;&#1080;&#1074;&#1080;&#1088;&#1086;&#1074;&#1072;&#1085;</div></div><div class="key-box" id="keyBox">&#128273; '+key+'</div><button class="action-btn" id="dlBtn">&#128229; &#1057;&#1082;&#1072;&#1095;&#1072;&#1090;&#1100; AimNoob</button><button class="action-btn secondary" id="toKeysBtn" style="margin-top:8px">&#128203; &#1052;&#1086;&#1080; &#1082;&#1083;&#1102;&#1095;&#1080;</button>';
+document.getElementById('keyBox').addEventListener('click',function(){{copyKey(key)}});
+document.getElementById('dlBtn').addEventListener('click',function(){{window.open(DOWNLOAD_URL,'_blank')}});
+document.getElementById('toKeysBtn').addEventListener('click',function(){{closeModal();switchTab('keys')}});
+try{{tg.HapticFeedback.notificationOccurred('success')}}catch(e){{}}
+}}
+
+// === KEYS ===
+function renderKeys(){{
+var el=document.getElementById('page-keys');
+if(!licenses.length){{
+el.innerHTML='<div class="empty"><div class="empty-icon">&#128273;</div><div class="empty-text">&#1053;&#1077;&#1090; &#1072;&#1082;&#1090;&#1080;&#1074;&#1085;&#1099;&#1093; &#1082;&#1083;&#1102;&#1095;&#1077;&#1081;</div><button class="action-btn" id="goShopBtn">&#128722; &#1042; &#1084;&#1072;&#1075;&#1072;&#1079;&#1080;&#1085;</button></div>';
+document.getElementById('goShopBtn').addEventListener('click',function(){{switchTab('shop')}});
+return;
+}}
+var h='<div class="section"><div class="section-head"><div class="section-title"><span>&#128273;</span><span>&#1052;&#1086;&#1080; &#1083;&#1080;&#1094;&#1077;&#1085;&#1079;&#1080;&#1080;</span></div><div class="section-badge">'+licenses.length+'</div></div>';
+licenses.forEach(function(l){{
+h+='<div class="license-card"><div class="license-header"><div class="license-icon">&#127919;</div><div><div class="license-name">'+l.product+'</div><div class="license-date">'+new Date(l.date).toLocaleDateString('ru-RU')+'</div></div></div><div class="license-key" data-key="'+l.key+'">'+l.key+'</div><button class="license-copy" data-key="'+l.key+'">&#128203; &#1057;&#1082;&#1086;&#1087;&#1080;&#1088;&#1086;&#1074;&#1072;&#1090;&#1100;</button></div>';
+}});
+h+='</div>';
+el.innerHTML=h;
+el.querySelectorAll('.license-key,.license-copy').forEach(function(b){{
+b.addEventListener('click',function(){{copyKey(b.dataset.key)}});
+}});
+}}
+
+// === PROFILE ===
+function renderProfile(){{
+var avatars=['&#127919;','&#128293;','&#9889;','&#128142;','&#127775;','&#127918;','&#128640;','&#128170;'];
+var av=avatars[Math.abs(user.id)%avatars.length];
+var ln=user.last_name||'';
+var un=user.username||'user';
+var el=document.getElementById('page-profile');
+el.innerHTML='<div class="profile-card"><div class="profile-avatar">'+av+'</div><div class="profile-name">'+user.first_name+' '+ln+'</div><div class="profile-username">@'+un+'</div><div class="profile-stats"><div class="stat-box"><div class="stat-num">'+licenses.length+'</div><div class="stat-label">&#1050;&#1083;&#1102;&#1095;&#1077;&#1081;</div></div><div class="stat-box"><div class="stat-num">v0.37</div><div class="stat-label">&#1042;&#1077;&#1088;&#1089;&#1080;&#1103;</div></div></div></div><button class="action-btn" id="supBtn">&#128172; &#1055;&#1086;&#1076;&#1076;&#1077;&#1088;&#1078;&#1082;&#1072;</button><button class="action-btn secondary" id="dlBtn2" style="margin-top:8px">&#128229; &#1057;&#1082;&#1072;&#1095;&#1072;&#1090;&#1100;</button>';
+document.getElementById('supBtn').addEventListener('click',function(){{window.open('https://t.me/'+SUPPORT,'_blank')}});
+document.getElementById('dlBtn2').addEventListener('click',function(){{window.open(DOWNLOAD_URL,'_blank')}});
+}}
+
+// === UTILS ===
+function copyKey(k){{
+navigator.clipboard.writeText(k).then(function(){{toast('&#1050;&#1083;&#1102;&#1095; &#1089;&#1082;&#1086;&#1087;&#1080;&#1088;&#1086;&#1074;&#1072;&#1085;!')}}).catch(function(){{toast('&#1054;&#1096;&#1080;&#1073;&#1082;&#1072;','error')}});
+try{{tg.HapticFeedback.impactOccurred('light')}}catch(e){{}}
+}}
+function toast(msg,type){{
+type=type||'success';
+var t=document.createElement('div');t.className='toast '+type;
+t.innerHTML='<span>'+(type==='success'?'&#9989;':'&#10060;')+'</span><span>'+msg+'</span>';
+document.body.appendChild(t);setTimeout(function(){{t.remove()}},3000);
+}}
+
+renderShop();
+tg.ready();
+}})();
+</script>
 </body>
 </html>"""
 
 
 def get_miniapp_html():
-    return MINIAPP_HTML_TEMPLATE.format(download_url=Config.DOWNLOAD_URL)
+    return MINIAPP_HTML.format(
+        download_url=Config.DOWNLOAD_URL,
+        support=Config.SUPPORT_CHAT_USERNAME
+    )
 
 
 # ========== WEB SERVER API ==========
 class WebHandlers:
     @staticmethod
     async def handle_miniapp(request):
-        return web.Response(text=get_miniapp_html(), content_type='text/html', charset='utf-8')
+        return web.Response(
+            text=get_miniapp_html(),
+            content_type='text/html',
+            charset='utf-8'
+        )
 
     @staticmethod
     async def handle_health(request):
         stats = await orders.get_stats()
-        return web.json_response({"status": "ok", "pending": stats["pending"], "confirmed": stats["confirmed"], "uptime": time.time()})
+        return web.json_response({
+            "status": "ok",
+            "pending": stats["pending"],
+            "confirmed": stats["confirmed"],
+            "uptime": time.time()
+        })
 
     @staticmethod
     async def handle_create_payment(request):
@@ -1829,14 +1963,19 @@ class WebHandlers:
             await orders.add_pending(order_id, {
                 "user_id": user_id, "user_name": user_name, "product": product,
                 "amount": amount_usdt, "currency": "USDT", "payment_method": "CryptoBot",
-                "status": "pending", "invoice_id": invoice_data["invoice_id"], "created_at": time.time()
+                "status": "pending", "invoice_id": invoice_data["invoice_id"],
+                "created_at": time.time()
             })
-            return web.json_response({"success": True, "payment_url": invoice_data["pay_url"], "invoice_id": invoice_data["invoice_id"], "order_id": order_id})
+            return web.json_response({
+                "success": True, "payment_url": invoice_data["pay_url"],
+                "invoice_id": invoice_data["invoice_id"], "order_id": order_id
+            })
 
         elif method == 'stars':
             await orders.add_pending(order_id, {
                 "user_id": user_id, "user_name": user_name, "product": product,
-                "amount": product['price_stars'], "currency": "\u2b50", "payment_method": "Telegram Stars",
+                "amount": product['price_stars'], "currency": "\u2b50",
+                "payment_method": "Telegram Stars",
                 "status": "pending", "created_at": time.time()
             })
             return web.json_response({"success": True, "order_id": order_id, "method": "stars"})
@@ -1846,7 +1985,8 @@ class WebHandlers:
             await orders.add_pending(order_id, {
                 "user_id": user_id, "user_name": user_name, "product": product,
                 "amount": product.get(price_key, 0), "currency": method.upper(),
-                "payment_method": method.upper(), "status": "pending", "created_at": time.time()
+                "payment_method": method.upper(), "status": "pending",
+                "created_at": time.time()
             })
             return web.json_response({"success": True, "order_id": order_id, "method": method})
 
@@ -1879,7 +2019,7 @@ class WebHandlers:
             await asyncio.sleep(3)
 
         if payment_found:
-            await process_successful_payment(order_id, "MiniApp \u0410\u0432\u0442\u043e\u043f\u0440\u043e\u0432\u0435\u0440\u043a\u0430")
+            await process_successful_payment(order_id, "MiniApp")
             cp = await orders.get_confirmed(order_id)
             lk = cp.get('license_key', '') if cp else ''
             return web.json_response({"paid": True, "license_key": lk})
@@ -1895,7 +2035,6 @@ class WebHandlers:
 
         invoice_id = data.get('invoice_id')
         order_id = data.get('order_id')
-
         if not invoice_id or not order_id:
             return web.json_response({"paid": False, "error": "Missing fields"})
 
@@ -1932,7 +2071,6 @@ async def main():
     logger.info("=" * 50)
     logger.info("ADMIN_IDS: %s", Config.ADMIN_IDS)
     logger.info("MINIAPP_URL: %s", Config.MINIAPP_URL)
-    logger.info("DOWNLOAD_URL: %s", Config.DOWNLOAD_URL)
     logger.info("WEB_PORT: %s", Config.WEB_PORT)
 
     runner = None
@@ -1944,8 +2082,6 @@ async def main():
         balance = await YooMoneyService.get_balance()
         if balance is not None:
             logger.info("YooMoney connected (balance: %s RUB)", balance)
-        else:
-            logger.warning("YooMoney connection issues")
 
         try:
             await bot.set_chat_menu_button(
@@ -1957,12 +2093,6 @@ async def main():
             logger.info("Menu button set")
         except Exception as e:
             logger.warning("Could not set menu button: %s", e)
-
-        for key, product in PRODUCTS.items():
-            logger.info(
-                "Product: %s %s (%s) - %s RUB",
-                product['emoji'], product['name'], product['duration'], product['price']
-            )
 
         app = web.Application(middlewares=[cors_middleware])
         app.router.add_get('/', WebHandlers.handle_miniapp)
