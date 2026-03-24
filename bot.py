@@ -1241,636 +1241,1024 @@ MINIAPP_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
-<title>AimNoob Premium Store</title>
+<title>AimNoob | Premium Store</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-*{{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    -webkit-tap-highlight-color:transparent;
+* {{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}}
+
+:root {{
+    --bg-dark: #05050c;
+    --bg-card: rgba(18, 18, 28, 0.8);
+    --bg-surface: rgba(255, 255, 255, 0.05);
+    --bg-surface-hover: rgba(255, 255, 255, 0.08);
+    --accent-primary: #8b5cf6;
+    --accent-secondary: #ec4899;
+    --accent-glow: rgba(139, 92, 246, 0.4);
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-muted: rgba(255, 255, 255, 0.4);
+    --success: #10b981;
+    --warning: #f59e0b;
+    --error: #ef4444;
+    --gradient-primary: linear-gradient(135deg, #8b5cf6, #ec4899);
+    --gradient-dark: linear-gradient(135deg, #6d28d9, #db2777);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --shadow-glow: 0 0 20px rgba(139, 92, 246, 0.3);
 }}
 
 body {{
-    font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    background:#0a0a12;
-    color:#ffffff;
-    min-height:100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', system-ui, sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
 }}
 
+/* Animated Background */
+.background {{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    overflow: hidden;
+}}
+
+.gradient-orb {{
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.3;
+    animation: float 20s ease-in-out infinite;
+}}
+
+.orb-1 {{
+    width: 400px;
+    height: 400px;
+    background: #8b5cf6;
+    top: -100px;
+    left: -100px;
+}}
+
+.orb-2 {{
+    width: 350px;
+    height: 350px;
+    background: #ec4899;
+    bottom: -80px;
+    right: -80px;
+    animation-delay: -5s;
+}}
+
+.orb-3 {{
+    width: 300px;
+    height: 300px;
+    background: #3b82f6;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation-delay: -10s;
+    opacity: 0.2;
+}}
+
+.grain {{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+}}
+
+@keyframes float {{
+    0%, 100% {{ transform: translate(0, 0) rotate(0deg); }}
+    33% {{ transform: translate(30px, -30px) rotate(120deg); }}
+    66% {{ transform: translate(-20px, 20px) rotate(240deg); }}
+}}
+
+/* Main Container */
 .app {{
-    max-width:480px;
-    margin:0 auto;
-    padding:20px 16px 90px;
+    position: relative;
+    z-index: 1;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 20px 16px 90px;
+    min-height: 100vh;
 }}
 
+/* Header Section */
 .header {{
-    text-align:center;
-    margin-bottom:24px;
+    text-align: center;
+    margin-bottom: 24px;
+    animation: fadeInDown 0.6s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+}}
+
+.logo-wrapper {{
+    position: relative;
+    display: inline-block;
+    margin-bottom: 16px;
 }}
 
 .logo {{
-    width:70px;
-    height:70px;
-    background:linear-gradient(135deg, #8b5cf6, #ec4899);
-    border-radius:20px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:32px;
-    margin:0 auto 12px;
-    box-shadow:0 8px 24px rgba(139,92,246,0.3);
-}}
-
-h1 {{
-    font-size:26px;
-    font-weight:800;
-    background:linear-gradient(135deg, #8b5cf6, #ec4899);
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-}}
-
-.tagline {{
-    font-size:12px;
-    color:rgba(255,255,255,0.6);
-    margin-top:4px;
-}}
-
-.status-badge {{
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    background:rgba(16,185,129,0.1);
-    border:1px solid rgba(16,185,129,0.2);
-    padding:6px 14px;
-    border-radius:40px;
-    font-size:11px;
-    margin-bottom:20px;
-}}
-
-.status-dot {{
-    width:6px;
-    height:6px;
-    background:#10b981;
-    border-radius:50%;
-    animation:blink 1.5s infinite;
-}}
-
-.tabs {{
-    display:flex;
-    gap:4px;
-    background:rgba(255,255,255,0.05);
-    border-radius:14px;
-    padding:4px;
-    margin-bottom:20px;
-}}
-
-.tab {{
-    flex:1;
-    padding:10px;
-    border:none;
-    background:transparent;
-    color:rgba(255,255,255,0.6);
-    font-size:13px;
-    font-weight:600;
-    border-radius:11px;
-    cursor:pointer;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:4px;
-}}
-
-.tab.active {{
-    background:rgba(255,255,255,0.08);
-    color:#ffffff;
-}}
-
-.tab-icon {{
-    font-size:18px;
-}}
-
-.products-grid {{
-    display:grid;
-    grid-template-columns:repeat(2, 1fr);
-    gap:12px;
-}}
-
-.product-card {{
-    background:rgba(255,255,255,0.05);
-    border:1px solid rgba(255,255,255,0.06);
-    border-radius:20px;
-    overflow:hidden;
-    cursor:pointer;
-    position:relative;
-}}
-
-.product-card.full-width {{
-    grid-column:1/-1;
-}}
-
-.product-card.full-width .product-content {{
-    display:flex;
-    align-items:center;
-    gap:14px;
-    text-align:left;
-}}
-
-.product-card.full-width .product-icon {{
-    margin:0;
-}}
-
-.product-card.full-width .product-info {{
-    flex:1;
-}}
-
-.product-card.full-width .product-price {{
-    font-size:22px;
-    margin:0;
-    text-align:right;
-}}
-
-.product-badge {{
-    position:absolute;
-    top:8px;
-    right:8px;
-    background:linear-gradient(135deg, #8b5cf6, #ec4899);
-    padding:3px 8px;
-    border-radius:20px;
-    font-size:9px;
-    font-weight:700;
-    z-index:2;
-}}
-
-.product-content {{
-    padding:14px 12px;
-    text-align:center;
-}}
-
-.product-icon {{
-    width:50px;
-    height:50px;
-    background:rgba(139,92,246,0.15);
-    border-radius:16px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:26px;
-    margin:0 auto 10px;
-}}
-
-.product-name {{
-    font-weight:700;
-    font-size:14px;
-}}
-
-.product-period {{
-    font-size:10px;
-    color:rgba(255,255,255,0.35);
-    margin:4px 0;
-}}
-
-.product-price {{
-    font-size:20px;
-    font-weight:800;
-    color:#f59e0b;
-    margin:8px 0;
-}}
-
-.product-features {{
-    display:flex;
-    flex-wrap:wrap;
-    gap:4px;
-    justify-content:center;
-    margin-bottom:10px;
-}}
-
-.feature {{
-    font-size:8px;
-    padding:2px 6px;
-    background:rgba(139,92,246,0.15);
-    border-radius:6px;
-    color:#8b5cf6;
-}}
-
-.buy-btn {{
-    width:100%;
-    padding:8px;
-    background:linear-gradient(135deg, #8b5cf6, #ec4899);
-    border:none;
-    border-radius:12px;
-    color:white;
-    font-weight:700;
-    font-size:12px;
-    cursor:pointer;
-}}
-
-.modal {{
-    display:none;
-    position:fixed;
-    top:0;
-    left:0;
-    right:0;
-    bottom:0;
-    background:rgba(0,0,0,0.8);
-    backdrop-filter:blur(12px);
-    z-index:1000;
-    align-items:flex-end;
-    justify-content:center;
-}}
-
-.modal.active {{
-    display:flex;
-}}
-
-.modal-content {{
-    background:linear-gradient(180deg, #14141f 0%, #0c0c14 100%);
-    border-radius:28px 28px 0 0;
-    width:100%;
-    max-width:480px;
-    max-height:85vh;
-    overflow-y:auto;
-}}
-
-.modal-handle {{
-    width:36px;
-    height:4px;
-    background:rgba(255,255,255,0.2);
-    border-radius:4px;
-    margin:12px auto 0;
-}}
-
-.modal-header {{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:16px 20px;
-    border-bottom:1px solid rgba(255,255,255,0.06);
-}}
-
-.modal-header h3 {{
-    font-size:18px;
-    font-weight:700;
-}}
-
-.modal-close {{
-    width:32px;
-    height:32px;
-    border-radius:50%;
-    background:rgba(255,255,255,0.05);
-    border:none;
-    color:rgba(255,255,255,0.6);
-    font-size:18px;
-    cursor:pointer;
-}}
-
-.modal-body {{
-    padding:20px;
-}}
-
-.payment-methods {{
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-    margin-top:16px;
-}}
-
-.payment-method {{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:14px 16px;
-    background:rgba(255,255,255,0.05);
-    border-radius:16px;
-    cursor:pointer;
-    border:1px solid transparent;
-}}
-
-.payment-method:active {{
-    transform:scale(0.98);
-    border-color:#8b5cf6;
-}}
-
-.payment-method-left {{
-    display:flex;
-    align-items:center;
-    gap:12px;
-}}
-
-.payment-icon {{
-    width:44px;
-    height:44px;
-    background:rgba(139,92,246,0.15);
-    border-radius:14px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:22px;
-}}
-
-.payment-info h4 {{
-    font-size:14px;
-    font-weight:700;
-}}
-
-.payment-info p {{
-    font-size:10px;
-    color:rgba(255,255,255,0.35);
-}}
-
-.payment-amount {{
-    font-weight:800;
-    color:#f59e0b;
-    font-size:15px;
-}}
-
-.status-view {{
-    text-align:center;
-    padding:30px 20px;
-}}
-
-.status-icon {{
-    font-size:56px;
-    margin-bottom:16px;
-}}
-
-.status-icon.spin {{
-    animation:spin 1s linear infinite;
-}}
-
-.status-title {{
-    font-size:20px;
-    font-weight:800;
-    margin-bottom:8px;
-}}
-
-.status-desc {{
-    font-size:13px;
-    color:rgba(255,255,255,0.6);
-}}
-
-.key-box {{
-    background:rgba(0,0,0,0.4);
-    border:1px solid rgba(255,255,255,0.1);
-    padding:14px;
-    border-radius:14px;
-    font-family:monospace;
-    font-size:12px;
-    text-align:center;
-    word-break:break-all;
-    color:#f59e0b;
-    margin:16px 0;
-    cursor:pointer;
-}}
-
-.action-btn {{
-    width:100%;
-    padding:14px;
-    border:none;
-    border-radius:14px;
-    background:linear-gradient(135deg, #8b5cf6, #ec4899);
-    color:white;
-    font-weight:700;
-    font-size:15px;
-    cursor:pointer;
-    margin-bottom:10px;
-}}
-
-.action-btn.secondary {{
-    background:rgba(255,255,255,0.05);
-    color:#ffffff;
-}}
-
-.license-card {{
-    background:rgba(255,255,255,0.05);
-    border-radius:18px;
-    padding:14px;
-    margin-bottom:12px;
-}}
-
-.license-header {{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    margin-bottom:10px;
-}}
-
-.license-icon {{
-    width:40px;
-    height:40px;
-    background:rgba(139,92,246,0.15);
-    border-radius:12px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:20px;
-}}
-
-.license-info h4 {{
-    font-size:14px;
-    font-weight:700;
-}}
-
-.license-date {{
-    font-size:10px;
-    color:rgba(255,255,255,0.35);
-}}
-
-.license-key {{
-    background:rgba(0,0,0,0.3);
-    padding:10px;
-    border-radius:12px;
-    font-family:monospace;
-    font-size:11px;
-    text-align:center;
-    color:#f59e0b;
-    cursor:pointer;
-    margin-bottom:8px;
-}}
-
-.license-copy-btn {{
-    width:100%;
-    padding:8px;
-    background:rgba(255,255,255,0.05);
-    border:none;
-    border-radius:10px;
-    color:rgba(255,255,255,0.6);
-    font-size:11px;
-    font-weight:600;
-    cursor:pointer;
-}}
-
-.profile-card {{
-    background:rgba(255,255,255,0.05);
-    border-radius:24px;
-    padding:24px;
-    text-align:center;
-    margin-bottom:16px;
-}}
-
-.profile-avatar {{
-    width:70px;
-    height:70px;
-    background:linear-gradient(135deg, #8b5cf6, #ec4899);
-    border-radius:24px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:32px;
-    margin:0 auto 12px;
-}}
-
-.profile-name {{
-    font-size:18px;
-    font-weight:800;
-}}
-
-.profile-username {{
-    font-size:12px;
-    color:rgba(255,255,255,0.35);
-    margin-bottom:16px;
-}}
-
-.profile-stats {{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:12px;
-    margin-top:8px;
-}}
-
-.stat-card {{
-    background:rgba(255,255,255,0.08);
-    border-radius:14px;
-    padding:12px;
-}}
-
-.stat-number {{
-    font-size:22px;
-    font-weight:800;
-    color:#8b5cf6;
-}}
-
-.stat-label {{
-    font-size:10px;
-    color:rgba(255,255,255,0.35);
-}}
-
-.empty-state {{
-    text-align:center;
-    padding:50px 20px;
-}}
-
-.empty-icon {{
-    font-size:48px;
-    margin-bottom:12px;
-    opacity:0.5;
-}}
-
-.empty-text {{
-    font-size:14px;
-    color:rgba(255,255,255,0.6);
-    margin-bottom:16px;
-}}
-
-.toast {{
-    position:fixed;
-    bottom:100px;
-    left:16px;
-    right:16px;
-    padding:12px 16px;
-    border-radius:14px;
-    z-index:1100;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    font-size:13px;
-    max-width:480px;
-    margin:0 auto;
-}}
-
-.toast.success {{
-    background:rgba(16,185,129,0.2);
-    border:1px solid rgba(16,185,129,0.3);
-    color:#10b981;
-}}
-
-.toast.error {{
-    background:rgba(239,68,68,0.2);
-    border:1px solid rgba(239,68,68,0.3);
-    color:#ef4444;
-}}
-
-.page {{
-    display:none;
-}}
-
-.page.active {{
-    display:block;
-}}
-
-.bottom-nav {{
-    position:fixed;
-    bottom:0;
-    left:0;
-    right:0;
-    background:rgba(10,10,18,0.95);
-    backdrop-filter:blur(20px);
-    border-top:1px solid rgba(255,255,255,0.06);
-    display:flex;
-    justify-content:space-around;
-    padding:8px 16px 12px;
-    z-index:100;
-    max-width:480px;
-    margin:0 auto;
-}}
-
-.nav-item {{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:2px;
-    background:none;
-    border:none;
-    color:rgba(255,255,255,0.35);
-    font-size:10px;
-    font-weight:600;
-    padding:6px 20px;
-    border-radius:14px;
-    cursor:pointer;
-}}
-
-.nav-item.active {{
-    color:#8b5cf6;
-    background:rgba(139,92,246,0.1);
-}}
-
-.nav-icon {{
-    font-size:20px;
-}}
-
-@keyframes blink {{
-    0%,100%{{opacity:1}}
-    50%{{opacity:0.3}}
+    width: 80px;
+    height: 80px;
+    background: var(--gradient-primary);
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    box-shadow: var(--shadow-glow);
+    animation: pulse 2s ease-in-out infinite;
+    position: relative;
+    z-index: 2;
+}}
+
+.logo-ring {{
+    position: absolute;
+    inset: -4px;
+    border-radius: 28px;
+    border: 2px solid rgba(139, 92, 246, 0.5);
+    animation: spin 8s linear infinite;
+}}
+
+@keyframes pulse {{
+    0%, 100% {{ transform: scale(1); box-shadow: 0 0 0 0 var(--accent-glow); }}
+    50% {{ transform: scale(1.05); box-shadow: 0 0 0 15px rgba(139, 92, 246, 0); }}
 }}
 
 @keyframes spin {{
-    from{{transform:rotate(0deg)}}
-    to{{transform:rotate(360deg)}}
+    from {{ transform: rotate(0deg); }}
+    to {{ transform: rotate(360deg); }}
+}}
+
+h1 {{
+    font-size: 28px;
+    font-weight: 800;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+}}
+
+.tagline {{
+    font-size: 12px;
+    color: var(--text-secondary);
+    letter-spacing: 0.5px;
+}}
+
+/* Status Badge */
+.status {{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(16, 185, 129, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    padding: 6px 16px;
+    border-radius: 40px;
+    font-size: 11px;
+    font-weight: 500;
+    margin-bottom: 24px;
+}}
+
+.status-dot {{
+    width: 6px;
+    height: 6px;
+    background: var(--success);
+    border-radius: 50%;
+    animation: blink 1.5s infinite;
+}}
+
+@keyframes blink {{
+    0%, 100% {{ opacity: 1; transform: scale(1); }}
+    50% {{ opacity: 0.5; transform: scale(0.8); }}
+}}
+
+/* Navigation Tabs */
+.tabs {{
+    display: flex;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 5px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}}
+
+.tab {{
+    flex: 1;
+    padding: 12px 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}}
+
+.tab-icon {{
+    font-size: 20px;
+    transition: transform 0.2s;
+}}
+
+.tab.active {{
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: var(--shadow-sm);
+}}
+
+.tab.active .tab-icon {{
+    transform: scale(1.1);
+}}
+
+.tab:not(.active):hover {{
+    background: var(--bg-surface-hover);
+    color: var(--text-primary);
+}}
+
+/* Product Grid */
+.products-grid {{
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+}}
+
+.product-card {{
+    background: var(--bg-card);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 24px;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    cursor: pointer;
+    position: relative;
+}}
+
+.product-card:hover {{
+    transform: translateY(-4px);
+    border-color: var(--accent-primary);
+    box-shadow: var(--shadow-md);
+}}
+
+.product-card:active {{
+    transform: scale(0.98);
+}}
+
+.product-badge {{
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: var(--gradient-primary);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    z-index: 2;
+    box-shadow: var(--shadow-sm);
+}}
+
+.product-content {{
+    padding: 18px 14px;
+    text-align: center;
+}}
+
+.product-icon {{
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2));
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin: 0 auto 12px;
+    transition: transform 0.2s;
+}}
+
+.product-card:hover .product-icon {{
+    transform: scale(1.05);
+}}
+
+.product-name {{
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 4px;
+}}
+
+.product-period {{
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}}
+
+.product-price {{
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--warning);
+    margin-bottom: 12px;
+}}
+
+.product-price small {{
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-muted);
+}}
+
+.product-features {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 14px;
+}}
+
+.feature {{
+    font-size: 9px;
+    padding: 3px 8px;
+    background: rgba(139, 92, 246, 0.15);
+    border-radius: 8px;
+    color: var(--accent-primary);
+    font-weight: 500;
+}}
+
+.buy-btn {{
+    width: 100%;
+    padding: 10px;
+    background: var(--gradient-primary);
+    border: none;
+    border-radius: 14px;
+    color: white;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+}}
+
+.buy-btn::before {{
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}}
+
+.buy-btn:hover::before {{
+    left: 100%;
+}}
+
+.buy-btn:active {{
+    transform: scale(0.96);
+}}
+
+/* Full Width Card */
+.product-card.full-width {{
+    grid-column: 1 / -1;
+}}
+
+.product-card.full-width .product-content {{
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+    padding: 16px;
+}}
+
+.product-card.full-width .product-icon {{
+    margin: 0;
+    width: 60px;
+    height: 60px;
+    font-size: 30px;
+}}
+
+.product-card.full-width .product-info {{
+    flex: 1;
+}}
+
+.product-card.full-width .product-name {{
+    font-size: 16px;
+    margin-bottom: 2px;
+}}
+
+.product-card.full-width .product-period {{
+    margin-bottom: 0;
+}}
+
+.product-card.full-width .product-price {{
+    font-size: 24px;
+    margin: 0;
+    text-align: right;
+}}
+
+.product-card.full-width .buy-btn {{
+    margin-top: 12px;
+    grid-column: 1 / -1;
+    width: calc(100% - 32px);
+    margin-left: 16px;
+    margin-bottom: 16px;
+}}
+
+/* Modal */
+.modal {{
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(20px);
+    z-index: 1000;
+    align-items: flex-end;
+    justify-content: center;
+}}
+
+.modal.active {{
+    display: flex;
+    animation: fadeIn 0.3s ease;
+}}
+
+.modal-content {{
+    background: linear-gradient(180deg, #111118 0%, #0a0a10 100%);
+    border-radius: 32px 32px 0 0;
+    width: 100%;
+    max-width: 480px;
+    max-height: 88vh;
+    overflow-y: auto;
+    animation: slideUp 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}}
+
+.modal-handle {{
+    width: 40px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    margin: 14px auto 0;
+}}
+
+.modal-header {{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    position: sticky;
+    top: 0;
+    background: inherit;
+    z-index: 5;
+}}
+
+.modal-header h3 {{
+    font-size: 20px;
+    font-weight: 700;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}}
+
+.modal-close {{
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--bg-surface);
+    border: none;
+    color: var(--text-secondary);
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+}}
+
+.modal-close:active {{
+    background: var(--error);
+    color: white;
+    transform: rotate(90deg);
+}}
+
+.modal-body {{
+    padding: 20px;
+}}
+
+/* Product Summary */
+.product-summary {{
+    background: var(--bg-surface);
+    border-radius: 24px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}}
+
+.summary-icon {{
+    font-size: 56px;
+    margin-bottom: 12px;
+}}
+
+.summary-title {{
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}}
+
+.summary-duration {{
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}}
+
+.summary-price {{
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--warning);
+}}
+
+/* Payment Methods */
+.payment-methods {{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}}
+
+.payment-method {{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: var(--bg-surface);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}}
+
+.payment-method:active {{
+    transform: scale(0.98);
+    border-color: var(--accent-primary);
+    background: rgba(139, 92, 246, 0.05);
+}}
+
+.payment-method-left {{
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}}
+
+.payment-icon {{
+    width: 48px;
+    height: 48px;
+    background: rgba(139, 92, 246, 0.15);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}}
+
+.payment-info h4 {{
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 2px;
+}}
+
+.payment-info p {{
+    font-size: 11px;
+    color: var(--text-muted);
+}}
+
+.payment-amount {{
+    font-weight: 800;
+    color: var(--warning);
+    font-size: 16px;
+}}
+
+/* Status Views */
+.status-view {{
+    text-align: center;
+    padding: 40px 20px;
+}}
+
+.status-icon {{
+    font-size: 64px;
+    margin-bottom: 20px;
+}}
+
+.status-icon.spin {{
+    animation: spin 1s linear infinite;
+}}
+
+.status-title {{
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 8px;
+}}
+
+.status-desc {{
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}}
+
+/* Key Display */
+.key-box {{
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 16px;
+    border-radius: 16px;
+    font-family: 'SF Mono', monospace;
+    font-size: 13px;
+    text-align: center;
+    word-break: break-all;
+    color: var(--warning);
+    margin: 20px 0;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+}}
+
+.key-box:active {{
+    background: rgba(139, 92, 246, 0.1);
+    border-color: var(--accent-primary);
+}}
+
+/* Action Buttons */
+.action-btn {{
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 18px;
+    background: var(--gradient-primary);
+    color: white;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+}}
+
+.action-btn::before {{
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}}
+
+.action-btn:hover::before {{
+    left: 100%;
+}}
+
+.action-btn:active {{
+    transform: scale(0.98);
+}}
+
+.action-btn.secondary {{
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}}
+
+/* License Cards */
+.license-card {{
+    background: var(--bg-card);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 16px;
+    margin-bottom: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s;
+}}
+
+.license-header {{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}}
+
+.license-icon {{
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2));
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}}
+
+.license-info h4 {{
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 2px;
+}}
+
+.license-date {{
+    font-size: 10px;
+    color: var(--text-muted);
+}}
+
+.license-key {{
+    background: rgba(0, 0, 0, 0.4);
+    padding: 12px;
+    border-radius: 12px;
+    font-family: 'SF Mono', monospace;
+    font-size: 11px;
+    text-align: center;
+    color: var(--warning);
+    cursor: pointer;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+}}
+
+.license-copy-btn {{
+    width: 100%;
+    padding: 10px;
+    background: var(--bg-surface);
+    border: none;
+    border-radius: 12px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}}
+
+.license-copy-btn:active {{
+    background: var(--bg-surface-hover);
+    transform: scale(0.98);
+}}
+
+/* Profile Card */
+.profile-card {{
+    background: var(--bg-card);
+    backdrop-filter: blur(10px);
+    border-radius: 28px;
+    padding: 28px;
+    text-align: center;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}}
+
+.profile-avatar {{
+    width: 80px;
+    height: 80px;
+    background: var(--gradient-primary);
+    border-radius: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    margin: 0 auto 16px;
+    box-shadow: var(--shadow-glow);
+}}
+
+.profile-name {{
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 4px;
+}}
+
+.profile-username {{
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+}}
+
+.profile-stats {{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}}
+
+.stat-card {{
+    background: var(--bg-surface);
+    border-radius: 18px;
+    padding: 14px;
+    text-align: center;
+}}
+
+.stat-number {{
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--accent-primary);
+}}
+
+.stat-label {{
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}}
+
+/* Empty State */
+.empty-state {{
+    text-align: center;
+    padding: 60px 20px;
+}}
+
+.empty-icon {{
+    font-size: 64px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}}
+
+.empty-text {{
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}}
+
+/* Toast Notification */
+.toast {{
+    position: fixed;
+    bottom: 100px;
+    left: 16px;
+    right: 16px;
+    padding: 14px 18px;
+    border-radius: 18px;
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    animation: slideUp 0.3s ease;
+    max-width: 480px;
+    margin: 0 auto;
+    backdrop-filter: blur(20px);
+}}
+
+.toast.success {{
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: var(--success);
+}}
+
+.toast.error {{
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: var(--error);
+}}
+
+/* Pages */
+.page {{
+    display: none;
+    animation: fadeInUp 0.4s ease;
+}}
+
+.page.active {{
+    display: block;
+}}
+
+/* Bottom Navigation */
+.bottom-nav {{
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(5, 5, 12, 0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 16px 18px;
+    z-index: 100;
+    max-width: 480px;
+    margin: 0 auto;
+}}
+
+.nav-item {{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 8px 24px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+}}
+
+.nav-item.active {{
+    color: var(--accent-primary);
+    background: rgba(139, 92, 246, 0.1);
+}}
+
+.nav-icon {{
+    font-size: 22px;
+}}
+
+/* Animations */
+@keyframes fadeInDown {{
+    from {{
+        opacity: 0;
+        transform: translateY(-30px);
+    }}
+    to {{
+        opacity: 1;
+        transform: translateY(0);
+    }}
+}}
+
+@keyframes fadeInUp {{
+    from {{
+        opacity: 0;
+        transform: translateY(30px);
+    }}
+    to {{
+        opacity: 1;
+        transform: translateY(0);
+    }}
+}}
+
+@keyframes fadeIn {{
+    from {{ opacity: 0; }}
+    to {{ opacity: 1; }}
+}}
+
+@keyframes slideUp {{
+    from {{
+        transform: translateY(100%);
+    }}
+    to {{
+        transform: translateY(0);
+    }}
+}}
+
+@keyframes spin {{
+    from {{ transform: rotate(0deg); }}
+    to {{ transform: rotate(360deg); }}
+}}
+
+/* Scrollbar */
+::-webkit-scrollbar {{
+    width: 4px;
+}}
+
+::-webkit-scrollbar-track {{
+    background: transparent;
+}}
+
+::-webkit-scrollbar-thumb {{
+    background: rgba(139, 92, 246, 0.3);
+    border-radius: 10px;
 }}
 </style>
 </head>
 <body>
+<div class="background">
+    <div class="gradient-orb orb-1"></div>
+    <div class="gradient-orb orb-2"></div>
+    <div class="gradient-orb orb-3"></div>
+    <div class="grain"></div>
+</div>
+
 <div class="app">
     <div class="header">
-        <div class="logo">🎯</div>
+        <div class="logo-wrapper">
+            <div class="logo">
+                <span>🎯</span>
+            </div>
+            <div class="logo-ring"></div>
+        </div>
         <h1>AimNoob</h1>
-        <div class="tagline">Premium Cheat for Standoff 2</div>
+        <div class="tagline">Premium Software • Standoff 2</div>
     </div>
 
-    <div style="text-align:center;">
-        <div class="status-badge">
+    <div style="text-align: center;">
+        <div class="status">
             <span class="status-dot"></span>
-            <span>v0.37.1 • Online • Undetected</span>
+            <span>Online • v0.37.1 • Undetected</span>
         </div>
     </div>
 
@@ -1913,7 +2301,7 @@ h1 {{
     <div class="modal-content">
         <div class="modal-handle"></div>
         <div class="modal-header">
-            <h3 id="modalTitle">Оформление заказа</h3>
+            <h3>Оформление заказа</h3>
             <button class="modal-close" id="modalClose">×</button>
         </div>
         <div class="modal-body" id="modalBody"></div>
@@ -1951,14 +2339,15 @@ h1 {{
         type = type || 'success';
         const el = document.createElement('div');
         el.className = 'toast ' + type;
-        el.innerHTML = '<span>' + (type === 'success' ? '✅' : '❌') + '</span><span>' + message + '</span>';
+        el.innerHTML = '<span>' + (type === 'success' ? '✓' : '✗') + '</span><span>' + message + '</span>';
         document.body.appendChild(el);
         setTimeout(() => el.remove(), 3000);
     }}
     
     function copyToClipboard(text) {{
         navigator.clipboard.writeText(text);
-        toast('Ключ скопирован!');
+        toast('Ключ скопирован в буфер обмена');
+        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
     }}
     
     function saveLicenses() {{
@@ -1966,12 +2355,10 @@ h1 {{
     }}
     
     const modal = document.getElementById('paymentModal');
-    const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
     const modalClose = document.getElementById('modalClose');
     
-    function openModal(title) {{
-        modalTitle.textContent = title;
+    function openModal() {{
         modal.classList.add('active');
     }}
     
@@ -1985,33 +2372,62 @@ h1 {{
     
     function openPaymentModal(product) {{
         currentProduct = product;
-        openModal('Выберите способ оплаты');
         modalBody.innerHTML = 
-            '<div style="background:rgba(255,255,255,0.05);border-radius:20px;padding:16px;text-align:center;margin-bottom:20px;">' +
-                '<div style="font-size:48px;">' + product.icon + '</div>' +
-                '<div style="font-weight:700;">' + product.name + ' • ' + product.period + '</div>' +
-                '<div style="font-size:12px;color:rgba(255,255,255,0.35);">' + product.duration + '</div>' +
-                '<div style="font-size:24px;font-weight:800;color:#f59e0b;margin-top:8px;">' + product.price + ' ₽</div>' +
+            '<div class="product-summary">' +
+                '<div class="summary-icon">' + product.icon + '</div>' +
+                '<div class="summary-title">' + product.name + ' • ' + product.period + '</div>' +
+                '<div class="summary-duration">' + product.duration + '</div>' +
+                '<div class="summary-price">' + product.price + ' ₽</div>' +
             '</div>' +
             '<div class="payment-methods">' +
                 '<div class="payment-method" data-method="yoomoney">' +
-                    '<div class="payment-method-left"><div class="payment-icon">💳</div><div class="payment-info"><h4>Банковская карта</h4><p>Visa, Mastercard, Мир</p></div></div>' +
+                    '<div class="payment-method-left">' +
+                        '<div class="payment-icon">💳</div>' +
+                        '<div class="payment-info">' +
+                            '<h4>Банковская карта</h4>' +
+                            '<p>Visa • Mastercard • Мир • SBP</p>' +
+                        '</div>' +
+                    '</div>' +
                     '<div class="payment-amount">' + product.price + ' ₽</div>' +
                 '</div>' +
                 '<div class="payment-method" data-method="stars">' +
-                    '<div class="payment-method-left"><div class="payment-icon">⭐️</div><div class="payment-info"><h4>Telegram Stars</h4><p>Встроенные платежи</p></div></div>' +
+                    '<div class="payment-method-left">' +
+                        '<div class="payment-icon">⭐️</div>' +
+                        '<div class="payment-info">' +
+                            '<h4>Telegram Stars</h4>' +
+                            '<p>Мгновенная оплата</p>' +
+                        '</div>' +
+                    '</div>' +
                     '<div class="payment-amount">' + product.stars + ' ⭐️</div>' +
                 '</div>' +
                 '<div class="payment-method" data-method="crypto">' +
-                    '<div class="payment-method-left"><div class="payment-icon">₿</div><div class="payment-info"><h4>Криптовалюта</h4><p>USDT, BTC, ETH</p></div></div>' +
+                    '<div class="payment-method-left">' +
+                        '<div class="payment-icon">₿</div>' +
+                        '<div class="payment-info">' +
+                            '<h4>Криптовалюта</h4>' +
+                            '<p>USDT • BTC • ETH • TON</p>' +
+                        '</div>' +
+                    '</div>' +
                     '<div class="payment-amount">' + product.usdt + ' USDT</div>' +
                 '</div>' +
                 '<div class="payment-method" data-method="gold">' +
-                    '<div class="payment-method-left"><div class="payment-icon">💰</div><div class="payment-info"><h4>GOLD</h4><p>Игровая валюта</p></div></div>' +
+                    '<div class="payment-method-left">' +
+                        '<div class="payment-icon">💰</div>' +
+                        '<div class="payment-info">' +
+                            '<h4>GOLD</h4>' +
+                            '<p>Игровая валюта</p>' +
+                        '</div>' +
+                    '</div>' +
                     '<div class="payment-amount">' + product.gold + ' 🪙</div>' +
                 '</div>' +
                 '<div class="payment-method" data-method="nft">' +
-                    '<div class="payment-method-left"><div class="payment-icon">🎨</div><div class="payment-info"><h4>NFT</h4><p>Коллекционные</p></div></div>' +
+                    '<div class="payment-method-left">' +
+                        '<div class="payment-icon">🎨</div>' +
+                        '<div class="payment-info">' +
+                            '<h4>NFT</h4>' +
+                            '<p>Коллекционные токены</p>' +
+                        '</div>' +
+                    '</div>' +
                     '<div class="payment-amount">' + product.nft + ' 🖼️</div>' +
                 '</div>' +
             '</div>';
@@ -2019,10 +2435,12 @@ h1 {{
         document.querySelectorAll('.payment-method').forEach(el => {{
             el.onclick = () => processPayment(el.dataset.method);
         }});
+        openModal();
     }}
     
     async function processPayment(method) {{
-        modalBody.innerHTML = '<div class="status-view"><div class="status-icon spin">⏳</div><div class="status-title">Создание платежа...</div></div>';
+        modalBody.innerHTML = '<div class="status-view"><div class="status-icon spin">⏳</div><div class="status-title">Создание платежа</div><div class="status-desc">Пожалуйста, подождите...</div></div>';
+        
         try {{
             const res = await fetch(API + '/create_payment', {{
                 method: 'POST',
@@ -2039,21 +2457,48 @@ h1 {{
             if (!data.success) throw new Error(data.error);
             
             if (method === 'yoomoney') {{
-                modalBody.innerHTML = '<div class="status-view"><div class="status-icon">💳</div><div class="status-title">' + currentProduct.price + ' ₽</div><button class="action-btn" id="payBtn">🔗 Оплатить</button><button class="action-btn secondary" id="checkBtn">✅ Проверить</button></div>';
+                modalBody.innerHTML = 
+                    '<div class="status-view">' +
+                        '<div class="status-icon">💳</div>' +
+                        '<div class="status-title">' + currentProduct.price + ' ₽</div>' +
+                        '<div class="status-desc">Заказ #' + data.order_id.slice(-8) + '</div>' +
+                        '<button class="action-btn" id="payBtn">🔗 Перейти к оплате</button>' +
+                        '<button class="action-btn secondary" id="checkBtn">✓ Проверить оплату</button>' +
+                    '</div>';
                 document.getElementById('payBtn').onclick = () => window.open(data.payment_url, '_blank');
                 document.getElementById('checkBtn').onclick = () => checkPayment(data.order_id);
             }} else if (method === 'stars') {{
-                modalBody.innerHTML = '<div class="status-view"><div class="status-icon">⭐️</div><div class="status-title">' + currentProduct.stars + ' Stars</div><button class="action-btn" id="starsBtn">⭐️ Оплатить в боте</button></div>';
+                modalBody.innerHTML = 
+                    '<div class="status-view">' +
+                        '<div class="status-icon">⭐️</div>' +
+                        '<div class="status-title">' + currentProduct.stars + ' Stars</div>' +
+                        '<div class="status-desc">Оплата через Telegram Stars</div>' +
+                        '<button class="action-btn" id="starsBtn">⭐️ Оплатить в боте</button>' +
+                    '</div>';
                 document.getElementById('starsBtn').onclick = () => tg.openTelegramLink('https://t.me/aimnoob_bot?start=buy_stars_' + currentProduct.id);
             }} else if (method === 'crypto') {{
-                modalBody.innerHTML = '<div class="status-view"><div class="status-icon">₿</div><div class="status-title">' + currentProduct.usdt + ' USDT</div><button class="action-btn" id="payBtn">🔗 Оплатить</button><button class="action-btn secondary" id="checkBtn">✅ Проверить</button></div>';
+                modalBody.innerHTML = 
+                    '<div class="status-view">' +
+                        '<div class="status-icon">₿</div>' +
+                        '<div class="status-title">' + currentProduct.usdt + ' USDT</div>' +
+                        '<div class="status-desc">Заказ #' + data.order_id.slice(-8) + '</div>' +
+                        '<button class="action-btn" id="payBtn">🔗 Оплатить криптовалютой</button>' +
+                        '<button class="action-btn secondary" id="checkBtn">✓ Проверить оплату</button>' +
+                    '</div>';
                 document.getElementById('payBtn').onclick = () => window.open(data.payment_url, '_blank');
                 document.getElementById('checkBtn').onclick = () => checkCryptoPayment(data.order_id, data.invoice_id);
             }} else {{
                 const msg = 'Привет! Хочу купить AimNoob ' + currentProduct.name + ' на ' + currentProduct.period + ' за ' + (method === 'gold' ? currentProduct.gold + ' GOLD' : currentProduct.nft + ' NFT');
-                modalBody.innerHTML = '<div class="status-view"><div class="status-icon">' + (method === 'gold' ? '💰' : '🎨') + '</div><div class="status-title">' + (method === 'gold' ? currentProduct.gold + ' GOLD' : currentProduct.nft + ' NFT') + '</div><button class="action-btn" id="msgBtn">💬 Написать</button><button class="action-btn secondary" id="doneBtn">✅ Я написал</button></div>';
+                modalBody.innerHTML = 
+                    '<div class="status-view">' +
+                        '<div class="status-icon">' + (method === 'gold' ? '💰' : '🎨') + '</div>' +
+                        '<div class="status-title">' + (method === 'gold' ? currentProduct.gold + ' GOLD' : currentProduct.nft + ' NFT') + '</div>' +
+                        '<div class="status-desc">Заказ #' + data.order_id.slice(-8) + '</div>' +
+                        '<button class="action-btn" id="msgBtn">💬 Написать в поддержку</button>' +
+                        '<button class="action-btn secondary" id="doneBtn">✓ Я написал</button>' +
+                    '</div>';
                 document.getElementById('msgBtn').onclick = () => window.open('https://t.me/' + SUPPORT + '?text=' + encodeURIComponent(msg), '_blank');
-                document.getElementById('doneBtn').onclick = () => {{ closeModal(); toast('Заказ создан!'); }};
+                document.getElementById('doneBtn').onclick = () => {{ closeModal(); toast('Заказ отправлен! Ожидайте подтверждение'); }};
             }}
         }} catch(e) {{
             toast(e.message, 'error');
@@ -2062,64 +2507,120 @@ h1 {{
     }}
     
     async function checkPayment(orderId) {{
-        modalBody.innerHTML = '<div class="status-view"><div class="status-icon spin">⏳</div><div class="status-title">Проверка...</div></div>';
-        const res = await fetch(API + '/check_payment', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }}, body: JSON.stringify({{ order_id: orderId }}) }});
-        const data = await res.json();
-        if (data.paid) showSuccess(data.license_key);
-        else modalBody.innerHTML = '<div class="status-view"><div class="status-icon">⏳</div><div class="status-title">Не найден</div><button class="action-btn secondary" onclick="location.reload()">🔄 Повторить</button></div>';
+        modalBody.innerHTML = '<div class="status-view"><div class="status-icon spin">⏳</div><div class="status-title">Проверка платежа</div><div class="status-desc">Это может занять 15-25 секунд</div></div>';
+        
+        for (let i = 0; i < 5; i++) {{
+            const res = await fetch(API + '/check_payment', {{
+                method: 'POST',
+                headers: {{ 'Content-Type': 'application/json' }},
+                body: JSON.stringify({{ order_id: orderId }})
+            }});
+            const data = await res.json();
+            if (data.paid) {{
+                showSuccess(data.license_key);
+                return;
+            }}
+            await new Promise(r => setTimeout(r, 3000));
+        }}
+        
+        modalBody.innerHTML = 
+            '<div class="status-view">' +
+                '<div class="status-icon">⏳</div>' +
+                '<div class="status-title">Платеж не найден</div>' +
+                '<div class="status-desc">Попробуйте через 1-2 минуты</div>' +
+                '<button class="action-btn secondary" id="retryBtn">🔄 Повторить проверку</button>' +
+            '</div>';
+        document.getElementById('retryBtn').onclick = () => checkPayment(orderId);
     }}
     
     async function checkCryptoPayment(orderId, invoiceId) {{
-        modalBody.innerHTML = '<div class="status-view"><div class="status-icon spin">⏳</div><div class="status-title">Проверка...</div></div>';
-        const res = await fetch(API + '/check_crypto', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }}, body: JSON.stringify({{ invoice_id: invoiceId, order_id: orderId }}) }});
-        const data = await res.json();
-        if (data.paid) showSuccess(data.license_key);
-        else modalBody.innerHTML = '<div class="status-view"><div class="status-icon">⏳</div><div class="status-title">В обработке</div><button class="action-btn secondary" onclick="location.reload()">🔄 Повторить</button></div>';
+        modalBody.innerHTML = '<div class="status-view"><div class="status-icon spin">⏳</div><div class="status-title">Проверка платежа</div><div class="status-desc">Ожидание подтверждения сети</div></div>';
+        
+        for (let i = 0; i < 5; i++) {{
+            const res = await fetch(API + '/check_crypto', {{
+                method: 'POST',
+                headers: {{ 'Content-Type': 'application/json' }},
+                body: JSON.stringify({{ invoice_id: invoiceId, order_id: orderId }})
+            }});
+            const data = await res.json();
+            if (data.paid) {{
+                showSuccess(data.license_key);
+                return;
+            }}
+            await new Promise(r => setTimeout(r, 5000));
+        }}
+        
+        modalBody.innerHTML = 
+            '<div class="status-view">' +
+                '<div class="status-icon">⏳</div>' +
+                '<div class="status-title">В обработке</div>' +
+                '<div class="status-desc">Платеж не подтвержден</div>' +
+                '<button class="action-btn secondary" id="retryBtn">🔄 Повторить проверку</button>' +
+            '</div>';
+        document.getElementById('retryBtn').onclick = () => checkCryptoPayment(orderId, invoiceId);
     }}
     
     function showSuccess(key) {{
-        licenses.unshift({{ key: key, product: currentProduct.name + ' • ' + currentProduct.period, date: new Date().toISOString() }});
+        licenses.unshift({{
+            key: key,
+            product: currentProduct.name + ' • ' + currentProduct.period,
+            date: new Date().toISOString()
+        }});
         saveLicenses();
-        modalTitle.textContent = 'Успех!';
-        modalBody.innerHTML = '<div class="status-view"><div class="status-icon">✅</div><div class="status-title">Оплата подтверждена!</div><div class="key-box" id="keyBox">🔑 ' + key + '</div><button class="action-btn" id="dlBtn">📥 Скачать</button><button class="action-btn secondary" id="keysBtn">🔑 Мои лицензии</button></div>';
+        
+        modalBody.innerHTML = 
+            '<div class="status-view">' +
+                '<div class="status-icon">✓</div>' +
+                '<div class="status-title">Оплата подтверждена!</div>' +
+                '<div class="status-desc">Ваш лицензионный ключ активирован</div>' +
+                '<div class="key-box" id="keyBox">🔑 ' + key + '</div>' +
+                '<button class="action-btn" id="downloadBtn">📥 Скачать AimNoob</button>' +
+                '<button class="action-btn secondary" id="myKeysBtn">🔑 Мои лицензии</button>' +
+            '</div>';
+        
         document.getElementById('keyBox').onclick = () => copyToClipboard(key);
-        document.getElementById('dlBtn').onclick = () => window.open(DOWNLOAD_URL, '_blank');
-        document.getElementById('keysBtn').onclick = () => {{ closeModal(); switchTab('licenses'); }};
+        document.getElementById('downloadBtn').onclick = () => window.open(DOWNLOAD_URL, '_blank');
+        document.getElementById('myKeysBtn').onclick = () => {{ closeModal(); switchTab('licenses'); }};
+        
+        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
         renderLicenses();
     }}
     
     function renderShop() {{
         let html = '';
         ['android', 'ios'].forEach(platform => {{
-            const name = platform === 'android' ? '📱 Android' : '🍎 iOS';
-            html += '<div style="margin-bottom:28px;"><div style="font-size:16px;font-weight:600;margin-bottom:12px;">' + name + '</div><div class="products-grid">';
+            const platformName = platform === 'android' ? '📱 Android' : '🍎 iOS';
+            html += '<div style="margin-bottom: 28px;"><div class="section-title" style="font-size: 18px; font-weight: 700; margin-bottom: 16px; padding-left: 4px;">' + platformName + '</div><div class="products-grid">';
             PRODUCTS[platform].forEach(p => {{
                 const isLast = p.id.includes('forever');
-                html += '<div class="product-card' + (isLast ? ' full-width' : '') + '">';
+                html += '<div class="product-card' + (isLast ? ' full-width' : '') + '" data-product=\'' + JSON.stringify(p) + '\'>';
                 if (p.hit) html += '<div class="product-badge">🔥 HIT</div>';
                 html += '<div class="product-content">';
                 html += '<div class="product-icon">' + p.icon + '</div>';
                 if (!isLast) {{
                     html += '<div class="product-name">' + p.name + '</div>';
                     html += '<div class="product-period">' + p.period + ' • ' + p.duration + '</div>';
-                    html += '<div class="product-price">' + p.price + ' ₽</div>';
+                    html += '<div class="product-price">' + p.price + ' <small>₽</small></div>';
                     html += '<div class="product-features">' + p.features.map(f => '<span class="feature">' + f + '</span>').join('') + '</div>';
-                    html += '<button class="buy-btn" data-id="' + p.id + '">🛒 Купить</button>';
+                    html += '<button class="buy-btn" data-id="' + p.id + '">Купить</button>';
                 }} else {{
                     html += '<div class="product-info"><div class="product-name">' + p.name + ' ' + p.period + '</div><div class="product-period">' + p.duration + '</div></div>';
-                    html += '<div class="product-price">' + p.price + ' ₽</div>';
-                    html += '<button class="buy-btn" data-id="' + p.id + '">🛒 Купить</button>';
+                    html += '<div class="product-price">' + p.price + ' <small>₽</small></div>';
+                    html += '<button class="buy-btn" data-id="' + p.id + '">Купить</button>';
                 }}
                 html += '</div></div>';
             }});
             html += '</div></div>';
         }});
         document.getElementById('page-shop').innerHTML = html;
+        
         document.querySelectorAll('.buy-btn').forEach(btn => {{
             btn.onclick = (e) => {{
                 e.stopPropagation();
                 let product = null;
-                for (const p of [...PRODUCTS.android, ...PRODUCTS.ios]) if (p.id === btn.dataset.id) product = p;
+                for (const p of [...PRODUCTS.android, ...PRODUCTS.ios]) {{
+                    if (p.id === btn.dataset.id) product = p;
+                }}
                 if (product) openPaymentModal(product);
             }};
         }});
@@ -2128,35 +2629,68 @@ h1 {{
     function renderLicenses() {{
         const container = document.getElementById('page-licenses');
         if (licenses.length === 0) {{
-            container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔑</div><div class="empty-text">Нет активных лицензий</div><button class="action-btn" id="goShopBtn">🛒 В магазин</button></div>';
-            document.getElementById('goShopBtn').onclick = () => switchTab('shop');
+            container.innerHTML = 
+                '<div class="empty-state">' +
+                    '<div class="empty-icon">🔑</div>' +
+                    '<div class="empty-text">У вас пока нет активных лицензий</div>' +
+                    '<button class="action-btn" id="goToShopBtn">Перейти в магазин</button>' +
+                '</div>';
+            document.getElementById('goToShopBtn').onclick = () => switchTab('shop');
             return;
         }}
-        let html = '<div style="margin-bottom:28px;"><div style="font-size:16px;font-weight:600;margin-bottom:12px;">🔑 Мои лицензии</div>';
+        
+        let html = '<div style="margin-bottom: 28px;"><div style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Мои лицензии</div>';
         licenses.forEach(l => {{
-            html += '<div class="license-card"><div class="license-header"><div class="license-icon">🎯</div><div class="license-info"><h4>' + l.product + '</h4><div class="license-date">' + new Date(l.date).toLocaleDateString('ru-RU') + '</div></div></div><div class="license-key" data-key="' + l.key + '">' + l.key + '</div><button class="license-copy-btn" data-key="' + l.key + '">📋 Скопировать</button></div>';
+            const date = new Date(l.date).toLocaleDateString('ru-RU', {{ day: 'numeric', month: 'long', year: 'numeric' }});
+            html += 
+                '<div class="license-card">' +
+                    '<div class="license-header">' +
+                        '<div class="license-icon">🎯</div>' +
+                        '<div class="license-info">' +
+                            '<h4>' + l.product + '</h4>' +
+                            '<div class="license-date">Активирована: ' + date + '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="license-key" data-key="' + l.key + '">' + l.key + '</div>' +
+                    '<button class="license-copy-btn" data-key="' + l.key + '">📋 Скопировать ключ</button>' +
+                '</div>';
         }});
         html += '</div>';
         container.innerHTML = html;
+        
         document.querySelectorAll('.license-key, .license-copy-btn').forEach(el => {{
             el.onclick = () => copyToClipboard(el.dataset.key);
         }});
     }}
     
     function renderProfile() {{
-        const avatars = ['🎯', '🔥', '⚡️', '💎', '⭐️', '🎮'];
+        const avatars = ['🎯', '🔥', '⚡', '💎', '⭐', '🎮', '🚀', '👑'];
         const avatar = avatars[Math.abs(user.id) % avatars.length];
+        
         document.getElementById('page-profile').innerHTML = 
-            '<div class="profile-card"><div class="profile-avatar">' + avatar + '</div><div class="profile-name">' + user.first_name + (user.last_name ? ' ' + user.last_name : '') + '</div><div class="profile-username">@' + (user.username || 'user') + '</div><div class="profile-stats"><div class="stat-card"><div class="stat-number">' + licenses.length + '</div><div class="stat-label">Лицензий</div></div><div class="stat-card"><div class="stat-number">v0.37</div><div class="stat-label">Версия</div></div></div></div>' +
-            '<button class="action-btn" id="supportBtn">💬 Поддержка</button>' +
-            '<button class="action-btn secondary" id="downloadBtn">📥 Скачать</button>';
+            '<div class="profile-card">' +
+                '<div class="profile-avatar">' + avatar + '</div>' +
+                '<div class="profile-name">' + (user.first_name || 'User') + (user.last_name ? ' ' + user.last_name : '') + '</div>' +
+                '<div class="profile-username">@' + (user.username || 'user') + '</div>' +
+                '<div class="profile-stats">' +
+                    '<div class="stat-card"><div class="stat-number">' + licenses.length + '</div><div class="stat-label">Лицензий</div></div>' +
+                    '<div class="stat-card"><div class="stat-number">v0.37</div><div class="stat-label">Версия</div></div>' +
+                '</div>' +
+            '</div>' +
+            '<button class="action-btn" id="supportBtn">💬 Поддержка 24/7</button>' +
+            '<button class="action-btn secondary" id="downloadAppBtn">📥 Скачать AimNoob</button>';
+        
         document.getElementById('supportBtn').onclick = () => window.open('https://t.me/' + SUPPORT, '_blank');
-        document.getElementById('downloadBtn').onclick = () => window.open(DOWNLOAD_URL, '_blank');
+        document.getElementById('downloadAppBtn').onclick = () => window.open(DOWNLOAD_URL, '_blank');
     }}
     
     function switchTab(tab) {{
-        document.querySelectorAll('.tab, .nav-item').forEach(el => el.classList.toggle('active', el.dataset.tab === tab));
-        document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.id === 'page-' + tab));
+        document.querySelectorAll('.tab, .nav-item').forEach(el => {{
+            el.classList.toggle('active', el.dataset.tab === tab);
+        }});
+        document.querySelectorAll('.page').forEach(page => {{
+            page.classList.toggle('active', page.id === 'page-' + tab);
+        }});
         if (tab === 'shop') renderShop();
         else if (tab === 'licenses') renderLicenses();
         else if (tab === 'profile') renderProfile();
