@@ -7,10 +7,9 @@ import time
 import random
 import json
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 from urllib.parse import parse_qs, unquote, quote
 from collections import OrderedDict
-from typing import Optional, Dict, Any
 
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
@@ -136,11 +135,6 @@ class OrderStorage:
                 "confirmed": len(self._confirmed)
             }
 
-    async def get_recent_pending(self, limit=5):
-        async with self._lock:
-            items = list(self._pending.items())[-limit:]
-            return items
-
     async def _cleanup_expired(self):
         now = time.time()
         expired = [
@@ -149,8 +143,6 @@ class OrderStorage:
         ]
         for oid in expired:
             del self._pending[oid]
-        if expired:
-            logger.info("Cleaned up %d expired orders", len(expired))
 
 
 class RateLimiter:
@@ -164,12 +156,6 @@ class RateLimiter:
         if now - last < self._interval:
             return False
         self._last_action[user_id] = now
-        if len(self._last_action) > 10000:
-            cutoff = now - self._interval * 10
-            self._last_action = {
-                uid: t for uid, t in self._last_action.items()
-                if t > cutoff
-            }
         return True
 
 
@@ -352,9 +338,6 @@ class YooMoneyService:
                     if resp.status == 200:
                         data = await resp.json()
                         return float(data.get('balance', 0))
-                    else:
-                        body = await resp.text()
-                        logger.error("YooMoney account-info %s: %s", resp.status, body)
         except Exception as e:
             logger.error("YooMoney balance error: %s", e)
         return None
@@ -381,21 +364,6 @@ class YooMoneyService:
                                 and op.get("status") == "success"
                                 and abs(float(op.get("amount", 0)) - expected_amount) <= 5):
                             return True
-                    for op in operations:
-                        if op.get("status") != "success":
-                            continue
-                        op_amount = float(op.get("amount", 0))
-                        if abs(op_amount - expected_amount) > 2:
-                            continue
-                        try:
-                            dt_str = op.get("datetime", "")
-                            op_time = datetime.fromisoformat(
-                                dt_str.replace("Z", "+00:00")
-                            ).timestamp()
-                            if abs(op_time - order_time) <= 1800:
-                                return True
-                        except (ValueError, TypeError):
-                            pass
         except Exception as e:
             logger.error("YooMoney check error: %s", e)
         return False
@@ -436,8 +404,6 @@ class CryptoBotService:
                                 "pay_url": inv.get("pay_url"),
                                 "amount": inv.get("amount")
                             }
-                    body = await resp.text()
-                    logger.error("CryptoBot createInvoice %s: %s", resp.status, body)
         except Exception as e:
             logger.error("CryptoBot API error: %s", e)
         return None
@@ -609,8 +575,6 @@ def manual_payment_keyboard(support_url, sent_callback):
 async def process_successful_payment(order_id, source="API"):
     order = await orders.get_pending(order_id)
     if not order:
-        if await orders.is_confirmed(order_id):
-            logger.info("Order %s already confirmed", order_id)
         return False
 
     product = order["product"]
@@ -637,11 +601,6 @@ async def process_successful_payment(order_id, source="API"):
         "<code>{key}</code>\n\n"
         "📥 <b>Скачивание:</b>\n"
         "👇 Нажмите кнопку ниже для загрузки\n\n"
-        "💫 <b>Активация:</b>\n"
-        "1️⃣ Скачайте файл по кнопке ниже\n"
-        "2️⃣ Установите приложение\n"
-        "3️⃣ Введите ключ при запуске\n"
-        "4️⃣ Наслаждайтесь игрой! 🎮\n\n"
         "💬 Поддержка: @{support}"
     ).format(
         emoji=product['emoji'], name=product['name'],
@@ -653,30 +612,6 @@ async def process_successful_payment(order_id, source="API"):
         await bot.send_message(user_id, success_text, reply_markup=download_keyboard())
     except Exception as e:
         logger.error("Error sending to user %s: %s", user_id, e)
-
-    order_amount = order.get('amount', product['price'])
-    order_currency = order.get('currency', '₽')
-    now_str = datetime.now().strftime('%d.%m.%Y %H:%M')
-
-    admin_text = (
-        "💎 <b>НОВАЯ ПРОДАЖА ({source})</b>\n\n"
-        "👤 {user_name}\n"
-        "🆔 {user_id}\n"
-        "📦 {product_name} ({duration})\n"
-        "💰 {amount} {currency}\n"
-        "🔑 <code>{key}</code>\n"
-        "📅 {now}"
-    ).format(
-        source=source, user_name=order['user_name'],
-        user_id=user_id, product_name=product['name'],
-        duration=product['duration'], amount=order_amount,
-        currency=order_currency, key=license_key, now=now_str
-    )
-    for aid in Config.ADMIN_IDS:
-        try:
-            await bot.send_message(aid, admin_text)
-        except Exception as e:
-            logger.error("Error notifying admin %s: %s", aid, e)
 
     return True
 
@@ -786,9 +721,6 @@ async def about_cheat(callback: types.CallbackQuery):
 @dp.callback_query(F.data.startswith("platform_"))
 async def process_platform(callback: types.CallbackQuery, state: FSMContext):
     platform = callback.data.split("_")[1]
-    if platform not in ("apk", "ios"):
-        await callback.answer("❌ Неизвестная платформа", show_alert=True)
-        return
     await state.update_data(platform=platform)
     platform_info = {
         "apk": {
@@ -817,9 +749,6 @@ async def process_platform(callback: types.CallbackQuery, state: FSMContext):
 @dp.callback_query(F.data.startswith("sub_"))
 async def process_subscription(callback: types.CallbackQuery, state: FSMContext):
     parts = callback.data.split("_")
-    if len(parts) < 3:
-        await callback.answer("❌ Ошибка", show_alert=True)
-        return
     product_key = "{}_{}".format(parts[1], parts[2])
     product = find_product_by_id(product_key)
     if not product:
@@ -857,15 +786,11 @@ async def process_yoomoney_payment(callback: types.CallbackQuery):
         await callback.answer("❌ Недоступно", show_alert=True)
         return
     parts = callback.data.split("_")
-    if len(parts) < 4:
-        await callback.answer("❌ Ошибка", show_alert=True)
-        return
     product = find_product(parts[2], parts[3])
     if not product:
         await callback.answer("❌ Не найдено", show_alert=True)
         return
-    user_id = callback.from_user.id
-    if not rate_limiter.check(user_id):
+    if not rate_limiter.check(callback.from_user.id):
         await callback.answer("⏳ Подождите...", show_alert=True)
         return
     order_id = generate_order_id()
@@ -873,7 +798,8 @@ async def process_yoomoney_payment(callback: types.CallbackQuery):
     product_desc = "{} ({})".format(product['name'], product['duration'])
     payment_url = create_payment_link(amount, order_id, product_desc)
     await orders.add_pending(order_id, {
-        "user_id": user_id, "user_name": callback.from_user.full_name,
+        "user_id": callback.from_user.id,
+        "user_name": callback.from_user.full_name,
         "product": product, "amount": amount, "currency": "₽",
         "payment_method": "Картой",
         "status": "pending", "created_at": time.time()
@@ -900,40 +826,26 @@ async def check_yoomoney_callback(callback: types.CallbackQuery):
     order_id = callback.data.replace("checkym_", "", 1)
     order = await orders.get_pending(order_id)
     if not order:
-        if await orders.is_confirmed(order_id):
-            await callback.answer("✅ Уже подтвержден!", show_alert=True)
-        else:
-            await callback.answer("❌ Не найден", show_alert=True)
+        await callback.answer("❌ Не найден", show_alert=True)
         return
     if not rate_limiter.check(callback.from_user.id):
         await callback.answer("⏳ Подождите...", show_alert=True)
         return
     await callback.answer("🔍 Проверяем...")
-    checking_msg = await callback.message.edit_text(
-        "🔄 <b>Проверка...</b>\n⏳ 15-25 секунд"
+    payment_found = await YooMoneyService.check_payment(
+        order_id, order["amount"], order.get("created_at", time.time())
     )
-    payment_found = False
-    for attempt in range(Config.MAX_PAYMENT_CHECK_ATTEMPTS):
-        payment_found = await YooMoneyService.check_payment(
-            order_id, order["amount"], order.get("created_at", time.time())
-        )
-        if payment_found:
-            break
-        await asyncio.sleep(Config.PAYMENT_CHECK_INTERVAL)
     if payment_found:
-        success = await process_successful_payment(order_id, "Автопроверка")
-        if success:
-            await checking_msg.edit_text(
-                "✅ <b>Платеж найден!</b>\n📨 Проверьте новое сообщение ↑",
-                reply_markup=support_keyboard()
-            )
-        else:
-            await checking_msg.edit_text("✅ <b>Уже обработан</b>", reply_markup=support_keyboard())
+        await process_successful_payment(order_id, "Автопроверка")
+        await callback.message.edit_text(
+            "✅ <b>Платеж найден!</b>\n📨 Проверьте новое сообщение ↑",
+            reply_markup=support_keyboard()
+        )
     else:
         product = order['product']
         product_desc = "{} ({})".format(product['name'], product['duration'])
         payment_url = create_payment_link(order["amount"], order_id, product_desc)
-        await checking_msg.edit_text(
+        await callback.message.edit_text(
             "⏳ <b>Не найден</b>\nПопробуйте через 1-2 мин",
             reply_markup=payment_keyboard(payment_url, order_id)
         )
@@ -943,9 +855,6 @@ async def check_yoomoney_callback(callback: types.CallbackQuery):
 @dp.callback_query(F.data.startswith("pay_stars_"))
 async def process_stars_payment(callback: types.CallbackQuery):
     parts = callback.data.split("_")
-    if len(parts) < 4:
-        await callback.answer("❌", show_alert=True)
-        return
     product = find_product(parts[2], parts[3])
     if not product:
         await callback.answer("❌ Не найдено", show_alert=True)
@@ -997,9 +906,6 @@ async def process_crypto_payment(callback: types.CallbackQuery):
         await callback.answer("❌ Недоступно", show_alert=True)
         return
     parts = callback.data.split("_")
-    if len(parts) < 4:
-        await callback.answer("❌", show_alert=True)
-        return
     product = find_product(parts[2], parts[3])
     if not product:
         await callback.answer("❌", show_alert=True)
@@ -1040,10 +946,7 @@ async def check_crypto_callback(callback: types.CallbackQuery):
     order_id = callback.data.replace("checkcr_", "", 1)
     order = await orders.get_pending(order_id)
     if not order:
-        if await orders.is_confirmed(order_id):
-            await callback.answer("✅ Уже оплачено!", show_alert=True)
-        else:
-            await callback.answer("❌ Не найден", show_alert=True)
+        await callback.answer("❌ Не найден", show_alert=True)
         return
     if not rate_limiter.check(callback.from_user.id):
         await callback.answer("⏳", show_alert=True)
@@ -1055,12 +958,11 @@ async def check_crypto_callback(callback: types.CallbackQuery):
         return
     is_paid = await CryptoBotService.check_invoice(invoice_id)
     if is_paid:
-        success = await process_successful_payment(order_id, "CryptoBot")
-        if success:
-            await callback.message.edit_text(
-                "✅ <b>Подтверждено!</b>\n📨 Ключ в сообщении ↑",
-                reply_markup=support_keyboard()
-            )
+        await process_successful_payment(order_id, "CryptoBot")
+        await callback.message.edit_text(
+            "✅ <b>Подтверждено!</b>\n📨 Ключ в сообщении ↑",
+            reply_markup=support_keyboard()
+        )
     else:
         await callback.answer("⏳ Не подтвержден. Попробуйте позже.", show_alert=True)
 
@@ -1078,9 +980,6 @@ async def process_nft_payment(callback: types.CallbackQuery):
 
 async def _process_manual_payment(callback, method):
     parts = callback.data.split("_")
-    if len(parts) < 4:
-        await callback.answer("❌", show_alert=True)
-        return
     product = find_product(parts[2], parts[3])
     if not product:
         await callback.answer("❌", show_alert=True)
@@ -1242,81 +1141,447 @@ MINIAPP_HTML = """<!DOCTYPE html>
 <title>AimNoob Shop</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#050510;color:#fff;min-height:100vh}
-.app{max-width:480px;margin:0 auto;padding:16px 16px 80px}
-.header{text-align:center;padding:20px 0 24px}
-.logo{width:64px;height:64px;background:linear-gradient(135deg,#8b5cf6,#ec4899);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px}
-h1{font-size:24px;font-weight:700;background:linear-gradient(135deg,#fff,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.tagline{color:#8e8e9e;font-size:12px;margin-top:4px}
-.status-bar{display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(16,185,129,.1);border-radius:20px;padding:6px 12px;width:fit-content;margin:0 auto 20px;font-size:11px}
-.status-dot{width:6px;height:6px;background:#10b981;border-radius:50%}
-.tabs{display:flex;gap:4px;background:rgba(255,255,255,.04);border-radius:14px;padding:4px;margin-bottom:20px}
-.tab{flex:1;padding:10px;border:none;background:transparent;color:#8e8e9e;font-size:12px;font-weight:600;border-radius:11px;cursor:pointer}
-.tab.active{background:rgba(255,255,255,.12);color:#fff}
-.section{margin-bottom:24px}
-.section-title{font-size:16px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.card{background:rgba(255,255,255,.04);border-radius:16px;padding:12px;cursor:pointer;transition:.2s;border:1px solid rgba(255,255,255,.06)}
-.card:active{transform:scale(.98)}
-.card-icon{font-size:28px;margin-bottom:8px}
-.card-name{font-size:14px;font-weight:600;margin-bottom:2px}
-.card-period{font-size:11px;color:#8e8e9e;margin-bottom:8px}
-.card-price{font-size:18px;font-weight:700;color:#f59e0b}
-.card-old{font-size:10px;color:#6b6b7a;text-decoration:line-through;margin-left:4px}
-.card-features{display:flex;gap:4px;flex-wrap:wrap;margin:8px 0}
-.feat{font-size:8px;padding:2px 6px;background:rgba(139,92,246,.2);border-radius:6px;color:#a78bfa}
-.card-btn{width:100%;padding:8px;background:linear-gradient(135deg,#8b5cf6,#ec4899);border:none;border-radius:12px;color:#fff;font-size:12px;font-weight:600;margin-top:8px;cursor:pointer}
-.card-full{grid-column:1/-1}
-.card-full .card-body{display:flex;align-items:center;gap:12px}
-.card-full .card-icon{margin:0}
-.card-full .card-info{flex:1}
-.card-full .card-right{text-align:right}
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:1000;align-items:flex-end;justify-content:center}
-.modal-overlay.open{display:flex}
-.modal{background:#0a0a18;border-radius:24px 24px 0 0;width:100%;max-width:480px;max-height:85vh;overflow-y:auto}
-.modal-handle{width:40px;height:4px;background:#2a2a36;border-radius:2px;margin:12px auto}
-.modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.06)}
-.modal-title{font-size:18px;font-weight:600}
-.modal-close{width:32px;height:32px;border-radius:16px;background:rgba(255,255,255,.08);border:none;color:#fff;font-size:20px;cursor:pointer}
-.modal-body{padding:20px}
-.pay-list{display:flex;flex-direction:column;gap:8px}
-.pay-item{display:flex;align-items:center;justify-content:space-between;padding:12px;background:rgba(255,255,255,.04);border-radius:12px;cursor:pointer}
-.pay-item:active{background:rgba(255,255,255,.08)}
-.pay-left{display:flex;align-items:center;gap:12px}
-.pay-icon{width:44px;height:44px;background:rgba(255,255,255,.08);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
-.pay-name{font-weight:600;font-size:14px}
-.pay-desc{font-size:10px;color:#8e8e9e}
-.pay-amount{font-weight:700;color:#f59e0b}
-.action-btn{width:100%;padding:14px;background:linear-gradient(135deg,#8b5cf6,#ec4899);border:none;border-radius:14px;color:#fff;font-weight:600;font-size:16px;cursor:pointer;margin-top:12px}
-.action-btn.secondary{background:rgba(255,255,255,.08)}
-.key-box{background:rgba(0,0,0,.4);padding:12px;border-radius:12px;font-family:monospace;font-size:12px;text-align:center;margin:12px 0;cursor:pointer}
-.license-card{background:rgba(255,255,255,.04);border-radius:12px;padding:12px;margin-bottom:8px}
-.license-header{display:flex;align-items:center;gap:12px;margin-bottom:8px}
-.license-icon{width:40px;height:40px;background:linear-gradient(135deg,#8b5cf6,#ec4899);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px}
-.license-name{font-weight:600}
-.license-date{font-size:10px;color:#8e8e9e}
-.license-key{font-family:monospace;font-size:10px;background:rgba(0,0,0,.3);padding:8px;border-radius:8px;margin:8px 0;cursor:pointer}
-.profile-card{background:rgba(255,255,255,.04);border-radius:20px;padding:24px;text-align:center;margin-bottom:16px}
-.profile-avatar{width:64px;height:64px;background:linear-gradient(135deg,#8b5cf6,#ec4899);border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px}
-.profile-name{font-size:18px;font-weight:700}
-.profile-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
-.stat-box{background:rgba(255,255,255,.04);border-radius:12px;padding:12px}
-.stat-num{font-size:20px;font-weight:700;color:#a78bfa}
-.toast{position:fixed;bottom:100px;left:16px;right:16px;background:rgba(0,0,0,.8);border-radius:12px;padding:12px;text-align:center;z-index:1100;animation:fadeIn .3s}
-@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-.nav{position:fixed;bottom:0;left:0;right:0;background:rgba(10,10,22,.95);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-around;padding:8px 16px 12px;max-width:480px;margin:0 auto}
-.nav-btn{background:none;border:none;color:#8e8e9e;font-size:10px;padding:6px 16px;border-radius:12px;cursor:pointer}
-.nav-btn.active{color:#a78bfa;background:rgba(139,92,246,.1)}
-.page{display:none}
-.page.active{display:block}
-.empty{text-align:center;padding:40px 20px}
-.product-summary{text-align:center;margin-bottom:16px}
-.ps-icon{font-size:48px;margin-bottom:8px}
-.ps-price{font-size:28px;font-weight:700;color:#f59e0b}
-.status-view{text-align:center;padding:20px}
-.spin{animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: #050510;
+    color: #fff;
+    min-height: 100vh;
+}
+.app {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 16px 16px 80px;
+}
+.header {
+    text-align: center;
+    padding: 20px 0 24px;
+}
+.logo {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin: 0 auto 12px;
+}
+h1 {
+    font-size: 24px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fff, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.tagline {
+    color: #8e8e9e;
+    font-size: 12px;
+    margin-top: 4px;
+}
+.status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 20px;
+    padding: 6px 12px;
+    width: fit-content;
+    margin: 0 auto 20px;
+    font-size: 11px;
+}
+.status-dot {
+    width: 6px;
+    height: 6px;
+    background: #10b981;
+    border-radius: 50%;
+}
+.tabs {
+    display: flex;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 14px;
+    padding: 4px;
+    margin-bottom: 20px;
+}
+.tab {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    color: #8e8e9e;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 11px;
+    cursor: pointer;
+}
+.tab.active {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+.section {
+    margin-bottom: 24px;
+}
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+.card {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 16px;
+    padding: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.card:active {
+    transform: scale(0.98);
+}
+.card-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+.card-name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+.card-period {
+    font-size: 11px;
+    color: #8e8e9e;
+    margin-bottom: 8px;
+}
+.card-price {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f59e0b;
+}
+.card-features {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin: 8px 0;
+}
+.feat {
+    font-size: 8px;
+    padding: 2px 6px;
+    background: rgba(139, 92, 246, 0.2);
+    border-radius: 6px;
+    color: #a78bfa;
+}
+.card-btn {
+    width: 100%;
+    padding: 8px;
+    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 8px;
+    cursor: pointer;
+}
+.card-full {
+    grid-column: 1 / -1;
+}
+.card-full .card-body {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.card-full .card-icon {
+    margin: 0;
+}
+.card-full .card-info {
+    flex: 1;
+}
+.card-full .card-right {
+    text-align: right;
+}
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 1000;
+    align-items: flex-end;
+    justify-content: center;
+}
+.modal-overlay.open {
+    display: flex;
+}
+.modal {
+    background: #0a0a18;
+    border-radius: 24px 24px 0 0;
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+.modal-handle {
+    width: 40px;
+    height: 4px;
+    background: #2a2a36;
+    border-radius: 2px;
+    margin: 12px auto;
+}
+.modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.modal-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+.modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+}
+.modal-body {
+    padding: 20px;
+}
+.pay-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.pay-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    cursor: pointer;
+}
+.pay-item:active {
+    background: rgba(255, 255, 255, 0.08);
+}
+.pay-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.pay-icon {
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+.pay-name {
+    font-weight: 600;
+    font-size: 14px;
+}
+.pay-desc {
+    font-size: 10px;
+    color: #8e8e9e;
+}
+.pay-amount {
+    font-weight: 700;
+    color: #f59e0b;
+}
+.action-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    border: none;
+    border-radius: 14px;
+    color: #fff;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 12px;
+}
+.action-btn.secondary {
+    background: rgba(255, 255, 255, 0.08);
+}
+.key-box {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 12px;
+    border-radius: 12px;
+    font-family: monospace;
+    font-size: 12px;
+    text-align: center;
+    margin: 12px 0;
+    cursor: pointer;
+}
+.license-card {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+}
+.license-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.license-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+.license-name {
+    font-weight: 600;
+}
+.license-date {
+    font-size: 10px;
+    color: #8e8e9e;
+}
+.license-key {
+    font-family: monospace;
+    font-size: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 8px;
+    border-radius: 8px;
+    margin: 8px 0;
+    cursor: pointer;
+}
+.profile-card {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 20px;
+    padding: 24px;
+    text-align: center;
+    margin-bottom: 16px;
+}
+.profile-avatar {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin: 0 auto 12px;
+}
+.profile-name {
+    font-size: 18px;
+    font-weight: 700;
+}
+.profile-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 16px;
+}
+.stat-box {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+    padding: 12px;
+}
+.stat-num {
+    font-size: 20px;
+    font-weight: 700;
+    color: #a78bfa;
+}
+.toast {
+    position: fixed;
+    bottom: 100px;
+    left: 16px;
+    right: 16px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    z-index: 1100;
+}
+.nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10, 10, 22, 0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 16px 12px;
+    max-width: 480px;
+    margin: 0 auto;
+}
+.nav-btn {
+    background: none;
+    border: none;
+    color: #8e8e9e;
+    font-size: 10px;
+    padding: 6px 16px;
+    border-radius: 12px;
+    cursor: pointer;
+}
+.nav-btn.active {
+    color: #a78bfa;
+    background: rgba(139, 92, 246, 0.1);
+}
+.page {
+    display: none;
+}
+.page.active {
+    display: block;
+}
+.empty {
+    text-align: center;
+    padding: 40px 20px;
+}
+.product-summary {
+    text-align: center;
+    margin-bottom: 16px;
+}
+.ps-icon {
+    font-size: 48px;
+    margin-bottom: 8px;
+}
+.ps-price {
+    font-size: 28px;
+    font-weight: 700;
+    color: #f59e0b;
+}
+.status-view {
+    text-align: center;
+    padding: 20px;
+}
+.spin {
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
 </style>
 </head>
 <body>
@@ -1665,14 +1930,9 @@ class WebHandlers:
         if not order:
             return web.json_response({"paid": False, "error": "Order not found"})
 
-        payment_found = False
-        for _ in range(3):
-            payment_found = await YooMoneyService.check_payment(
-                order_id, order["amount"], order.get("created_at", time.time())
-            )
-            if payment_found:
-                break
-            await asyncio.sleep(3)
+        payment_found = await YooMoneyService.check_payment(
+            order_id, order["amount"], order.get("created_at", time.time())
+        )
 
         if payment_found:
             await process_successful_payment(order_id, "MiniApp")
