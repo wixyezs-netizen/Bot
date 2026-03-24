@@ -663,7 +663,7 @@ async def process_successful_payment(order_id, source="API"):
         "\U0001f48e <b>\u041d\u041e\u0412\u0410\u042f \u041f\u0420\u041e\u0414\u0410\u0416\u0410 ({source})</b>\n\n"
         "\U0001f464 {user_name}\n"
         "\U0001f194 {user_id}\n"
-        "\U0001f4e6 {product_name} ({duration})\n"
+        "\U0001f4e6 {{product_name} ({duration})\n"
         "\U0001f4b0 {amount} {currency}\n"
         "\U0001f511 <code>{key}</code>\n"
         "\U0001f4c5 {now}"
@@ -688,7 +688,7 @@ async def send_admin_notification(user, product, payment_method, price, order_id
         "\U0001f514 <b>\u041d\u041e\u0412\u042b\u0419 \u0417\u0410\u041a\u0410\u0417</b>\n\n"
         "\U0001f464 {full_name}\n"
         "\U0001f194 <code>{user_id}</code>\n"
-        "\U0001f4e6 {product_name} ({duration})\n"
+        "\U0001f4e6 {{product_name} ({duration})\n"
         "\U0001f4b0 {price}\n"
         "\U0001f4b3 {payment_method}\n"
         "\U0001f194 <code>{order_id}</code>\n\n"
@@ -1101,7 +1101,7 @@ async def _process_manual_payment(callback, method):
     support_url = "https://t.me/{}?text={}".format(Config.SUPPORT_CHAT_USERNAME, encoded_message)
     text = (
         "{icon} <b>\u041e\u043f\u043b\u0430\u0442\u0430 {method_name}</b>\n\n"
-        "{emoji} {product_name}\n\u23f1\ufe0f {duration}\n"
+        "{emoji} {{product_name}\n\u23f1\ufe0f {duration}\n"
         "\U0001f4b0 <b>{price} {method_name}</b>\n\n"
         "1\ufe0f\u20e3 \u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u00ab\u041f\u0435\u0440\u0435\u0439\u0442\u0438\u00bb\n"
         "2\ufe0f\u20e3 \u041e\u0442\u043f\u0440\u0430\u0432\u044c\u0442\u0435 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435\n"
@@ -2216,10 +2216,10 @@ h1 {{
         
         modalBody.innerHTML = `
             <div class="product-summary" style="background: var(--surface); border-radius: 20px; padding: 16px; text-align: center; margin-bottom: 20px;">
-                <div style="font-size: 48px; margin-bottom: 8px;">$\{product.icon}</div>
-                <div style="font-weight: 700; font-size: 16px;">$\{product.name} • $\{product.period}</div>
-                <div style="font-size: 12px; color: var(--text-tertiary); margin: 4px 0;">$\{product.duration}</div>
-                <div style="font-size: 24px; font-weight: 800; color: var(--warning); margin-top: 8px;">$\{product.price} ₽</div>
+                <div style="font-size: 48px; margin-bottom: 8px;">$\{{product.icon}</div>
+                <div style="font-weight: 700; font-size: 16px;">$\{{product.name} • $\{{product.period}</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin: 4px 0;">$\{{product.duration}</div>
+                <div style="font-size: 24px; font-weight: 800; color: var(--warning); margin-top: 8px;">$\{{product.price} ₽</div>
             </div>
             <div class="payment-methods">
                 <div class="payment-method" data-method="yoomoney">
@@ -2230,7 +2230,7 @@ h1 {{
                             <p>Visa, Mastercard, Мир, SBP</p>
                         </div>
                     </div>
-                    <div class="payment-amount">$\{product.price} ₽</div>
+                    <div class="payment-amount">$\{{product.price} ₽</div>
                 </div>
                 <div class="payment-method" data-method="stars">
                     <div class="payment-method-left">
@@ -2240,7 +2240,7 @@ h1 {{
                             <p>Встроенные платежи Telegram</p>
                         </div>
                     </div>
-                    <div class="payment-amount">$\{product.stars} ⭐️</div>
+                    <div class="payment-amount">$\{{product.stars} ⭐️</div>
                 </div>
                 <div class="payment-method" data-method="crypto">
                     <div class="payment-method-left">
@@ -2250,7 +2250,7 @@ h1 {{
                             <p>USDT, BTC, ETH, TON</p>
                         </div>
                     </div>
-                    <div class="payment-amount">$\{product.usdt} USDT</div>
+                    <div class="payment-amount">$\{{product.usdt} USDT</div>
                 </div>
                 <div class="payment-method" data-method="gold">
                     <div class="payment-method-left">
@@ -2260,7 +2260,7 @@ h1 {{
                             <p>Игровая валюта</p>
                         </div>
                     </div>
-                    <div class="payment-amount">$\{product.gold} 🪙</div>
+                    <div class="payment-amount">$\{{product.gold} 🪙</div>
                 </div>
                 <div class="payment-method" data-method="nft">
                     <div class="payment-method-left">
@@ -2270,7 +2270,7 @@ h1 {{
                             <p>Коллекционные токены</p>
                         </div>
                     </div>
-                    <div class="payment-amount">$\{product.nft} 🖼️</div>
+                    <div class="payment-amount">$\{{product.nft} 🖼️</div>
                 </div>
             </div>
         `;
