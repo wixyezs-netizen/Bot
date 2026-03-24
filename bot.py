@@ -1236,6 +1236,8 @@ async def back_to_subscription(callback: types.CallbackQuery, state: FSMContext)
 
 # ========== ПРОФЕССИОНАЛЬНЫЙ MINIAPP ==========
 
+# ========== ПРОФЕССИОНАЛЬНЫЙ MINIAPP ==========
+
 MINIAPP_HTML = """<!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -1244,14 +1246,14 @@ MINIAPP_HTML = """<!DOCTYPE html>
 <title>AimNoob Premium Store</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-* {
+* {{
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
-}
+}}
 
-:root {
+:root {{
     --bg: #0a0a12;
     --surface: rgba(255,255,255,0.05);
     --surface-hover: rgba(255,255,255,0.08);
@@ -1268,18 +1270,18 @@ MINIAPP_HTML = """<!DOCTYPE html>
     --gradient-dark: linear-gradient(135deg, #6d28d9, #db2777);
     --shadow: 0 4px 20px rgba(0,0,0,0.3);
     --shadow-lg: 0 8px 30px rgba(0,0,0,0.4);
-}
+}}
 
-body {
+body {{
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
     overflow-x: hidden;
-}
+}}
 
 /* Animated Background */
-.bg-gradient {
+.bg-gradient {{
     position: fixed;
     top: 0;
     left: 0;
@@ -1289,9 +1291,9 @@ body {
                 radial-gradient(circle at 80% 80%, rgba(236,72,153,0.08), transparent 50%);
     pointer-events: none;
     z-index: 0;
-}
+}}
 
-.bg-grain {
+.bg-grain {{
     position: fixed;
     top: 0;
     left: 0;
@@ -1300,25 +1302,25 @@ body {
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
     pointer-events: none;
     z-index: 0;
-}
+}}
 
-.app {
+.app {{
     position: relative;
     z-index: 1;
     max-width: 480px;
     margin: 0 auto;
     padding: 20px 16px 90px;
     min-height: 100vh;
-}
+}}
 
 /* Header */
-.header {
+.header {{
     text-align: center;
     margin-bottom: 24px;
     animation: fadeInDown 0.5s ease;
-}
+}}
 
-.logo {
+.logo {{
     width: 70px;
     height: 70px;
     background: var(--gradient);
@@ -1330,13 +1332,13 @@ body {
     margin: 0 auto 12px;
     box-shadow: 0 8px 24px var(--accent-glow);
     animation: pulse 2s infinite;
-}
+}}
 
-.logo span {
+.logo span {{
     filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
-}
+}}
 
-h1 {
+h1 {{
     font-size: 26px;
     font-weight: 800;
     background: var(--gradient);
@@ -1344,16 +1346,16 @@ h1 {
     -webkit-text-fill-color: transparent;
     background-clip: text;
     letter-spacing: -0.5px;
-}
+}}
 
-.tagline {
+.tagline {{
     font-size: 12px;
     color: var(--text-secondary);
     margin-top: 4px;
-}
+}}
 
 /* Status Badge */
-.status-badge {
+.status-badge {{
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -1364,18 +1366,18 @@ h1 {
     font-size: 11px;
     font-weight: 500;
     margin-bottom: 20px;
-}
+}}
 
-.status-dot {
+.status-dot {{
     width: 6px;
     height: 6px;
     background: var(--success);
     border-radius: 50%;
     animation: blink 1.5s infinite;
-}
+}}
 
 /* Navigation Tabs */
-.tabs {
+.tabs {{
     display: flex;
     gap: 4px;
     background: var(--surface);
@@ -1386,9 +1388,9 @@ h1 {
     top: 10px;
     backdrop-filter: blur(20px);
     z-index: 10;
-}
+}}
 
-.tab {
+.tab {{
     flex: 1;
     padding: 10px;
     border: none;
@@ -1403,24 +1405,24 @@ h1 {
     flex-direction: column;
     align-items: center;
     gap: 4px;
-}
+}}
 
-.tab.active {
+.tab.active {{
     background: var(--surface-hover);
     color: var(--text);
-}
+}}
 
-.tab-icon {
+.tab-icon {{
     font-size: 18px;
-}
+}}
 
 /* Sections */
-.section {
+.section {{
     margin-bottom: 28px;
     animation: fadeInUp 0.5s ease;
-}
+}}
 
-.section-title {
+.section-title {{
     font-size: 16px;
     font-weight: 600;
     margin-bottom: 12px;
@@ -1428,20 +1430,20 @@ h1 {
     align-items: center;
     gap: 8px;
     padding-left: 4px;
-}
+}}
 
-.section-title i {
+.section-title i {{
     font-size: 20px;
-}
+}}
 
 /* Product Grid */
-.products-grid {
+.products-grid {{
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
-}
+}}
 
-.product-card {
+.product-card {{
     background: var(--surface);
     border: 1px solid rgba(255,255,255,0.06);
     border-radius: 20px;
@@ -1449,18 +1451,18 @@ h1 {
     transition: all 0.2s;
     cursor: pointer;
     position: relative;
-}
+}}
 
-.product-card:hover {
+.product-card:hover {{
     transform: translateY(-2px);
     border-color: var(--accent);
-}
+}}
 
-.product-card:active {
+.product-card:active {{
     transform: scale(0.98);
-}
+}}
 
-.product-badge {
+.product-badge {{
     position: absolute;
     top: 8px;
     right: 8px;
@@ -1470,14 +1472,14 @@ h1 {
     font-size: 9px;
     font-weight: 700;
     z-index: 2;
-}
+}}
 
-.product-content {
+.product-content {{
     padding: 14px 12px;
     text-align: center;
-}
+}}
 
-.product-icon {
+.product-icon {{
     width: 50px;
     height: 50px;
     background: rgba(139,92,246,0.15);
@@ -1487,50 +1489,50 @@ h1 {
     justify-content: center;
     font-size: 26px;
     margin: 0 auto 10px;
-}
+}}
 
-.product-name {
+.product-name {{
     font-weight: 700;
     font-size: 14px;
     margin-bottom: 2px;
-}
+}}
 
-.product-period {
+.product-period {{
     font-size: 10px;
     color: var(--text-tertiary);
     margin-bottom: 8px;
-}
+}}
 
-.product-price {
+.product-price {{
     font-size: 20px;
     font-weight: 800;
     color: var(--warning);
     margin-bottom: 8px;
-}
+}}
 
-.product-price small {
+.product-price small {{
     font-size: 10px;
     font-weight: 400;
     color: var(--text-tertiary);
-}
+}}
 
-.product-features {
+.product-features {{
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
     justify-content: center;
     margin-bottom: 10px;
-}
+}}
 
-.feature {
+.feature {{
     font-size: 8px;
     padding: 2px 6px;
     background: rgba(139,92,246,0.15);
     border-radius: 6px;
     color: var(--accent);
-}
+}}
 
-.buy-btn {
+.buy-btn {{
     width: 100%;
     padding: 8px;
     background: var(--gradient);
@@ -1541,49 +1543,49 @@ h1 {
     font-size: 12px;
     cursor: pointer;
     transition: all 0.2s;
-}
+}}
 
-.buy-btn:active {
+.buy-btn:active {{
     transform: scale(0.96);
     background: var(--gradient-dark);
-}
+}}
 
 /* Full Width Card */
-.product-card.full-width {
+.product-card.full-width {{
     grid-column: 1 / -1;
-}
+}}
 
-.product-card.full-width .product-content {
+.product-card.full-width .product-content {{
     display: flex;
     align-items: center;
     gap: 14px;
     text-align: left;
-}
+}}
 
-.product-card.full-width .product-icon {
+.product-card.full-width .product-icon {{
     margin: 0;
-}
+}}
 
-.product-card.full-width .product-info {
+.product-card.full-width .product-info {{
     flex: 1;
-}
+}}
 
-.product-card.full-width .product-name {
+.product-card.full-width .product-name {{
     font-size: 15px;
-}
+}}
 
-.product-card.full-width .product-price {
+.product-card.full-width .product-price {{
     font-size: 22px;
     margin: 0;
     text-align: right;
-}
+}}
 
-.product-card.full-width .buy-btn {
+.product-card.full-width .buy-btn {{
     margin-top: 8px;
-}
+}}
 
 /* Modal */
-.modal {
+.modal {{
     display: none;
     position: fixed;
     top: 0;
@@ -1595,14 +1597,14 @@ h1 {
     z-index: 1000;
     align-items: flex-end;
     justify-content: center;
-}
+}}
 
-.modal.active {
+.modal.active {{
     display: flex;
     animation: fadeIn 0.3s ease;
-}
+}}
 
-.modal-content {
+.modal-content {{
     background: linear-gradient(180deg, #14141f 0%, #0c0c14 100%);
     border-radius: 28px 28px 0 0;
     width: 100%;
@@ -1610,17 +1612,17 @@ h1 {
     max-height: 85vh;
     overflow-y: auto;
     animation: slideUp 0.3s cubic-bezier(0.32, 0.72, 0.24, 1.02);
-}
+}}
 
-.modal-handle {
+.modal-handle {{
     width: 36px;
     height: 4px;
     background: rgba(255,255,255,0.2);
     border-radius: 4px;
     margin: 12px auto 0;
-}
+}}
 
-.modal-header {
+.modal-header {{
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1630,14 +1632,14 @@ h1 {
     top: 0;
     background: inherit;
     z-index: 5;
-}
+}}
 
-.modal-header h3 {
+.modal-header h3 {{
     font-size: 18px;
     font-weight: 700;
-}
+}}
 
-.modal-close {
+.modal-close {{
     width: 32px;
     height: 32px;
     border-radius: 50%;
@@ -1647,27 +1649,27 @@ h1 {
     font-size: 18px;
     cursor: pointer;
     transition: all 0.2s;
-}
+}}
 
-.modal-close:active {
+.modal-close:active {{
     background: var(--error);
     color: white;
     transform: rotate(90deg);
-}
+}}
 
-.modal-body {
+.modal-body {{
     padding: 20px;
-}
+}}
 
 /* Payment Methods */
-.payment-methods {
+.payment-methods {{
     display: flex;
     flex-direction: column;
     gap: 8px;
     margin-top: 16px;
-}
+}}
 
-.payment-method {
+.payment-method {{
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1677,20 +1679,20 @@ h1 {
     cursor: pointer;
     transition: all 0.2s;
     border: 1px solid transparent;
-}
+}}
 
-.payment-method:active {
+.payment-method:active {{
     transform: scale(0.98);
     border-color: var(--accent);
-}
+}}
 
-.payment-method-left {
+.payment-method-left {{
     display: flex;
     align-items: center;
     gap: 12px;
-}
+}}
 
-.payment-icon {
+.payment-icon {{
     width: 44px;
     height: 44px;
     background: rgba(139,92,246,0.15);
@@ -1699,54 +1701,54 @@ h1 {
     align-items: center;
     justify-content: center;
     font-size: 22px;
-}
+}}
 
-.payment-info h4 {
+.payment-info h4 {{
     font-size: 14px;
     font-weight: 700;
     margin-bottom: 2px;
-}
+}}
 
-.payment-info p {
+.payment-info p {{
     font-size: 10px;
     color: var(--text-tertiary);
-}
+}}
 
-.payment-amount {
+.payment-amount {{
     font-weight: 800;
     color: var(--warning);
     font-size: 15px;
-}
+}}
 
 /* Status Views */
-.status-view {
+.status-view {{
     text-align: center;
     padding: 30px 20px;
-}
+}}
 
-.status-icon {
+.status-icon {{
     font-size: 56px;
     margin-bottom: 16px;
-}
+}}
 
-.status-icon.spin {
+.status-icon.spin {{
     animation: spin 1s linear infinite;
-}
+}}
 
-.status-title {
+.status-title {{
     font-size: 20px;
     font-weight: 800;
     margin-bottom: 8px;
-}
+}}
 
-.status-desc {
+.status-desc {{
     font-size: 13px;
     color: var(--text-secondary);
     line-height: 1.5;
-}
+}}
 
 /* Key Display */
-.key-box {
+.key-box {{
     background: rgba(0,0,0,0.4);
     border: 1px solid rgba(255,255,255,0.1);
     padding: 14px;
@@ -1759,14 +1761,14 @@ h1 {
     margin: 16px 0;
     cursor: pointer;
     transition: all 0.2s;
-}
+}}
 
-.key-box:active {
+.key-box:active {{
     background: rgba(139,92,246,0.1);
-}
+}}
 
 /* Action Buttons */
-.action-btn {
+.action-btn {{
     width: 100%;
     padding: 14px;
     border: none;
@@ -1778,38 +1780,38 @@ h1 {
     cursor: pointer;
     transition: all 0.2s;
     margin-bottom: 10px;
-}
+}}
 
-.action-btn:active {
+.action-btn:active {{
     transform: scale(0.98);
-}
+}}
 
-.action-btn.secondary {
+.action-btn.secondary {{
     background: var(--surface);
     color: var(--text);
-}
+}}
 
-.action-btn.secondary:active {
+.action-btn.secondary:active {{
     background: var(--surface-hover);
-}
+}}
 
 /* License Cards */
-.license-card {
+.license-card {{
     background: var(--surface);
     border-radius: 18px;
     padding: 14px;
     margin-bottom: 12px;
     border: 1px solid rgba(255,255,255,0.06);
-}
+}}
 
-.license-header {
+.license-header {{
     display: flex;
     align-items: center;
     gap: 10px;
     margin-bottom: 10px;
-}
+}}
 
-.license-icon {
+.license-icon {{
     width: 40px;
     height: 40px;
     background: rgba(139,92,246,0.15);
@@ -1818,20 +1820,20 @@ h1 {
     align-items: center;
     justify-content: center;
     font-size: 20px;
-}
+}}
 
-.license-info h4 {
+.license-info h4 {{
     font-size: 14px;
     font-weight: 700;
     margin-bottom: 2px;
-}
+}}
 
-.license-date {
+.license-date {{
     font-size: 10px;
     color: var(--text-tertiary);
-}
+}}
 
-.license-key {
+.license-key {{
     background: rgba(0,0,0,0.3);
     padding: 10px;
     border-radius: 12px;
@@ -1842,9 +1844,9 @@ h1 {
     color: var(--warning);
     cursor: pointer;
     margin-bottom: 8px;
-}
+}}
 
-.license-copy-btn {
+.license-copy-btn {{
     width: 100%;
     padding: 8px;
     background: var(--surface);
@@ -1854,23 +1856,23 @@ h1 {
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
-}
+}}
 
-.license-copy-btn:active {
+.license-copy-btn:active {{
     background: var(--surface-hover);
-}
+}}
 
 /* Profile Card */
-.profile-card {
+.profile-card {{
     background: var(--surface);
     border-radius: 24px;
     padding: 24px;
     text-align: center;
     margin-bottom: 16px;
     border: 1px solid rgba(255,255,255,0.06);
-}
+}}
 
-.profile-avatar {
+.profile-avatar {{
     width: 70px;
     height: 70px;
     background: var(--gradient);
@@ -1880,65 +1882,65 @@ h1 {
     justify-content: center;
     font-size: 32px;
     margin: 0 auto 12px;
-}
+}}
 
-.profile-name {
+.profile-name {{
     font-size: 18px;
     font-weight: 800;
     margin-bottom: 2px;
-}
+}}
 
-.profile-username {
+.profile-username {{
     font-size: 12px;
     color: var(--text-tertiary);
     margin-bottom: 16px;
-}
+}}
 
-.profile-stats {
+.profile-stats {{
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
     margin-top: 8px;
-}
+}}
 
-.stat-card {
+.stat-card {{
     background: var(--surface-hover);
     border-radius: 14px;
     padding: 12px;
-}
+}}
 
-.stat-number {
+.stat-number {{
     font-size: 22px;
     font-weight: 800;
     color: var(--accent);
-}
+}}
 
-.stat-label {
+.stat-label {{
     font-size: 10px;
     color: var(--text-tertiary);
     margin-top: 2px;
-}
+}}
 
 /* Empty State */
-.empty-state {
+.empty-state {{
     text-align: center;
     padding: 50px 20px;
-}
+}}
 
-.empty-icon {
+.empty-icon {{
     font-size: 48px;
     margin-bottom: 12px;
     opacity: 0.5;
-}
+}}
 
-.empty-text {
+.empty-text {{
     font-size: 14px;
     color: var(--text-secondary);
     margin-bottom: 16px;
-}
+}}
 
 /* Toast */
-.toast {
+.toast {{
     position: fixed;
     bottom: 100px;
     left: 16px;
@@ -1954,32 +1956,32 @@ h1 {
     animation: toastIn 0.3s ease;
     max-width: 480px;
     margin: 0 auto;
-}
+}}
 
-.toast.success {
+.toast.success {{
     background: rgba(16,185,129,0.2);
     border: 1px solid rgba(16,185,129,0.3);
     color: var(--success);
-}
+}}
 
-.toast.error {
+.toast.error {{
     background: rgba(239,68,68,0.2);
     border: 1px solid rgba(239,68,68,0.3);
     color: var(--error);
-}
+}}
 
 /* Pages */
-.page {
+.page {{
     display: none;
-}
+}}
 
-.page.active {
+.page.active {{
     display: block;
     animation: fadeInUp 0.3s ease;
-}
+}}
 
 /* Bottom Navigation */
-.bottom-nav {
+.bottom-nav {{
     position: fixed;
     bottom: 0;
     left: 0;
@@ -1993,9 +1995,9 @@ h1 {
     z-index: 100;
     max-width: 480px;
     margin: 0 auto;
-}
+}}
 
-.nav-item {
+.nav-item {{
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2009,93 +2011,93 @@ h1 {
     border-radius: 14px;
     cursor: pointer;
     transition: all 0.2s;
-}
+}}
 
-.nav-item.active {
+.nav-item.active {{
     color: var(--accent);
     background: rgba(139,92,246,0.1);
-}
+}}
 
-.nav-icon {
+.nav-icon {{
     font-size: 20px;
-}
+}}
 
 /* Animations */
-@keyframes fadeInDown {
-    from {
+@keyframes fadeInDown {{
+    from {{
         opacity: 0;
         transform: translateY(-20px);
-    }
-    to {
+    }}
+    to {{
         opacity: 1;
         transform: translateY(0);
-    }
-}
+    }}
+}}
 
-@keyframes fadeInUp {
-    from {
+@keyframes fadeInUp {{
+    from {{
         opacity: 0;
         transform: translateY(20px);
-    }
-    to {
+    }}
+    to {{
         opacity: 1;
         transform: translateY(0);
-    }
-}
+    }}
+}}
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
+@keyframes fadeIn {{
+    from {{ opacity: 0; }}
+    to {{ opacity: 1; }}
+}}
 
-@keyframes slideUp {
-    from {
+@keyframes slideUp {{
+    from {{
         transform: translateY(100%);
-    }
-    to {
+    }}
+    to {{
         transform: translateY(0);
-    }
-}
+    }}
+}}
 
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
+@keyframes spin {{
+    from {{ transform: rotate(0deg); }}
+    to {{ transform: rotate(360deg); }}
+}}
 
-@keyframes pulse {
-    0%, 100% { transform: scale(1); box-shadow: 0 8px 24px var(--accent-glow); }
-    50% { transform: scale(1.02); box-shadow: 0 12px 32px var(--accent-glow); }
-}
+@keyframes pulse {{
+    0%, 100% {{ transform: scale(1); box-shadow: 0 8px 24px var(--accent-glow); }}
+    50% {{ transform: scale(1.02); box-shadow: 0 12px 32px var(--accent-glow); }}
+}}
 
-@keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-}
+@keyframes blink {{
+    0%, 100% {{ opacity: 1; }}
+    50% {{ opacity: 0.3; }}
+}}
 
-@keyframes toastIn {
-    from {
+@keyframes toastIn {{
+    from {{
         opacity: 0;
         transform: translateY(20px);
-    }
-    to {
+    }}
+    to {{
         opacity: 1;
         transform: translateY(0);
-    }
-}
+    }}
+}}
 
 /* Scrollbar */
-::-webkit-scrollbar {
+::-webkit-scrollbar {{
     width: 3px;
-}
+}}
 
-::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {{
     background: transparent;
-}
+}}
 
-::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb {{
     background: var(--surface-hover);
     border-radius: 10px;
-}
+}}
 </style>
 </head>
 <body>
@@ -2163,89 +2165,83 @@ h1 {
 </div>
 
 <script>
-(function() {
-    // Telegram WebApp
+(function() {{
     const tg = window.Telegram.WebApp;
     tg.expand();
     tg.enableClosingConfirmation();
     
-    // User Data
-    const user = tg.initDataUnsafe?.user || { id: Date.now(), first_name: 'Guest', username: 'user' };
+    const user = tg.initDataUnsafe?.user || {{ id: Date.now(), first_name: 'Guest', username: 'user' }};
     
-    // Storage
     let licenses = JSON.parse(localStorage.getItem('aimnoob_licenses') || '[]');
     let currentProduct = null;
     
-    // Products
-    const PRODUCTS = {
+    const PRODUCTS = {{
         android: [
-            { id: 'apk_week', name: 'Android', period: 'Неделя', duration: '7 дней', price: 150, stars: 350, gold: 350, nft: 250, usdt: 2, icon: '📱', features: ['AimBot', 'WallHack', 'ESP'], hit: false },
-            { id: 'apk_month', name: 'Android', period: 'Месяц', duration: '30 дней', price: 350, stars: 800, gold: 800, nft: 600, usdt: 5, icon: '📱', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban'], hit: true },
-            { id: 'apk_forever', name: 'Android', period: 'Навсегда', duration: '∞', price: 800, stars: 1800, gold: 1800, nft: 1400, usdt: 12, icon: '📱', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban', 'Updates'], hit: false }
+            {{ id: 'apk_week', name: 'Android', period: 'Неделя', duration: '7 дней', price: 150, stars: 350, gold: 350, nft: 250, usdt: 2, icon: '📱', features: ['AimBot', 'WallHack', 'ESP'], hit: false }},
+            {{ id: 'apk_month', name: 'Android', period: 'Месяц', duration: '30 дней', price: 350, stars: 800, gold: 800, nft: 600, usdt: 5, icon: '📱', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban'], hit: true }},
+            {{ id: 'apk_forever', name: 'Android', period: 'Навсегда', duration: '∞', price: 800, stars: 1800, gold: 1800, nft: 1400, usdt: 12, icon: '📱', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban', 'Updates'], hit: false }}
         ],
         ios: [
-            { id: 'ios_week', name: 'iOS', period: 'Неделя', duration: '7 дней', price: 300, stars: 700, gold: 700, nft: 550, usdt: 4, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP'], hit: false },
-            { id: 'ios_month', name: 'iOS', period: 'Месяц', duration: '30 дней', price: 450, stars: 1000, gold: 1000, nft: 800, usdt: 6, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban'], hit: true },
-            { id: 'ios_forever', name: 'iOS', period: 'Навсегда', duration: '∞', price: 850, stars: 2000, gold: 2000, nft: 1600, usdt: 12, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban', 'Updates'], hit: false }
+            {{ id: 'ios_week', name: 'iOS', period: 'Неделя', duration: '7 дней', price: 300, stars: 700, gold: 700, nft: 550, usdt: 4, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP'], hit: false }},
+            {{ id: 'ios_month', name: 'iOS', period: 'Месяц', duration: '30 дней', price: 450, stars: 1000, gold: 1000, nft: 800, usdt: 6, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban'], hit: true }},
+            {{ id: 'ios_forever', name: 'iOS', period: 'Навсегда', duration: '∞', price: 850, stars: 2000, gold: 2000, nft: 1600, usdt: 12, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban', 'Updates'], hit: false }}
         ]
-    };
+    }};
     
     const API = window.location.origin + '/api';
     const SUPPORT = '{support}';
     const DOWNLOAD_URL = '{download_url}';
     
-    // Helper Functions
-    function toast(message, type = 'success') {
+    function toast(message, type) {{
+        type = type || 'success';
         const toastEl = document.createElement('div');
-        toastEl.className = `toast ${type}`;
-        toastEl.innerHTML = `<span>${type === 'success' ? '✅' : '❌'}</span><span>${message}</span>`;
+        toastEl.className = 'toast ' + type;
+        toastEl.innerHTML = '<span>' + (type === 'success' ? '✅' : '❌') + '</span><span>' + message + '</span>';
         document.body.appendChild(toastEl);
-        setTimeout(() => toastEl.remove(), 3000);
-    }
+        setTimeout(function() {{ toastEl.remove(); }}, 3000);
+    }}
     
-    function copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(() => {
+    function copyToClipboard(text) {{
+        navigator.clipboard.writeText(text).then(function() {{
             toast('Ключ скопирован!');
-            tg.HapticFeedback.notificationOccurred('success');
-        }).catch(() => toast('Ошибка копирования', 'error'));
-    }
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        }}).catch(function() {{ toast('Ошибка копирования', 'error'); }});
+    }}
     
-    function saveLicenses() {
+    function saveLicenses() {{
         localStorage.setItem('aimnoob_licenses', JSON.stringify(licenses));
-    }
+    }}
     
-    // Modal
     const modal = document.getElementById('paymentModal');
     const modalTitle = document.getElementById('modalTitle');
     const modalBody = document.getElementById('modalBody');
     const modalClose = document.getElementById('modalClose');
     
-    function openModal(title) {
+    function openModal(title) {{
         modalTitle.textContent = title;
         modal.classList.add('active');
-    }
+    }}
     
-    function closeModal() {
+    function closeModal() {{
         modal.classList.remove('active');
         currentProduct = null;
-    }
+    }}
     
     modalClose.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => {
+    modal.addEventListener('click', function(e) {{
         if (e.target === modal) closeModal();
-    });
+    }});
     
-    // Payment Methods Modal
-    function openPaymentModal(product) {
+    function openPaymentModal(product) {{
         currentProduct = product;
         openModal('Выберите способ оплаты');
         
         modalBody.innerHTML = `
             <div class="product-summary" style="background: var(--surface); border-radius: 20px; padding: 16px; text-align: center; margin-bottom: 20px;">
-                <div style="font-size: 48px; margin-bottom: 8px;">${product.icon}</div>
-                <div style="font-weight: 700; font-size: 16px;">${product.name} • ${product.period}</div>
-                <div style="font-size: 12px; color: var(--text-tertiary); margin: 4px 0;">${product.duration}</div>
-                <div style="font-size: 24px; font-weight: 800; color: var(--warning); margin-top: 8px;">${product.price} ₽</div>
+                <div style="font-size: 48px; margin-bottom: 8px;">$\{product.icon}</div>
+                <div style="font-weight: 700; font-size: 16px;">$\{product.name} • $\{product.period}</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin: 4px 0;">$\{product.duration}</div>
+                <div style="font-size: 24px; font-weight: 800; color: var(--warning); margin-top: 8px;">$\{product.price} ₽</div>
             </div>
             <div class="payment-methods">
                 <div class="payment-method" data-method="yoomoney">
@@ -2256,7 +2252,7 @@ h1 {
                             <p>Visa, Mastercard, Мир, SBP</p>
                         </div>
                     </div>
-                    <div class="payment-amount">${product.price} ₽</div>
+                    <div class="payment-amount">$\{product.price} ₽</div>
                 </div>
                 <div class="payment-method" data-method="stars">
                     <div class="payment-method-left">
@@ -2266,7 +2262,7 @@ h1 {
                             <p>Встроенные платежи Telegram</p>
                         </div>
                     </div>
-                    <div class="payment-amount">${product.stars} ⭐️</div>
+                    <div class="payment-amount">$\{product.stars} ⭐️</div>
                 </div>
                 <div class="payment-method" data-method="crypto">
                     <div class="payment-method-left">
@@ -2276,7 +2272,7 @@ h1 {
                             <p>USDT, BTC, ETH, TON</p>
                         </div>
                     </div>
-                    <div class="payment-amount">${product.usdt} USDT</div>
+                    <div class="payment-amount">$\{product.usdt} USDT</div>
                 </div>
                 <div class="payment-method" data-method="gold">
                     <div class="payment-method-left">
@@ -2286,7 +2282,7 @@ h1 {
                             <p>Игровая валюта</p>
                         </div>
                     </div>
-                    <div class="payment-amount">${product.gold} 🪙</div>
+                    <div class="payment-amount">$\{product.gold} 🪙</div>
                 </div>
                 <div class="payment-method" data-method="nft">
                     <div class="payment-method-left">
@@ -2296,18 +2292,17 @@ h1 {
                             <p>Коллекционные токены</p>
                         </div>
                     </div>
-                    <div class="payment-amount">${product.nft} 🖼️</div>
+                    <div class="payment-amount">$\{product.nft} 🖼️</div>
                 </div>
             </div>
         `;
         
-        document.querySelectorAll('.payment-method').forEach(el => {
-            el.addEventListener('click', () => processPayment(el.dataset.method));
-        });
-    }
+        document.querySelectorAll('.payment-method').forEach(function(el) {{
+            el.addEventListener('click', function() {{ processPayment(el.dataset.method); }});
+        }});
+    }}
     
-    // Process Payment
-    async function processPayment(method) {
+    async function processPayment(method) {{
         modalBody.innerHTML = `
             <div class="status-view">
                 <div class="status-icon spin">⏳</div>
@@ -2316,103 +2311,103 @@ h1 {
             </div>
         `;
         
-        try {
-            const response = await fetch(API + '/create_payment', {
+        try {{
+            const response = await fetch(API + '/create_payment', {{
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+                headers: {{ 'Content-Type': 'application/json' }},
+                body: JSON.stringify({{
                     product_id: currentProduct.id,
                     method: method,
                     user_id: user.id,
                     user_name: user.first_name + (user.last_name ? ' ' + user.last_name : ''),
                     init_data: tg.initData
-                })
-            });
+                }})
+            }});
             
             const data = await response.json();
             
             if (!data.success) throw new Error(data.error || 'Ошибка создания платежа');
             
-            if (method === 'yoomoney') {
+            if (method === 'yoomoney') {{
                 showPaymentView(data.payment_url, data.order_id, '💳', currentProduct.price + ' ₽', 'yoomoney');
-            } else if (method === 'stars') {
+            }} else if (method === 'stars') {{
                 modalBody.innerHTML = `
                     <div class="status-view">
                         <div class="status-icon">⭐️</div>
-                        <div class="status-title">${currentProduct.stars} Stars</div>
+                        <div class="status-title">$\{currentProduct.stars} Stars</div>
                         <div class="status-desc">Оплатите в боте Telegram</div>
                         <button class="action-btn" id="starsPayBtn" style="margin-top: 20px;">⭐️ Оплатить в боте</button>
                     </div>
                 `;
-                document.getElementById('starsPayBtn').addEventListener('click', () => {
+                document.getElementById('starsPayBtn').addEventListener('click', function() {{
                     tg.openTelegramLink('https://t.me/aimnoob_bot?start=buy_stars_' + currentProduct.id);
-                });
-            } else if (method === 'crypto') {
+                }});
+            }} else if (method === 'crypto') {{
                 showPaymentView(data.payment_url, data.order_id, '₿', currentProduct.usdt + ' USDT', 'crypto', data.invoice_id);
-            } else {
+            }} else {{
                 showManualPayment(method, data.order_id);
-            }
-        } catch (err) {
+            }}
+        }} catch (err) {{
             toast(err.message, 'error');
-            setTimeout(() => openPaymentModal(currentProduct), 1000);
-        }
-    }
+            setTimeout(function() {{ openPaymentModal(currentProduct); }}, 1000);
+        }}
+    }}
     
-    function showPaymentView(url, orderId, icon, amount, type, invoiceId) {
+    function showPaymentView(url, orderId, icon, amount, type, invoiceId) {{
         modalBody.innerHTML = `
             <div class="status-view">
-                <div class="status-icon">${icon}</div>
-                <div class="status-title">${amount}</div>
-                <div class="status-desc">Заказ #${orderId.slice(-8)}</div>
+                <div class="status-icon">$\{icon}</div>
+                <div class="status-title">$\{amount}</div>
+                <div class="status-desc">Заказ #$\{orderId.slice(-8)}</div>
                 <button class="action-btn" id="payNowBtn" style="margin-top: 20px;">🔗 Перейти к оплате</button>
                 <button class="action-btn secondary" id="checkPayBtn">✅ Проверить оплату</button>
             </div>
         `;
         
-        document.getElementById('payNowBtn').addEventListener('click', () => {
+        document.getElementById('payNowBtn').addEventListener('click', function() {{
             window.open(url, '_blank');
-        });
+        }});
         
-        document.getElementById('checkPayBtn').addEventListener('click', async () => {
-            if (type === 'yoomoney') {
+        document.getElementById('checkPayBtn').addEventListener('click', async function() {{
+            if (type === 'yoomoney') {{
                 await checkYooMoneyPayment(orderId);
-            } else if (type === 'crypto') {
+            }} else if (type === 'crypto') {{
                 await checkCryptoPayment(orderId, invoiceId);
-            }
-        });
-    }
+            }}
+        }});
+    }}
     
-    function showManualPayment(method, orderId) {
-        const methods = {
-            gold: { name: 'GOLD', icon: '💰', amount: currentProduct.gold, emoji: '🪙' },
-            nft: { name: 'NFT', icon: '🎨', amount: currentProduct.nft, emoji: '🖼️' }
-        };
+    function showManualPayment(method, orderId) {{
+        const methods = {{
+            gold: {{ name: 'GOLD', icon: '💰', amount: currentProduct.gold, emoji: '🪙' }},
+            nft: {{ name: 'NFT', icon: '🎨', amount: currentProduct.nft, emoji: '🖼️' }}
+        }};
         const m = methods[method];
-        const message = `Привет! Хочу купить AimNoob ${currentProduct.name} на ${currentProduct.period} за ${m.amount} ${m.name}`;
+        const message = 'Привет! Хочу купить AimNoob ' + currentProduct.name + ' на ' + currentProduct.period + ' за ' + m.amount + ' ' + m.name;
         
         modalBody.innerHTML = `
             <div class="status-view">
-                <div class="status-icon">${m.icon}</div>
-                <div class="status-title">${m.amount} ${m.name}</div>
+                <div class="status-icon">$\{m.icon}</div>
+                <div class="status-title">$\{m.amount} $\{m.name}</div>
                 <div class="status-desc" style="background: var(--surface); padding: 12px; border-radius: 14px; margin: 16px 0; font-size: 11px;">
-                    ${message}
+                    $\{message}
                 </div>
                 <button class="action-btn" id="contactSupportBtn">💬 Написать поддержке</button>
                 <button class="action-btn secondary" id="notifySupportBtn">✅ Я написал</button>
             </div>
         `;
         
-        document.getElementById('contactSupportBtn').addEventListener('click', () => {
-            window.open(`https://t.me/${SUPPORT}?text=${encodeURIComponent(message)}`, '_blank');
-        });
+        document.getElementById('contactSupportBtn').addEventListener('click', function() {{
+            window.open('https://t.me/' + SUPPORT + '?text=' + encodeURIComponent(message), '_blank');
+        }});
         
-        document.getElementById('notifySupportBtn').addEventListener('click', () => {
+        document.getElementById('notifySupportBtn').addEventListener('click', function() {{
             closeModal();
-            toast(`Заказ #${orderId.slice(-8)} создан! Ожидайте подтверждения`, 'success');
-        });
-    }
+            toast('Заказ #' + orderId.slice(-8) + ' создан! Ожидайте подтверждения', 'success');
+        }});
+    }}
     
-    async function checkYooMoneyPayment(orderId) {
+    async function checkYooMoneyPayment(orderId) {{
         modalBody.innerHTML = `
             <div class="status-view">
                 <div class="status-icon spin">⏳</div>
@@ -2421,17 +2416,17 @@ h1 {
             </div>
         `;
         
-        try {
-            const response = await fetch(API + '/check_payment', {
+        try {{
+            const response = await fetch(API + '/check_payment', {{
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ order_id: orderId })
-            });
+                headers: {{ 'Content-Type': 'application/json' }},
+                body: JSON.stringify({{ order_id: orderId }})
+            }});
             const data = await response.json();
             
-            if (data.paid) {
+            if (data.paid) {{
                 showSuccess(data.license_key);
-            } else {
+            }} else {{
                 modalBody.innerHTML = `
                     <div class="status-view">
                         <div class="status-icon">⏳</div>
@@ -2440,14 +2435,14 @@ h1 {
                         <button class="action-btn secondary" id="retryBtn" style="margin-top: 20px;">🔄 Повторить</button>
                     </div>
                 `;
-                document.getElementById('retryBtn').addEventListener('click', () => checkYooMoneyPayment(orderId));
-            }
-        } catch (err) {
+                document.getElementById('retryBtn').addEventListener('click', function() {{ checkYooMoneyPayment(orderId); }});
+            }}
+        }} catch (err) {{
             toast('Ошибка проверки', 'error');
-        }
-    }
+        }}
+    }}
     
-    async function checkCryptoPayment(orderId, invoiceId) {
+    async function checkCryptoPayment(orderId, invoiceId) {{
         modalBody.innerHTML = `
             <div class="status-view">
                 <div class="status-icon spin">⏳</div>
@@ -2456,17 +2451,17 @@ h1 {
             </div>
         `;
         
-        try {
-            const response = await fetch(API + '/check_crypto', {
+        try {{
+            const response = await fetch(API + '/check_crypto', {{
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ invoice_id: invoiceId, order_id: orderId })
-            });
+                headers: {{ 'Content-Type': 'application/json' }},
+                body: JSON.stringify({{ invoice_id: invoiceId, order_id: orderId }})
+            }});
             const data = await response.json();
             
-            if (data.paid) {
+            if (data.paid) {{
                 showSuccess(data.license_key);
-            } else {
+            }} else {{
                 modalBody.innerHTML = `
                     <div class="status-view">
                         <div class="status-icon">⏳</div>
@@ -2475,20 +2470,20 @@ h1 {
                         <button class="action-btn secondary" id="retryBtn" style="margin-top: 20px;">🔄 Повторить</button>
                     </div>
                 `;
-                document.getElementById('retryBtn').addEventListener('click', () => checkCryptoPayment(orderId, invoiceId));
-            }
-        } catch (err) {
+                document.getElementById('retryBtn').addEventListener('click', function() {{ checkCryptoPayment(orderId, invoiceId); }});
+            }}
+        }} catch (err) {{
             toast('Ошибка проверки', 'error');
-        }
-    }
+        }}
+    }}
     
-    function showSuccess(licenseKey) {
-        const productInfo = `${currentProduct.name} • ${currentProduct.period}`;
-        licenses.unshift({
+    function showSuccess(licenseKey) {{
+        const productInfo = currentProduct.name + ' • ' + currentProduct.period;
+        licenses.unshift({{
             key: licenseKey,
             product: productInfo,
             date: new Date().toISOString()
-        });
+        }});
         saveLicenses();
         
         modalTitle.textContent = 'Успешная оплата!';
@@ -2497,192 +2492,141 @@ h1 {
                 <div class="status-icon">✅</div>
                 <div class="status-title">Оплата подтверждена!</div>
                 <div class="status-desc">Ваш лицензионный ключ активирован</div>
-                <div class="key-box" id="licenseKeyBox">🔑 ${licenseKey}</div>
+                <div class="key-box" id="licenseKeyBox">🔑 $\{licenseKey}</div>
                 <button class="action-btn" id="downloadBtn">📥 Скачать AimNoob</button>
                 <button class="action-btn secondary" id="myKeysBtn">🔑 Мои лицензии</button>
             </div>
         `;
         
-        document.getElementById('licenseKeyBox').addEventListener('click', () => copyToClipboard(licenseKey));
-        document.getElementById('downloadBtn').addEventListener('click', () => {
+        document.getElementById('licenseKeyBox').addEventListener('click', function() {{ copyToClipboard(licenseKey); }});
+        document.getElementById('downloadBtn').addEventListener('click', function() {{
             window.open(DOWNLOAD_URL, '_blank');
-        });
-        document.getElementById('myKeysBtn').addEventListener('click', () => {
+        }});
+        document.getElementById('myKeysBtn').addEventListener('click', function() {{
             closeModal();
             switchTab('licenses');
-        });
+        }});
         
-        tg.HapticFeedback.notificationOccurred('success');
+        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
         renderLicenses();
-    }
+    }}
     
-    // Render Shop
-    function renderShop() {
+    function renderShop() {{
         const container = document.getElementById('page-shop');
         let html = '';
         
-        ['android', 'ios'].forEach(platform => {
+        ['android', 'ios'].forEach(function(platform) {{
             const platformName = platform === 'android' ? '📱 Android' : '🍎 iOS';
-            html += `
-                <div class="section">
-                    <div class="section-title">
-                        <i>${platform === 'android' ? '📱' : '🍎'}</i>
-                        <span>${platformName}</span>
-                    </div>
-                    <div class="products-grid">
-            `;
+            html += '<div class="section"><div class="section-title"><i>' + (platform === 'android' ? '📱' : '🍎') + '</i><span>' + platformName + '</span></div><div class="products-grid">';
             
-            PRODUCTS[platform].forEach(product => {
-                const isLast = product.id.includes('forever');
+            PRODUCTS[platform].forEach(function(product) {{
+                const isLast = product.id.indexOf('forever') !== -1;
                 const cardClass = isLast ? 'product-card full-width' : 'product-card';
                 const badgeHtml = product.hit ? '<div class="product-badge">🔥 HIT</div>' : '';
                 
-                html += `
-                    <div class="${cardClass}" data-product='${JSON.stringify(product)}'>
-                        ${badgeHtml}
-                        <div class="product-content">
-                            <div class="product-icon">${product.icon}</div>
-                            ${!isLast ? `
-                                <div class="product-name">${product.name}</div>
-                                <div class="product-period">${product.period} • ${product.duration}</div>
-                                <div class="product-price">${product.price} ₽</div>
-                                <div class="product-features">
-                                    ${product.features.map(f => `<span class="feature">${f}</span>`).join('')}
-                                </div>
-                                <button class="buy-btn" data-id="${product.id}">🛒 Купить</button>
-                            ` : `
-                                <div class="product-info">
-                                    <div class="product-name">${product.name} ${product.period}</div>
-                                    <div class="product-period">${product.duration}</div>
-                                </div>
-                                <div class="product-price">${product.price} ₽</div>
-                                <button class="buy-btn" data-id="${product.id}">🛒 Купить</button>
-                            `}
-                        </div>
-                    </div>
-                `;
-            });
+                html += '<div class="' + cardClass + '" data-product=\'' + JSON.stringify(product) + '\'>' + badgeHtml + '<div class="product-content">';
+                html += '<div class="product-icon">' + product.icon + '</div>';
+                
+                if (!isLast) {{
+                    html += '<div class="product-name">' + product.name + '</div>';
+                    html += '<div class="product-period">' + product.period + ' • ' + product.duration + '</div>';
+                    html += '<div class="product-price">' + product.price + ' ₽</div>';
+                    html += '<div class="product-features">';
+                    product.features.forEach(function(f) {{ html += '<span class="feature">' + f + '</span>'; }});
+                    html += '</div>';
+                    html += '<button class="buy-btn" data-id="' + product.id + '">🛒 Купить</button>';
+                }} else {{
+                    html += '<div class="product-info"><div class="product-name">' + product.name + ' ' + product.period + '</div>';
+                    html += '<div class="product-period">' + product.duration + '</div></div>';
+                    html += '<div class="product-price">' + product.price + ' ₽</div>';
+                    html += '<button class="buy-btn" data-id="' + product.id + '">🛒 Купить</button>';
+                }}
+                
+                html += '</div></div>';
+            }});
             
-            html += `</div></div>`;
-        });
+            html += '</div></div>';
+        }});
         
         container.innerHTML = html;
         
-        document.querySelectorAll('.buy-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.buy-btn').forEach(function(btn) {{
+            btn.addEventListener('click', function(e) {{
                 e.stopPropagation();
                 const productId = btn.dataset.id;
                 let product = null;
-                for (const platform of ['android', 'ios']) {
-                    product = PRODUCTS[platform].find(p => p.id === productId);
-                    if (product) break;
-                }
+                for (const p of PRODUCTS.android) {{ if (p.id === productId) product = p; }}
+                if (!product) for (const p of PRODUCTS.ios) {{ if (p.id === productId) product = p; }}
                 if (product) openPaymentModal(product);
-            });
-        });
-    }
+            }});
+        }});
+    }}
     
-    // Render Licenses
-    function renderLicenses() {
+    function renderLicenses() {{
         const container = document.getElementById('page-licenses');
         
-        if (licenses.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">🔑</div>
-                    <div class="empty-text">У вас пока нет активных лицензий</div>
-                    <button class="action-btn" id="goToShopBtn">🛒 Перейти в магазин</button>
-                </div>
-            `;
-            document.getElementById('goToShopBtn')?.addEventListener('click', () => switchTab('shop'));
+        if (licenses.length === 0) {{
+            container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔑</div><div class="empty-text">У вас пока нет активных лицензий</div><button class="action-btn" id="goToShopBtn">🛒 Перейти в магазин</button></div>';
+            document.getElementById('goToShopBtn').addEventListener('click', function() {{ switchTab('shop'); }});
             return;
-        }
+        }}
         
-        let html = `<div class="section"><div class="section-title"><i>🔑</i><span>Мои лицензии</span></div>`;
+        let html = '<div class="section"><div class="section-title"><i>🔑</i><span>Мои лицензии</span></div>';
         
-        licenses.forEach(license => {
+        licenses.forEach(function(license) {{
             const date = new Date(license.date).toLocaleDateString('ru-RU');
-            html += `
-                <div class="license-card">
-                    <div class="license-header">
-                        <div class="license-icon">🎯</div>
-                        <div class="license-info">
-                            <h4>${license.product}</h4>
-                            <div class="license-date">Активирована: ${date}</div>
-                        </div>
-                    </div>
-                    <div class="license-key" data-key="${license.key}">${license.key}</div>
-                    <button class="license-copy-btn" data-key="${license.key}">📋 Скопировать ключ</button>
-                </div>
-            `;
-        });
+            html += '<div class="license-card">';
+            html += '<div class="license-header"><div class="license-icon">🎯</div><div class="license-info"><h4>' + license.product + '</h4><div class="license-date">Активирована: ' + date + '</div></div></div>';
+            html += '<div class="license-key" data-key="' + license.key + '">' + license.key + '</div>';
+            html += '<button class="license-copy-btn" data-key="' + license.key + '">📋 Скопировать ключ</button>';
+            html += '</div>';
+        }});
         
-        html += `</div>`;
+        html += '</div>';
         container.innerHTML = html;
         
-        document.querySelectorAll('.license-key, .license-copy-btn').forEach(el => {
-            el.addEventListener('click', () => copyToClipboard(el.dataset.key));
-        });
-    }
+        document.querySelectorAll('.license-key, .license-copy-btn').forEach(function(el) {{
+            el.addEventListener('click', function() {{ copyToClipboard(el.dataset.key); }});
+        }});
+    }}
     
-    // Render Profile
-    function renderProfile() {
+    function renderProfile() {{
         const avatarEmojis = ['🎯', '🔥', '⚡️', '💎', '⭐️', '🎮', '🚀', '💪'];
         const avatar = avatarEmojis[Math.abs(user.id) % avatarEmojis.length];
         
         const container = document.getElementById('page-profile');
-        container.innerHTML = `
-            <div class="profile-card">
-                <div class="profile-avatar">${avatar}</div>
-                <div class="profile-name">${user.first_name}${user.last_name ? ' ' + user.last_name : ''}</div>
-                <div class="profile-username">@${user.username || 'user'}</div>
-                <div class="profile-stats">
-                    <div class="stat-card">
-                        <div class="stat-number">${licenses.length}</div>
-                        <div class="stat-label">Лицензий</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">v0.37</div>
-                        <div class="stat-label">Версия</div>
-                    </div>
-                </div>
-            </div>
-            <button class="action-btn" id="supportBtn">💬 Поддержка</button>
-            <button class="action-btn secondary" id="downloadAppBtn">📥 Скачать AimNoob</button>
-        `;
+        container.innerHTML = '<div class="profile-card"><div class="profile-avatar">' + avatar + '</div><div class="profile-name">' + user.first_name + (user.last_name ? ' ' + user.last_name : '') + '</div><div class="profile-username">@' + (user.username || 'user') + '</div><div class="profile-stats"><div class="stat-card"><div class="stat-number">' + licenses.length + '</div><div class="stat-label">Лицензий</div></div><div class="stat-card"><div class="stat-number">v0.37</div><div class="stat-label">Версия</div></div></div></div><button class="action-btn" id="supportBtn">💬 Поддержка</button><button class="action-btn secondary" id="downloadAppBtn">📥 Скачать AimNoob</button>';
         
-        document.getElementById('supportBtn')?.addEventListener('click', () => {
-            window.open(`https://t.me/${SUPPORT}`, '_blank');
-        });
+        document.getElementById('supportBtn').addEventListener('click', function() {{
+            window.open('https://t.me/' + SUPPORT, '_blank');
+        }});
         
-        document.getElementById('downloadAppBtn')?.addEventListener('click', () => {
+        document.getElementById('downloadAppBtn').addEventListener('click', function() {{
             window.open(DOWNLOAD_URL, '_blank');
-        });
-    }
+        }});
+    }}
     
-    // Tab Navigation
-    function switchTab(tab) {
-        document.querySelectorAll('.tab, .nav-item').forEach(el => {
+    function switchTab(tab) {{
+        document.querySelectorAll('.tab, .nav-item').forEach(function(el) {{
             el.classList.toggle('active', el.dataset.tab === tab);
-        });
+        }});
         
-        document.querySelectorAll('.page').forEach(page => {
-            page.classList.toggle('active', page.id === `page-${tab}`);
-        });
+        document.querySelectorAll('.page').forEach(function(page) {{
+            page.classList.toggle('active', page.id === 'page-' + tab);
+        }});
         
         if (tab === 'shop') renderShop();
         else if (tab === 'licenses') renderLicenses();
         else if (tab === 'profile') renderProfile();
-    }
+    }}
     
-    document.querySelectorAll('.tab, .nav-item').forEach(el => {
-        el.addEventListener('click', () => switchTab(el.dataset.tab));
-    });
+    document.querySelectorAll('.tab, .nav-item').forEach(function(el) {{
+        el.addEventListener('click', function() {{ switchTab(el.dataset.tab); }});
+    }});
     
-    // Initial Render
     renderShop();
     tg.ready();
-})();
+}})();
 </script>
 </body>
 </html>"""
