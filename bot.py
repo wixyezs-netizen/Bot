@@ -1236,8 +1236,6 @@ async def back_to_subscription(callback: types.CallbackQuery, state: FSMContext)
 
 # ========== ПРОФЕССИОНАЛЬНЫЙ MINIAPP ==========
 
-# ========== ПРОФЕССИОНАЛЬНЫЙ MINIAPP ==========
-
 MINIAPP_HTML = """<!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -1280,7 +1278,6 @@ body {{
     overflow-x: hidden;
 }}
 
-/* Animated Background */
 .bg-gradient {{
     position: fixed;
     top: 0;
@@ -1313,7 +1310,6 @@ body {{
     min-height: 100vh;
 }}
 
-/* Header */
 .header {{
     text-align: center;
     margin-bottom: 24px;
@@ -1354,7 +1350,6 @@ h1 {{
     margin-top: 4px;
 }}
 
-/* Status Badge */
 .status-badge {{
     display: inline-flex;
     align-items: center;
@@ -1376,7 +1371,6 @@ h1 {{
     animation: blink 1.5s infinite;
 }}
 
-/* Navigation Tabs */
 .tabs {{
     display: flex;
     gap: 4px;
@@ -1416,7 +1410,6 @@ h1 {{
     font-size: 18px;
 }}
 
-/* Sections */
 .section {{
     margin-bottom: 28px;
     animation: fadeInUp 0.5s ease;
@@ -1436,7 +1429,6 @@ h1 {{
     font-size: 20px;
 }}
 
-/* Product Grid */
 .products-grid {{
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -1550,7 +1542,6 @@ h1 {{
     background: var(--gradient-dark);
 }}
 
-/* Full Width Card */
 .product-card.full-width {{
     grid-column: 1 / -1;
 }}
@@ -1584,7 +1575,6 @@ h1 {{
     margin-top: 8px;
 }}
 
-/* Modal */
 .modal {{
     display: none;
     position: fixed;
@@ -1661,7 +1651,6 @@ h1 {{
     padding: 20px;
 }}
 
-/* Payment Methods */
 .payment-methods {{
     display: flex;
     flex-direction: column;
@@ -1720,7 +1709,6 @@ h1 {{
     font-size: 15px;
 }}
 
-/* Status Views */
 .status-view {{
     text-align: center;
     padding: 30px 20px;
@@ -1747,7 +1735,6 @@ h1 {{
     line-height: 1.5;
 }}
 
-/* Key Display */
 .key-box {{
     background: rgba(0,0,0,0.4);
     border: 1px solid rgba(255,255,255,0.1);
@@ -1767,7 +1754,6 @@ h1 {{
     background: rgba(139,92,246,0.1);
 }}
 
-/* Action Buttons */
 .action-btn {{
     width: 100%;
     padding: 14px;
@@ -1795,7 +1781,6 @@ h1 {{
     background: var(--surface-hover);
 }}
 
-/* License Cards */
 .license-card {{
     background: var(--surface);
     border-radius: 18px;
@@ -1862,7 +1847,6 @@ h1 {{
     background: var(--surface-hover);
 }}
 
-/* Profile Card */
 .profile-card {{
     background: var(--surface);
     border-radius: 24px;
@@ -1921,7 +1905,6 @@ h1 {{
     margin-top: 2px;
 }}
 
-/* Empty State */
 .empty-state {{
     text-align: center;
     padding: 50px 20px;
@@ -1939,7 +1922,6 @@ h1 {{
     margin-bottom: 16px;
 }}
 
-/* Toast */
 .toast {{
     position: fixed;
     bottom: 100px;
@@ -1970,7 +1952,6 @@ h1 {{
     color: var(--error);
 }}
 
-/* Pages */
 .page {{
     display: none;
 }}
@@ -1980,7 +1961,6 @@ h1 {{
     animation: fadeInUp 0.3s ease;
 }}
 
-/* Bottom Navigation */
 .bottom-nav {{
     position: fixed;
     bottom: 0;
@@ -2022,7 +2002,6 @@ h1 {{
     font-size: 20px;
 }}
 
-/* Animations */
 @keyframes fadeInDown {{
     from {{
         opacity: 0;
@@ -2085,7 +2064,6 @@ h1 {{
     }}
 }}
 
-/* Scrollbar */
 ::-webkit-scrollbar {{
     width: 3px;
 }}
