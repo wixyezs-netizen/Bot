@@ -1244,852 +1244,630 @@ MINIAPP_HTML = """<!DOCTYPE html>
 <title>AimNoob Premium Store</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-* {{
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-}}
-
-:root {{
-    --bg: #0a0a12;
-    --surface: rgba(255,255,255,0.05);
-    --surface-hover: rgba(255,255,255,0.08);
-    --accent: #8b5cf6;
-    --accent-dark: #7c3aed;
-    --accent-glow: rgba(139,92,246,0.3);
-    --text: #ffffff;
-    --text-secondary: rgba(255,255,255,0.6);
-    --text-tertiary: rgba(255,255,255,0.35);
-    --success: #10b981;
-    --warning: #f59e0b;
-    --error: #ef4444;
-    --gradient: linear-gradient(135deg, #8b5cf6, #ec4899);
-    --gradient-dark: linear-gradient(135deg, #6d28d9, #db2777);
-    --shadow: 0 4px 20px rgba(0,0,0,0.3);
-    --shadow-lg: 0 8px 30px rgba(0,0,0,0.4);
+*{{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
 }}
 
 body {{
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-}}
-
-.bg-gradient {{
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle at 20% 20%, rgba(139,92,246,0.08), transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(236,72,153,0.08), transparent 50%);
-    pointer-events: none;
-    z-index: 0;
-}}
-
-.bg-grain {{
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
+    font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background:#0a0a12;
+    color:#ffffff;
+    min-height:100vh;
 }}
 
 .app {{
-    position: relative;
-    z-index: 1;
-    max-width: 480px;
-    margin: 0 auto;
-    padding: 20px 16px 90px;
-    min-height: 100vh;
+    max-width:480px;
+    margin:0 auto;
+    padding:20px 16px 90px;
 }}
 
 .header {{
-    text-align: center;
-    margin-bottom: 24px;
-    animation: fadeInDown 0.5s ease;
+    text-align:center;
+    margin-bottom:24px;
 }}
 
 .logo {{
-    width: 70px;
-    height: 70px;
-    background: var(--gradient);
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
-    margin: 0 auto 12px;
-    box-shadow: 0 8px 24px var(--accent-glow);
-    animation: pulse 2s infinite;
-}}
-
-.logo span {{
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    width:70px;
+    height:70px;
+    background:linear-gradient(135deg, #8b5cf6, #ec4899);
+    border-radius:20px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:32px;
+    margin:0 auto 12px;
+    box-shadow:0 8px 24px rgba(139,92,246,0.3);
 }}
 
 h1 {{
-    font-size: 26px;
-    font-weight: 800;
-    background: var(--gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    letter-spacing: -0.5px;
+    font-size:26px;
+    font-weight:800;
+    background:linear-gradient(135deg, #8b5cf6, #ec4899);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
 }}
 
 .tagline {{
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-top: 4px;
+    font-size:12px;
+    color:rgba(255,255,255,0.6);
+    margin-top:4px;
 }}
 
 .status-badge {{
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(16,185,129,0.1);
-    border: 1px solid rgba(16,185,129,0.2);
-    padding: 6px 14px;
-    border-radius: 40px;
-    font-size: 11px;
-    font-weight: 500;
-    margin-bottom: 20px;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:rgba(16,185,129,0.1);
+    border:1px solid rgba(16,185,129,0.2);
+    padding:6px 14px;
+    border-radius:40px;
+    font-size:11px;
+    margin-bottom:20px;
 }}
 
 .status-dot {{
-    width: 6px;
-    height: 6px;
-    background: var(--success);
-    border-radius: 50%;
-    animation: blink 1.5s infinite;
+    width:6px;
+    height:6px;
+    background:#10b981;
+    border-radius:50%;
+    animation:blink 1.5s infinite;
 }}
 
 .tabs {{
-    display: flex;
-    gap: 4px;
-    background: var(--surface);
-    border-radius: 14px;
-    padding: 4px;
-    margin-bottom: 20px;
-    position: sticky;
-    top: 10px;
-    backdrop-filter: blur(20px);
-    z-index: 10;
+    display:flex;
+    gap:4px;
+    background:rgba(255,255,255,0.05);
+    border-radius:14px;
+    padding:4px;
+    margin-bottom:20px;
 }}
 
 .tab {{
-    flex: 1;
-    padding: 10px;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: 13px;
-    font-weight: 600;
-    border-radius: 11px;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
+    flex:1;
+    padding:10px;
+    border:none;
+    background:transparent;
+    color:rgba(255,255,255,0.6);
+    font-size:13px;
+    font-weight:600;
+    border-radius:11px;
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
 }}
 
 .tab.active {{
-    background: var(--surface-hover);
-    color: var(--text);
+    background:rgba(255,255,255,0.08);
+    color:#ffffff;
 }}
 
 .tab-icon {{
-    font-size: 18px;
-}}
-
-.section {{
-    margin-bottom: 28px;
-    animation: fadeInUp 0.5s ease;
-}}
-
-.section-title {{
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding-left: 4px;
-}}
-
-.section-title i {{
-    font-size: 20px;
+    font-size:18px;
 }}
 
 .products-grid {{
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:12px;
 }}
 
 .product-card {{
-    background: var(--surface);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 20px;
-    overflow: hidden;
-    transition: all 0.2s;
-    cursor: pointer;
-    position: relative;
-}}
-
-.product-card:hover {{
-    transform: translateY(-2px);
-    border-color: var(--accent);
-}}
-
-.product-card:active {{
-    transform: scale(0.98);
-}}
-
-.product-badge {{
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: var(--gradient);
-    padding: 3px 8px;
-    border-radius: 20px;
-    font-size: 9px;
-    font-weight: 700;
-    z-index: 2;
-}}
-
-.product-content {{
-    padding: 14px 12px;
-    text-align: center;
-}}
-
-.product-icon {{
-    width: 50px;
-    height: 50px;
-    background: rgba(139,92,246,0.15);
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 26px;
-    margin: 0 auto 10px;
-}}
-
-.product-name {{
-    font-weight: 700;
-    font-size: 14px;
-    margin-bottom: 2px;
-}}
-
-.product-period {{
-    font-size: 10px;
-    color: var(--text-tertiary);
-    margin-bottom: 8px;
-}}
-
-.product-price {{
-    font-size: 20px;
-    font-weight: 800;
-    color: var(--warning);
-    margin-bottom: 8px;
-}}
-
-.product-price small {{
-    font-size: 10px;
-    font-weight: 400;
-    color: var(--text-tertiary);
-}}
-
-.product-features {{
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    justify-content: center;
-    margin-bottom: 10px;
-}}
-
-.feature {{
-    font-size: 8px;
-    padding: 2px 6px;
-    background: rgba(139,92,246,0.15);
-    border-radius: 6px;
-    color: var(--accent);
-}}
-
-.buy-btn {{
-    width: 100%;
-    padding: 8px;
-    background: var(--gradient);
-    border: none;
-    border-radius: 12px;
-    color: white;
-    font-weight: 700;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-}}
-
-.buy-btn:active {{
-    transform: scale(0.96);
-    background: var(--gradient-dark);
+    background:rgba(255,255,255,0.05);
+    border:1px solid rgba(255,255,255,0.06);
+    border-radius:20px;
+    overflow:hidden;
+    cursor:pointer;
+    position:relative;
 }}
 
 .product-card.full-width {{
-    grid-column: 1 / -1;
+    grid-column:1/-1;
 }}
 
 .product-card.full-width .product-content {{
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    text-align: left;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    text-align:left;
 }}
 
 .product-card.full-width .product-icon {{
-    margin: 0;
+    margin:0;
 }}
 
 .product-card.full-width .product-info {{
-    flex: 1;
-}}
-
-.product-card.full-width .product-name {{
-    font-size: 15px;
+    flex:1;
 }}
 
 .product-card.full-width .product-price {{
-    font-size: 22px;
-    margin: 0;
-    text-align: right;
+    font-size:22px;
+    margin:0;
+    text-align:right;
 }}
 
-.product-card.full-width .buy-btn {{
-    margin-top: 8px;
+.product-badge {{
+    position:absolute;
+    top:8px;
+    right:8px;
+    background:linear-gradient(135deg, #8b5cf6, #ec4899);
+    padding:3px 8px;
+    border-radius:20px;
+    font-size:9px;
+    font-weight:700;
+    z-index:2;
+}}
+
+.product-content {{
+    padding:14px 12px;
+    text-align:center;
+}}
+
+.product-icon {{
+    width:50px;
+    height:50px;
+    background:rgba(139,92,246,0.15);
+    border-radius:16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:26px;
+    margin:0 auto 10px;
+}}
+
+.product-name {{
+    font-weight:700;
+    font-size:14px;
+}}
+
+.product-period {{
+    font-size:10px;
+    color:rgba(255,255,255,0.35);
+    margin:4px 0;
+}}
+
+.product-price {{
+    font-size:20px;
+    font-weight:800;
+    color:#f59e0b;
+    margin:8px 0;
+}}
+
+.product-features {{
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px;
+    justify-content:center;
+    margin-bottom:10px;
+}}
+
+.feature {{
+    font-size:8px;
+    padding:2px 6px;
+    background:rgba(139,92,246,0.15);
+    border-radius:6px;
+    color:#8b5cf6;
+}}
+
+.buy-btn {{
+    width:100%;
+    padding:8px;
+    background:linear-gradient(135deg, #8b5cf6, #ec4899);
+    border:none;
+    border-radius:12px;
+    color:white;
+    font-weight:700;
+    font-size:12px;
+    cursor:pointer;
 }}
 
 .modal {{
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.8);
-    backdrop-filter: blur(12px);
-    z-index: 1000;
-    align-items: flex-end;
-    justify-content: center;
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+    background:rgba(0,0,0,0.8);
+    backdrop-filter:blur(12px);
+    z-index:1000;
+    align-items:flex-end;
+    justify-content:center;
 }}
 
 .modal.active {{
-    display: flex;
-    animation: fadeIn 0.3s ease;
+    display:flex;
 }}
 
 .modal-content {{
-    background: linear-gradient(180deg, #14141f 0%, #0c0c14 100%);
-    border-radius: 28px 28px 0 0;
-    width: 100%;
-    max-width: 480px;
-    max-height: 85vh;
-    overflow-y: auto;
-    animation: slideUp 0.3s cubic-bezier(0.32, 0.72, 0.24, 1.02);
+    background:linear-gradient(180deg, #14141f 0%, #0c0c14 100%);
+    border-radius:28px 28px 0 0;
+    width:100%;
+    max-width:480px;
+    max-height:85vh;
+    overflow-y:auto;
 }}
 
 .modal-handle {{
-    width: 36px;
-    height: 4px;
-    background: rgba(255,255,255,0.2);
-    border-radius: 4px;
-    margin: 12px auto 0;
+    width:36px;
+    height:4px;
+    background:rgba(255,255,255,0.2);
+    border-radius:4px;
+    margin:12px auto 0;
 }}
 
 .modal-header {{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    position: sticky;
-    top: 0;
-    background: inherit;
-    z-index: 5;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:16px 20px;
+    border-bottom:1px solid rgba(255,255,255,0.06);
 }}
 
 .modal-header h3 {{
-    font-size: 18px;
-    font-weight: 700;
+    font-size:18px;
+    font-weight:700;
 }}
 
 .modal-close {{
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: var(--surface);
-    border: none;
-    color: var(--text-secondary);
-    font-size: 18px;
-    cursor: pointer;
-    transition: all 0.2s;
-}}
-
-.modal-close:active {{
-    background: var(--error);
-    color: white;
-    transform: rotate(90deg);
+    width:32px;
+    height:32px;
+    border-radius:50%;
+    background:rgba(255,255,255,0.05);
+    border:none;
+    color:rgba(255,255,255,0.6);
+    font-size:18px;
+    cursor:pointer;
 }}
 
 .modal-body {{
-    padding: 20px;
+    padding:20px;
 }}
 
 .payment-methods {{
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 16px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-top:16px;
 }}
 
 .payment-method {{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px;
-    background: var(--surface);
-    border-radius: 16px;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid transparent;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 16px;
+    background:rgba(255,255,255,0.05);
+    border-radius:16px;
+    cursor:pointer;
+    border:1px solid transparent;
 }}
 
 .payment-method:active {{
-    transform: scale(0.98);
-    border-color: var(--accent);
+    transform:scale(0.98);
+    border-color:#8b5cf6;
 }}
 
 .payment-method-left {{
-    display: flex;
-    align-items: center;
-    gap: 12px;
+    display:flex;
+    align-items:center;
+    gap:12px;
 }}
 
 .payment-icon {{
-    width: 44px;
-    height: 44px;
-    background: rgba(139,92,246,0.15);
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
+    width:44px;
+    height:44px;
+    background:rgba(139,92,246,0.15);
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:22px;
 }}
 
 .payment-info h4 {{
-    font-size: 14px;
-    font-weight: 700;
-    margin-bottom: 2px;
+    font-size:14px;
+    font-weight:700;
 }}
 
 .payment-info p {{
-    font-size: 10px;
-    color: var(--text-tertiary);
+    font-size:10px;
+    color:rgba(255,255,255,0.35);
 }}
 
 .payment-amount {{
-    font-weight: 800;
-    color: var(--warning);
-    font-size: 15px;
+    font-weight:800;
+    color:#f59e0b;
+    font-size:15px;
 }}
 
 .status-view {{
-    text-align: center;
-    padding: 30px 20px;
+    text-align:center;
+    padding:30px 20px;
 }}
 
 .status-icon {{
-    font-size: 56px;
-    margin-bottom: 16px;
+    font-size:56px;
+    margin-bottom:16px;
 }}
 
 .status-icon.spin {{
-    animation: spin 1s linear infinite;
+    animation:spin 1s linear infinite;
 }}
 
 .status-title {{
-    font-size: 20px;
-    font-weight: 800;
-    margin-bottom: 8px;
+    font-size:20px;
+    font-weight:800;
+    margin-bottom:8px;
 }}
 
 .status-desc {{
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.5;
+    font-size:13px;
+    color:rgba(255,255,255,0.6);
 }}
 
 .key-box {{
-    background: rgba(0,0,0,0.4);
-    border: 1px solid rgba(255,255,255,0.1);
-    padding: 14px;
-    border-radius: 14px;
-    font-family: monospace;
-    font-size: 12px;
-    text-align: center;
-    word-break: break-all;
-    color: var(--warning);
-    margin: 16px 0;
-    cursor: pointer;
-    transition: all 0.2s;
-}}
-
-.key-box:active {{
-    background: rgba(139,92,246,0.1);
+    background:rgba(0,0,0,0.4);
+    border:1px solid rgba(255,255,255,0.1);
+    padding:14px;
+    border-radius:14px;
+    font-family:monospace;
+    font-size:12px;
+    text-align:center;
+    word-break:break-all;
+    color:#f59e0b;
+    margin:16px 0;
+    cursor:pointer;
 }}
 
 .action-btn {{
-    width: 100%;
-    padding: 14px;
-    border: none;
-    border-radius: 14px;
-    background: var(--gradient);
-    color: white;
-    font-weight: 700;
-    font-size: 15px;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-bottom: 10px;
-}}
-
-.action-btn:active {{
-    transform: scale(0.98);
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:14px;
+    background:linear-gradient(135deg, #8b5cf6, #ec4899);
+    color:white;
+    font-weight:700;
+    font-size:15px;
+    cursor:pointer;
+    margin-bottom:10px;
 }}
 
 .action-btn.secondary {{
-    background: var(--surface);
-    color: var(--text);
-}}
-
-.action-btn.secondary:active {{
-    background: var(--surface-hover);
+    background:rgba(255,255,255,0.05);
+    color:#ffffff;
 }}
 
 .license-card {{
-    background: var(--surface);
-    border-radius: 18px;
-    padding: 14px;
-    margin-bottom: 12px;
-    border: 1px solid rgba(255,255,255,0.06);
+    background:rgba(255,255,255,0.05);
+    border-radius:18px;
+    padding:14px;
+    margin-bottom:12px;
 }}
 
 .license-header {{
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:10px;
 }}
 
 .license-icon {{
-    width: 40px;
-    height: 40px;
-    background: rgba(139,92,246,0.15);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
+    width:40px;
+    height:40px;
+    background:rgba(139,92,246,0.15);
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:20px;
 }}
 
 .license-info h4 {{
-    font-size: 14px;
-    font-weight: 700;
-    margin-bottom: 2px;
+    font-size:14px;
+    font-weight:700;
 }}
 
 .license-date {{
-    font-size: 10px;
-    color: var(--text-tertiary);
+    font-size:10px;
+    color:rgba(255,255,255,0.35);
 }}
 
 .license-key {{
-    background: rgba(0,0,0,0.3);
-    padding: 10px;
-    border-radius: 12px;
-    font-family: monospace;
-    font-size: 11px;
-    text-align: center;
-    word-break: break-all;
-    color: var(--warning);
-    cursor: pointer;
-    margin-bottom: 8px;
+    background:rgba(0,0,0,0.3);
+    padding:10px;
+    border-radius:12px;
+    font-family:monospace;
+    font-size:11px;
+    text-align:center;
+    color:#f59e0b;
+    cursor:pointer;
+    margin-bottom:8px;
 }}
 
 .license-copy-btn {{
-    width: 100%;
-    padding: 8px;
-    background: var(--surface);
-    border: none;
-    border-radius: 10px;
-    color: var(--text-secondary);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-}}
-
-.license-copy-btn:active {{
-    background: var(--surface-hover);
+    width:100%;
+    padding:8px;
+    background:rgba(255,255,255,0.05);
+    border:none;
+    border-radius:10px;
+    color:rgba(255,255,255,0.6);
+    font-size:11px;
+    font-weight:600;
+    cursor:pointer;
 }}
 
 .profile-card {{
-    background: var(--surface);
-    border-radius: 24px;
-    padding: 24px;
-    text-align: center;
-    margin-bottom: 16px;
-    border: 1px solid rgba(255,255,255,0.06);
+    background:rgba(255,255,255,0.05);
+    border-radius:24px;
+    padding:24px;
+    text-align:center;
+    margin-bottom:16px;
 }}
 
 .profile-avatar {{
-    width: 70px;
-    height: 70px;
-    background: var(--gradient);
-    border-radius: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
-    margin: 0 auto 12px;
+    width:70px;
+    height:70px;
+    background:linear-gradient(135deg, #8b5cf6, #ec4899);
+    border-radius:24px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:32px;
+    margin:0 auto 12px;
 }}
 
 .profile-name {{
-    font-size: 18px;
-    font-weight: 800;
-    margin-bottom: 2px;
+    font-size:18px;
+    font-weight:800;
 }}
 
 .profile-username {{
-    font-size: 12px;
-    color: var(--text-tertiary);
-    margin-bottom: 16px;
+    font-size:12px;
+    color:rgba(255,255,255,0.35);
+    margin-bottom:16px;
 }}
 
 .profile-stats {{
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-top: 8px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-top:8px;
 }}
 
 .stat-card {{
-    background: var(--surface-hover);
-    border-radius: 14px;
-    padding: 12px;
+    background:rgba(255,255,255,0.08);
+    border-radius:14px;
+    padding:12px;
 }}
 
 .stat-number {{
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--accent);
+    font-size:22px;
+    font-weight:800;
+    color:#8b5cf6;
 }}
 
 .stat-label {{
-    font-size: 10px;
-    color: var(--text-tertiary);
-    margin-top: 2px;
+    font-size:10px;
+    color:rgba(255,255,255,0.35);
 }}
 
 .empty-state {{
-    text-align: center;
-    padding: 50px 20px;
+    text-align:center;
+    padding:50px 20px;
 }}
 
 .empty-icon {{
-    font-size: 48px;
-    margin-bottom: 12px;
-    opacity: 0.5;
+    font-size:48px;
+    margin-bottom:12px;
+    opacity:0.5;
 }}
 
 .empty-text {{
-    font-size: 14px;
-    color: var(--text-secondary);
-    margin-bottom: 16px;
+    font-size:14px;
+    color:rgba(255,255,255,0.6);
+    margin-bottom:16px;
 }}
 
 .toast {{
-    position: fixed;
-    bottom: 100px;
-    left: 16px;
-    right: 16px;
-    padding: 12px 16px;
-    border-radius: 14px;
-    z-index: 1100;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    font-weight: 500;
-    animation: toastIn 0.3s ease;
-    max-width: 480px;
-    margin: 0 auto;
+    position:fixed;
+    bottom:100px;
+    left:16px;
+    right:16px;
+    padding:12px 16px;
+    border-radius:14px;
+    z-index:1100;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:13px;
+    max-width:480px;
+    margin:0 auto;
 }}
 
 .toast.success {{
-    background: rgba(16,185,129,0.2);
-    border: 1px solid rgba(16,185,129,0.3);
-    color: var(--success);
+    background:rgba(16,185,129,0.2);
+    border:1px solid rgba(16,185,129,0.3);
+    color:#10b981;
 }}
 
 .toast.error {{
-    background: rgba(239,68,68,0.2);
-    border: 1px solid rgba(239,68,68,0.3);
-    color: var(--error);
+    background:rgba(239,68,68,0.2);
+    border:1px solid rgba(239,68,68,0.3);
+    color:#ef4444;
 }}
 
 .page {{
-    display: none;
+    display:none;
 }}
 
 .page.active {{
-    display: block;
-    animation: fadeInUp 0.3s ease;
+    display:block;
 }}
 
 .bottom-nav {{
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(10,10,18,0.95);
-    backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(255,255,255,0.06);
-    display: flex;
-    justify-content: space-around;
-    padding: 8px 16px 12px;
-    z-index: 100;
-    max-width: 480px;
-    margin: 0 auto;
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    background:rgba(10,10,18,0.95);
+    backdrop-filter:blur(20px);
+    border-top:1px solid rgba(255,255,255,0.06);
+    display:flex;
+    justify-content:space-around;
+    padding:8px 16px 12px;
+    z-index:100;
+    max-width:480px;
+    margin:0 auto;
 }}
 
 .nav-item {{
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    background: none;
-    border: none;
-    color: var(--text-tertiary);
-    font-size: 10px;
-    font-weight: 600;
-    padding: 6px 20px;
-    border-radius: 14px;
-    cursor: pointer;
-    transition: all 0.2s;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:2px;
+    background:none;
+    border:none;
+    color:rgba(255,255,255,0.35);
+    font-size:10px;
+    font-weight:600;
+    padding:6px 20px;
+    border-radius:14px;
+    cursor:pointer;
 }}
 
 .nav-item.active {{
-    color: var(--accent);
-    background: rgba(139,92,246,0.1);
+    color:#8b5cf6;
+    background:rgba(139,92,246,0.1);
 }}
 
 .nav-icon {{
-    font-size: 20px;
-}}
-
-@keyframes fadeInDown {{
-    from {{
-        opacity: 0;
-        transform: translateY(-20px);
-    }}
-    to {{
-        opacity: 1;
-        transform: translateY(0);
-    }}
-}}
-
-@keyframes fadeInUp {{
-    from {{
-        opacity: 0;
-        transform: translateY(20px);
-    }}
-    to {{
-        opacity: 1;
-        transform: translateY(0);
-    }}
-}}
-
-@keyframes fadeIn {{
-    from {{ opacity: 0; }}
-    to {{ opacity: 1; }}
-}}
-
-@keyframes slideUp {{
-    from {{
-        transform: translateY(100%);
-    }}
-    to {{
-        transform: translateY(0);
-    }}
-}}
-
-@keyframes spin {{
-    from {{ transform: rotate(0deg); }}
-    to {{ transform: rotate(360deg); }}
-}}
-
-@keyframes pulse {{
-    0%, 100% {{ transform: scale(1); box-shadow: 0 8px 24px var(--accent-glow); }}
-    50% {{ transform: scale(1.02); box-shadow: 0 12px 32px var(--accent-glow); }}
+    font-size:20px;
 }}
 
 @keyframes blink {{
-    0%, 100% {{ opacity: 1; }}
-    50% {{ opacity: 0.3; }}
+    0%,100%{{opacity:1}}
+    50%{{opacity:0.3}}
 }}
 
-@keyframes toastIn {{
-    from {{
-        opacity: 0;
-        transform: translateY(20px);
-    }}
-    to {{
-        opacity: 1;
-        transform: translateY(0);
-    }}
-}}
-
-::-webkit-scrollbar {{
-    width: 3px;
-}}
-
-::-webkit-scrollbar-track {{
-    background: transparent;
-}}
-
-::-webkit-scrollbar-thumb {{
-    background: var(--surface-hover);
-    border-radius: 10px;
+@keyframes spin {{
+    from{{transform:rotate(0deg)}}
+    to{{transform:rotate(360deg)}}
 }}
 </style>
 </head>
 <body>
-<div class="bg-gradient"></div>
-<div class="bg-grain"></div>
-
 <div class="app">
     <div class="header">
-        <div class="logo"><span>🎯</span></div>
+        <div class="logo">🎯</div>
         <h1>AimNoob</h1>
         <div class="tagline">Premium Cheat for Standoff 2</div>
     </div>
 
-    <div style="text-align: center;">
+    <div style="text-align:center;">
         <div class="status-badge">
             <span class="status-dot"></span>
             <span>v0.37.1 • Online • Undetected</span>
@@ -2149,7 +1927,6 @@ h1 {{
     tg.enableClosingConfirmation();
     
     const user = tg.initDataUnsafe?.user || {{ id: Date.now(), first_name: 'Guest', username: 'user' }};
-    
     let licenses = JSON.parse(localStorage.getItem('aimnoob_licenses') || '[]');
     let currentProduct = null;
     
@@ -2172,18 +1949,16 @@ h1 {{
     
     function toast(message, type) {{
         type = type || 'success';
-        const toastEl = document.createElement('div');
-        toastEl.className = 'toast ' + type;
-        toastEl.innerHTML = '<span>' + (type === 'success' ? '✅' : '❌') + '</span><span>' + message + '</span>';
-        document.body.appendChild(toastEl);
-        setTimeout(function() {{ toastEl.remove(); }}, 3000);
+        const el = document.createElement('div');
+        el.className = 'toast ' + type;
+        el.innerHTML = '<span>' + (type === 'success' ? '✅' : '❌') + '</span><span>' + message + '</span>';
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 3000);
     }}
     
     function copyToClipboard(text) {{
-        navigator.clipboard.writeText(text).then(function() {{
-            toast('Ключ скопирован!');
-            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-        }}).catch(function() {{ toast('Ошибка копирования', 'error'); }});
+        navigator.clipboard.writeText(text);
+        toast('Ключ скопирован!');
     }}
     
     function saveLicenses() {{
@@ -2205,401 +1980,190 @@ h1 {{
         currentProduct = null;
     }}
     
-    modalClose.addEventListener('click', closeModal);
-    modal.addEventListener('click', function(e) {{
-        if (e.target === modal) closeModal();
-    }});
+    modalClose.onclick = closeModal;
+    modal.onclick = (e) => {{ if (e.target === modal) closeModal(); }};
     
     function openPaymentModal(product) {{
         currentProduct = product;
         openModal('Выберите способ оплаты');
+        modalBody.innerHTML = 
+            '<div style="background:rgba(255,255,255,0.05);border-radius:20px;padding:16px;text-align:center;margin-bottom:20px;">' +
+                '<div style="font-size:48px;">' + product.icon + '</div>' +
+                '<div style="font-weight:700;">' + product.name + ' • ' + product.period + '</div>' +
+                '<div style="font-size:12px;color:rgba(255,255,255,0.35);">' + product.duration + '</div>' +
+                '<div style="font-size:24px;font-weight:800;color:#f59e0b;margin-top:8px;">' + product.price + ' ₽</div>' +
+            '</div>' +
+            '<div class="payment-methods">' +
+                '<div class="payment-method" data-method="yoomoney">' +
+                    '<div class="payment-method-left"><div class="payment-icon">💳</div><div class="payment-info"><h4>Банковская карта</h4><p>Visa, Mastercard, Мир</p></div></div>' +
+                    '<div class="payment-amount">' + product.price + ' ₽</div>' +
+                '</div>' +
+                '<div class="payment-method" data-method="stars">' +
+                    '<div class="payment-method-left"><div class="payment-icon">⭐️</div><div class="payment-info"><h4>Telegram Stars</h4><p>Встроенные платежи</p></div></div>' +
+                    '<div class="payment-amount">' + product.stars + ' ⭐️</div>' +
+                '</div>' +
+                '<div class="payment-method" data-method="crypto">' +
+                    '<div class="payment-method-left"><div class="payment-icon">₿</div><div class="payment-info"><h4>Криптовалюта</h4><p>USDT, BTC, ETH</p></div></div>' +
+                    '<div class="payment-amount">' + product.usdt + ' USDT</div>' +
+                '</div>' +
+                '<div class="payment-method" data-method="gold">' +
+                    '<div class="payment-method-left"><div class="payment-icon">💰</div><div class="payment-info"><h4>GOLD</h4><p>Игровая валюта</p></div></div>' +
+                    '<div class="payment-amount">' + product.gold + ' 🪙</div>' +
+                '</div>' +
+                '<div class="payment-method" data-method="nft">' +
+                    '<div class="payment-method-left"><div class="payment-icon">🎨</div><div class="payment-info"><h4>NFT</h4><p>Коллекционные</p></div></div>' +
+                    '<div class="payment-amount">' + product.nft + ' 🖼️</div>' +
+                '</div>' +
+            '</div>';
         
-        modalBody.innerHTML = `
-            <div class="product-summary" style="background: var(--surface); border-radius: 20px; padding: 16px; text-align: center; margin-bottom: 20px;">
-                <div style="font-size: 48px; margin-bottom: 8px;">$\{{product.icon}</div>
-                <div style="font-weight: 700; font-size: 16px;">$\{{product.name} • $\{{product.period}</div>
-                <div style="font-size: 12px; color: var(--text-tertiary); margin: 4px 0;">$\{{product.duration}</div>
-                <div style="font-size: 24px; font-weight: 800; color: var(--warning); margin-top: 8px;">$\{{product.price} ₽</div>
-            </div>
-            <div class="payment-methods">
-                <div class="payment-method" data-method="yoomoney">
-                    <div class="payment-method-left">
-                        <div class="payment-icon">💳</div>
-                        <div class="payment-info">
-                            <h4>Банковская карта</h4>
-                            <p>Visa, Mastercard, Мир, SBP</p>
-                        </div>
-                    </div>
-                    <div class="payment-amount">$\{{product.price} ₽</div>
-                </div>
-                <div class="payment-method" data-method="stars">
-                    <div class="payment-method-left">
-                        <div class="payment-icon">⭐️</div>
-                        <div class="payment-info">
-                            <h4>Telegram Stars</h4>
-                            <p>Встроенные платежи Telegram</p>
-                        </div>
-                    </div>
-                    <div class="payment-amount">$\{{product.stars} ⭐️</div>
-                </div>
-                <div class="payment-method" data-method="crypto">
-                    <div class="payment-method-left">
-                        <div class="payment-icon">₿</div>
-                        <div class="payment-info">
-                            <h4>Криптовалюта</h4>
-                            <p>USDT, BTC, ETH, TON</p>
-                        </div>
-                    </div>
-                    <div class="payment-amount">$\{{product.usdt} USDT</div>
-                </div>
-                <div class="payment-method" data-method="gold">
-                    <div class="payment-method-left">
-                        <div class="payment-icon">💰</div>
-                        <div class="payment-info">
-                            <h4>GOLD</h4>
-                            <p>Игровая валюта</p>
-                        </div>
-                    </div>
-                    <div class="payment-amount">$\{{product.gold} 🪙</div>
-                </div>
-                <div class="payment-method" data-method="nft">
-                    <div class="payment-method-left">
-                        <div class="payment-icon">🎨</div>
-                        <div class="payment-info">
-                            <h4>NFT</h4>
-                            <p>Коллекционные токены</p>
-                        </div>
-                    </div>
-                    <div class="payment-amount">$\{{product.nft} 🖼️</div>
-                </div>
-            </div>
-        `;
-        
-        document.querySelectorAll('.payment-method').forEach(function(el) {{
-            el.addEventListener('click', function() {{ processPayment(el.dataset.method); }});
+        document.querySelectorAll('.payment-method').forEach(el => {{
+            el.onclick = () => processPayment(el.dataset.method);
         }});
     }}
     
     async function processPayment(method) {{
-        modalBody.innerHTML = `
-            <div class="status-view">
-                <div class="status-icon spin">⏳</div>
-                <div class="status-title">Создание платежа...</div>
-                <div class="status-desc">Пожалуйста, подождите</div>
-            </div>
-        `;
-        
+        modalBody.innerHTML = '<div class="status-view"><div class="status-icon spin">⏳</div><div class="status-title">Создание платежа...</div></div>';
         try {{
-            const response = await fetch(API + '/create_payment', {{
+            const res = await fetch(API + '/create_payment', {{
                 method: 'POST',
                 headers: {{ 'Content-Type': 'application/json' }},
                 body: JSON.stringify({{
                     product_id: currentProduct.id,
                     method: method,
                     user_id: user.id,
-                    user_name: user.first_name + (user.last_name ? ' ' + user.last_name : ''),
+                    user_name: user.first_name + (user.last_name || ''),
                     init_data: tg.initData
                 }})
             }});
-            
-            const data = await response.json();
-            
-            if (!data.success) throw new Error(data.error || 'Ошибка создания платежа');
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error);
             
             if (method === 'yoomoney') {{
-                showPaymentView(data.payment_url, data.order_id, '💳', currentProduct.price + ' ₽', 'yoomoney');
+                modalBody.innerHTML = '<div class="status-view"><div class="status-icon">💳</div><div class="status-title">' + currentProduct.price + ' ₽</div><button class="action-btn" id="payBtn">🔗 Оплатить</button><button class="action-btn secondary" id="checkBtn">✅ Проверить</button></div>';
+                document.getElementById('payBtn').onclick = () => window.open(data.payment_url, '_blank');
+                document.getElementById('checkBtn').onclick = () => checkPayment(data.order_id);
             }} else if (method === 'stars') {{
-                modalBody.innerHTML = `
-                    <div class="status-view">
-                        <div class="status-icon">⭐️</div>
-                        <div class="status-title">$\{currentProduct.stars} Stars</div>
-                        <div class="status-desc">Оплатите в боте Telegram</div>
-                        <button class="action-btn" id="starsPayBtn" style="margin-top: 20px;">⭐️ Оплатить в боте</button>
-                    </div>
-                `;
-                document.getElementById('starsPayBtn').addEventListener('click', function() {{
-                    tg.openTelegramLink('https://t.me/aimnoob_bot?start=buy_stars_' + currentProduct.id);
-                }});
+                modalBody.innerHTML = '<div class="status-view"><div class="status-icon">⭐️</div><div class="status-title">' + currentProduct.stars + ' Stars</div><button class="action-btn" id="starsBtn">⭐️ Оплатить в боте</button></div>';
+                document.getElementById('starsBtn').onclick = () => tg.openTelegramLink('https://t.me/aimnoob_bot?start=buy_stars_' + currentProduct.id);
             }} else if (method === 'crypto') {{
-                showPaymentView(data.payment_url, data.order_id, '₿', currentProduct.usdt + ' USDT', 'crypto', data.invoice_id);
+                modalBody.innerHTML = '<div class="status-view"><div class="status-icon">₿</div><div class="status-title">' + currentProduct.usdt + ' USDT</div><button class="action-btn" id="payBtn">🔗 Оплатить</button><button class="action-btn secondary" id="checkBtn">✅ Проверить</button></div>';
+                document.getElementById('payBtn').onclick = () => window.open(data.payment_url, '_blank');
+                document.getElementById('checkBtn').onclick = () => checkCryptoPayment(data.order_id, data.invoice_id);
             }} else {{
-                showManualPayment(method, data.order_id);
+                const msg = 'Привет! Хочу купить AimNoob ' + currentProduct.name + ' на ' + currentProduct.period + ' за ' + (method === 'gold' ? currentProduct.gold + ' GOLD' : currentProduct.nft + ' NFT');
+                modalBody.innerHTML = '<div class="status-view"><div class="status-icon">' + (method === 'gold' ? '💰' : '🎨') + '</div><div class="status-title">' + (method === 'gold' ? currentProduct.gold + ' GOLD' : currentProduct.nft + ' NFT') + '</div><button class="action-btn" id="msgBtn">💬 Написать</button><button class="action-btn secondary" id="doneBtn">✅ Я написал</button></div>';
+                document.getElementById('msgBtn').onclick = () => window.open('https://t.me/' + SUPPORT + '?text=' + encodeURIComponent(msg), '_blank');
+                document.getElementById('doneBtn').onclick = () => {{ closeModal(); toast('Заказ создан!'); }};
             }}
-        }} catch (err) {{
-            toast(err.message, 'error');
-            setTimeout(function() {{ openPaymentModal(currentProduct); }}, 1000);
+        }} catch(e) {{
+            toast(e.message, 'error');
+            setTimeout(() => openPaymentModal(currentProduct), 1000);
         }}
     }}
     
-    function showPaymentView(url, orderId, icon, amount, type, invoiceId) {{
-        modalBody.innerHTML = `
-            <div class="status-view">
-                <div class="status-icon">$\{icon}</div>
-                <div class="status-title">$\{amount}</div>
-                <div class="status-desc">Заказ #$\{orderId.slice(-8)}</div>
-                <button class="action-btn" id="payNowBtn" style="margin-top: 20px;">🔗 Перейти к оплате</button>
-                <button class="action-btn secondary" id="checkPayBtn">✅ Проверить оплату</button>
-            </div>
-        `;
-        
-        document.getElementById('payNowBtn').addEventListener('click', function() {{
-            window.open(url, '_blank');
-        }});
-        
-        document.getElementById('checkPayBtn').addEventListener('click', async function() {{
-            if (type === 'yoomoney') {{
-                await checkYooMoneyPayment(orderId);
-            }} else if (type === 'crypto') {{
-                await checkCryptoPayment(orderId, invoiceId);
-            }}
-        }});
-    }}
-    
-    function showManualPayment(method, orderId) {{
-        const methods = {{
-            gold: {{ name: 'GOLD', icon: '💰', amount: currentProduct.gold, emoji: '🪙' }},
-            nft: {{ name: 'NFT', icon: '🎨', amount: currentProduct.nft, emoji: '🖼️' }}
-        }};
-        const m = methods[method];
-        const message = 'Привет! Хочу купить AimNoob ' + currentProduct.name + ' на ' + currentProduct.period + ' за ' + m.amount + ' ' + m.name;
-        
-        modalBody.innerHTML = `
-            <div class="status-view">
-                <div class="status-icon">$\{m.icon}</div>
-                <div class="status-title">$\{m.amount} $\{m.name}</div>
-                <div class="status-desc" style="background: var(--surface); padding: 12px; border-radius: 14px; margin: 16px 0; font-size: 11px;">
-                    $\{message}
-                </div>
-                <button class="action-btn" id="contactSupportBtn">💬 Написать поддержке</button>
-                <button class="action-btn secondary" id="notifySupportBtn">✅ Я написал</button>
-            </div>
-        `;
-        
-        document.getElementById('contactSupportBtn').addEventListener('click', function() {{
-            window.open('https://t.me/' + SUPPORT + '?text=' + encodeURIComponent(message), '_blank');
-        }});
-        
-        document.getElementById('notifySupportBtn').addEventListener('click', function() {{
-            closeModal();
-            toast('Заказ #' + orderId.slice(-8) + ' создан! Ожидайте подтверждения', 'success');
-        }});
-    }}
-    
-    async function checkYooMoneyPayment(orderId) {{
-        modalBody.innerHTML = `
-            <div class="status-view">
-                <div class="status-icon spin">⏳</div>
-                <div class="status-title">Проверка платежа...</div>
-                <div class="status-desc">Это может занять 15-25 секунд</div>
-            </div>
-        `;
-        
-        try {{
-            const response = await fetch(API + '/check_payment', {{
-                method: 'POST',
-                headers: {{ 'Content-Type': 'application/json' }},
-                body: JSON.stringify({{ order_id: orderId }})
-            }});
-            const data = await response.json();
-            
-            if (data.paid) {{
-                showSuccess(data.license_key);
-            }} else {{
-                modalBody.innerHTML = `
-                    <div class="status-view">
-                        <div class="status-icon">⏳</div>
-                        <div class="status-title">Платеж не найден</div>
-                        <div class="status-desc">Попробуйте через 1-2 минуты</div>
-                        <button class="action-btn secondary" id="retryBtn" style="margin-top: 20px;">🔄 Повторить</button>
-                    </div>
-                `;
-                document.getElementById('retryBtn').addEventListener('click', function() {{ checkYooMoneyPayment(orderId); }});
-            }}
-        }} catch (err) {{
-            toast('Ошибка проверки', 'error');
-        }}
+    async function checkPayment(orderId) {{
+        modalBody.innerHTML = '<div class="status-view"><div class="status-icon spin">⏳</div><div class="status-title">Проверка...</div></div>';
+        const res = await fetch(API + '/check_payment', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }}, body: JSON.stringify({{ order_id: orderId }}) }});
+        const data = await res.json();
+        if (data.paid) showSuccess(data.license_key);
+        else modalBody.innerHTML = '<div class="status-view"><div class="status-icon">⏳</div><div class="status-title">Не найден</div><button class="action-btn secondary" onclick="location.reload()">🔄 Повторить</button></div>';
     }}
     
     async function checkCryptoPayment(orderId, invoiceId) {{
-        modalBody.innerHTML = `
-            <div class="status-view">
-                <div class="status-icon spin">⏳</div>
-                <div class="status-title">Проверка платежа...</div>
-                <div class="status-desc">Ожидание подтверждения сети</div>
-            </div>
-        `;
-        
-        try {{
-            const response = await fetch(API + '/check_crypto', {{
-                method: 'POST',
-                headers: {{ 'Content-Type': 'application/json' }},
-                body: JSON.stringify({{ invoice_id: invoiceId, order_id: orderId }})
-            }});
-            const data = await response.json();
-            
-            if (data.paid) {{
-                showSuccess(data.license_key);
-            }} else {{
-                modalBody.innerHTML = `
-                    <div class="status-view">
-                        <div class="status-icon">⏳</div>
-                        <div class="status-title">В обработке</div>
-                        <div class="status-desc">Платеж не подтвержден, попробуйте позже</div>
-                        <button class="action-btn secondary" id="retryBtn" style="margin-top: 20px;">🔄 Повторить</button>
-                    </div>
-                `;
-                document.getElementById('retryBtn').addEventListener('click', function() {{ checkCryptoPayment(orderId, invoiceId); }});
-            }}
-        }} catch (err) {{
-            toast('Ошибка проверки', 'error');
-        }}
+        modalBody.innerHTML = '<div class="status-view"><div class="status-icon spin">⏳</div><div class="status-title">Проверка...</div></div>';
+        const res = await fetch(API + '/check_crypto', {{ method: 'POST', headers: {{ 'Content-Type': 'application/json' }}, body: JSON.stringify({{ invoice_id: invoiceId, order_id: orderId }}) }});
+        const data = await res.json();
+        if (data.paid) showSuccess(data.license_key);
+        else modalBody.innerHTML = '<div class="status-view"><div class="status-icon">⏳</div><div class="status-title">В обработке</div><button class="action-btn secondary" onclick="location.reload()">🔄 Повторить</button></div>';
     }}
     
-    function showSuccess(licenseKey) {{
-        const productInfo = currentProduct.name + ' • ' + currentProduct.period;
-        licenses.unshift({{
-            key: licenseKey,
-            product: productInfo,
-            date: new Date().toISOString()
-        }});
+    function showSuccess(key) {{
+        licenses.unshift({{ key: key, product: currentProduct.name + ' • ' + currentProduct.period, date: new Date().toISOString() }});
         saveLicenses();
-        
-        modalTitle.textContent = 'Успешная оплата!';
-        modalBody.innerHTML = `
-            <div class="status-view">
-                <div class="status-icon">✅</div>
-                <div class="status-title">Оплата подтверждена!</div>
-                <div class="status-desc">Ваш лицензионный ключ активирован</div>
-                <div class="key-box" id="licenseKeyBox">🔑 $\{licenseKey}</div>
-                <button class="action-btn" id="downloadBtn">📥 Скачать AimNoob</button>
-                <button class="action-btn secondary" id="myKeysBtn">🔑 Мои лицензии</button>
-            </div>
-        `;
-        
-        document.getElementById('licenseKeyBox').addEventListener('click', function() {{ copyToClipboard(licenseKey); }});
-        document.getElementById('downloadBtn').addEventListener('click', function() {{
-            window.open(DOWNLOAD_URL, '_blank');
-        }});
-        document.getElementById('myKeysBtn').addEventListener('click', function() {{
-            closeModal();
-            switchTab('licenses');
-        }});
-        
-        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        modalTitle.textContent = 'Успех!';
+        modalBody.innerHTML = '<div class="status-view"><div class="status-icon">✅</div><div class="status-title">Оплата подтверждена!</div><div class="key-box" id="keyBox">🔑 ' + key + '</div><button class="action-btn" id="dlBtn">📥 Скачать</button><button class="action-btn secondary" id="keysBtn">🔑 Мои лицензии</button></div>';
+        document.getElementById('keyBox').onclick = () => copyToClipboard(key);
+        document.getElementById('dlBtn').onclick = () => window.open(DOWNLOAD_URL, '_blank');
+        document.getElementById('keysBtn').onclick = () => {{ closeModal(); switchTab('licenses'); }};
         renderLicenses();
     }}
     
     function renderShop() {{
-        const container = document.getElementById('page-shop');
         let html = '';
-        
-        ['android', 'ios'].forEach(function(platform) {{
-            const platformName = platform === 'android' ? '📱 Android' : '🍎 iOS';
-            html += '<div class="section"><div class="section-title"><i>' + (platform === 'android' ? '📱' : '🍎') + '</i><span>' + platformName + '</span></div><div class="products-grid">';
-            
-            PRODUCTS[platform].forEach(function(product) {{
-                const isLast = product.id.indexOf('forever') !== -1;
-                const cardClass = isLast ? 'product-card full-width' : 'product-card';
-                const badgeHtml = product.hit ? '<div class="product-badge">🔥 HIT</div>' : '';
-                
-                html += '<div class="' + cardClass + '" data-product=\'' + JSON.stringify(product) + '\'>' + badgeHtml + '<div class="product-content">';
-                html += '<div class="product-icon">' + product.icon + '</div>';
-                
+        ['android', 'ios'].forEach(platform => {{
+            const name = platform === 'android' ? '📱 Android' : '🍎 iOS';
+            html += '<div style="margin-bottom:28px;"><div style="font-size:16px;font-weight:600;margin-bottom:12px;">' + name + '</div><div class="products-grid">';
+            PRODUCTS[platform].forEach(p => {{
+                const isLast = p.id.includes('forever');
+                html += '<div class="product-card' + (isLast ? ' full-width' : '') + '">';
+                if (p.hit) html += '<div class="product-badge">🔥 HIT</div>';
+                html += '<div class="product-content">';
+                html += '<div class="product-icon">' + p.icon + '</div>';
                 if (!isLast) {{
-                    html += '<div class="product-name">' + product.name + '</div>';
-                    html += '<div class="product-period">' + product.period + ' • ' + product.duration + '</div>';
-                    html += '<div class="product-price">' + product.price + ' ₽</div>';
-                    html += '<div class="product-features">';
-                    product.features.forEach(function(f) {{ html += '<span class="feature">' + f + '</span>'; }});
-                    html += '</div>';
-                    html += '<button class="buy-btn" data-id="' + product.id + '">🛒 Купить</button>';
+                    html += '<div class="product-name">' + p.name + '</div>';
+                    html += '<div class="product-period">' + p.period + ' • ' + p.duration + '</div>';
+                    html += '<div class="product-price">' + p.price + ' ₽</div>';
+                    html += '<div class="product-features">' + p.features.map(f => '<span class="feature">' + f + '</span>').join('') + '</div>';
+                    html += '<button class="buy-btn" data-id="' + p.id + '">🛒 Купить</button>';
                 }} else {{
-                    html += '<div class="product-info"><div class="product-name">' + product.name + ' ' + product.period + '</div>';
-                    html += '<div class="product-period">' + product.duration + '</div></div>';
-                    html += '<div class="product-price">' + product.price + ' ₽</div>';
-                    html += '<button class="buy-btn" data-id="' + product.id + '">🛒 Купить</button>';
+                    html += '<div class="product-info"><div class="product-name">' + p.name + ' ' + p.period + '</div><div class="product-period">' + p.duration + '</div></div>';
+                    html += '<div class="product-price">' + p.price + ' ₽</div>';
+                    html += '<button class="buy-btn" data-id="' + p.id + '">🛒 Купить</button>';
                 }}
-                
                 html += '</div></div>';
             }});
-            
             html += '</div></div>';
         }});
-        
-        container.innerHTML = html;
-        
-        document.querySelectorAll('.buy-btn').forEach(function(btn) {{
-            btn.addEventListener('click', function(e) {{
+        document.getElementById('page-shop').innerHTML = html;
+        document.querySelectorAll('.buy-btn').forEach(btn => {{
+            btn.onclick = (e) => {{
                 e.stopPropagation();
-                const productId = btn.dataset.id;
                 let product = null;
-                for (const p of PRODUCTS.android) {{ if (p.id === productId) product = p; }}
-                if (!product) for (const p of PRODUCTS.ios) {{ if (p.id === productId) product = p; }}
+                for (const p of [...PRODUCTS.android, ...PRODUCTS.ios]) if (p.id === btn.dataset.id) product = p;
                 if (product) openPaymentModal(product);
-            }});
+            }};
         }});
     }}
     
     function renderLicenses() {{
         const container = document.getElementById('page-licenses');
-        
         if (licenses.length === 0) {{
-            container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔑</div><div class="empty-text">У вас пока нет активных лицензий</div><button class="action-btn" id="goToShopBtn">🛒 Перейти в магазин</button></div>';
-            document.getElementById('goToShopBtn').addEventListener('click', function() {{ switchTab('shop'); }});
+            container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔑</div><div class="empty-text">Нет активных лицензий</div><button class="action-btn" id="goShopBtn">🛒 В магазин</button></div>';
+            document.getElementById('goShopBtn').onclick = () => switchTab('shop');
             return;
         }}
-        
-        let html = '<div class="section"><div class="section-title"><i>🔑</i><span>Мои лицензии</span></div>';
-        
-        licenses.forEach(function(license) {{
-            const date = new Date(license.date).toLocaleDateString('ru-RU');
-            html += '<div class="license-card">';
-            html += '<div class="license-header"><div class="license-icon">🎯</div><div class="license-info"><h4>' + license.product + '</h4><div class="license-date">Активирована: ' + date + '</div></div></div>';
-            html += '<div class="license-key" data-key="' + license.key + '">' + license.key + '</div>';
-            html += '<button class="license-copy-btn" data-key="' + license.key + '">📋 Скопировать ключ</button>';
-            html += '</div>';
+        let html = '<div style="margin-bottom:28px;"><div style="font-size:16px;font-weight:600;margin-bottom:12px;">🔑 Мои лицензии</div>';
+        licenses.forEach(l => {{
+            html += '<div class="license-card"><div class="license-header"><div class="license-icon">🎯</div><div class="license-info"><h4>' + l.product + '</h4><div class="license-date">' + new Date(l.date).toLocaleDateString('ru-RU') + '</div></div></div><div class="license-key" data-key="' + l.key + '">' + l.key + '</div><button class="license-copy-btn" data-key="' + l.key + '">📋 Скопировать</button></div>';
         }});
-        
         html += '</div>';
         container.innerHTML = html;
-        
-        document.querySelectorAll('.license-key, .license-copy-btn').forEach(function(el) {{
-            el.addEventListener('click', function() {{ copyToClipboard(el.dataset.key); }});
+        document.querySelectorAll('.license-key, .license-copy-btn').forEach(el => {{
+            el.onclick = () => copyToClipboard(el.dataset.key);
         }});
     }}
     
     function renderProfile() {{
-        const avatarEmojis = ['🎯', '🔥', '⚡️', '💎', '⭐️', '🎮', '🚀', '💪'];
-        const avatar = avatarEmojis[Math.abs(user.id) % avatarEmojis.length];
-        
-        const container = document.getElementById('page-profile');
-        container.innerHTML = '<div class="profile-card"><div class="profile-avatar">' + avatar + '</div><div class="profile-name">' + user.first_name + (user.last_name ? ' ' + user.last_name : '') + '</div><div class="profile-username">@' + (user.username || 'user') + '</div><div class="profile-stats"><div class="stat-card"><div class="stat-number">' + licenses.length + '</div><div class="stat-label">Лицензий</div></div><div class="stat-card"><div class="stat-number">v0.37</div><div class="stat-label">Версия</div></div></div></div><button class="action-btn" id="supportBtn">💬 Поддержка</button><button class="action-btn secondary" id="downloadAppBtn">📥 Скачать AimNoob</button>';
-        
-        document.getElementById('supportBtn').addEventListener('click', function() {{
-            window.open('https://t.me/' + SUPPORT, '_blank');
-        }});
-        
-        document.getElementById('downloadAppBtn').addEventListener('click', function() {{
-            window.open(DOWNLOAD_URL, '_blank');
-        }});
+        const avatars = ['🎯', '🔥', '⚡️', '💎', '⭐️', '🎮'];
+        const avatar = avatars[Math.abs(user.id) % avatars.length];
+        document.getElementById('page-profile').innerHTML = 
+            '<div class="profile-card"><div class="profile-avatar">' + avatar + '</div><div class="profile-name">' + user.first_name + (user.last_name ? ' ' + user.last_name : '') + '</div><div class="profile-username">@' + (user.username || 'user') + '</div><div class="profile-stats"><div class="stat-card"><div class="stat-number">' + licenses.length + '</div><div class="stat-label">Лицензий</div></div><div class="stat-card"><div class="stat-number">v0.37</div><div class="stat-label">Версия</div></div></div></div>' +
+            '<button class="action-btn" id="supportBtn">💬 Поддержка</button>' +
+            '<button class="action-btn secondary" id="downloadBtn">📥 Скачать</button>';
+        document.getElementById('supportBtn').onclick = () => window.open('https://t.me/' + SUPPORT, '_blank');
+        document.getElementById('downloadBtn').onclick = () => window.open(DOWNLOAD_URL, '_blank');
     }}
     
     function switchTab(tab) {{
-        document.querySelectorAll('.tab, .nav-item').forEach(function(el) {{
-            el.classList.toggle('active', el.dataset.tab === tab);
-        }});
-        
-        document.querySelectorAll('.page').forEach(function(page) {{
-            page.classList.toggle('active', page.id === 'page-' + tab);
-        }});
-        
+        document.querySelectorAll('.tab, .nav-item').forEach(el => el.classList.toggle('active', el.dataset.tab === tab));
+        document.querySelectorAll('.page').forEach(page => page.classList.toggle('active', page.id === 'page-' + tab));
         if (tab === 'shop') renderShop();
         else if (tab === 'licenses') renderLicenses();
         else if (tab === 'profile') renderProfile();
     }}
     
-    document.querySelectorAll('.tab, .nav-item').forEach(function(el) {{
-        el.addEventListener('click', function() {{ switchTab(el.dataset.tab); }});
+    document.querySelectorAll('.tab, .nav-item').forEach(el => {{
+        el.onclick = () => switchTab(el.dataset.tab);
     }});
     
     renderShop();
