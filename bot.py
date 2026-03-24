@@ -166,15 +166,17 @@ class RateLimiter:
 
 
 # ========== ПРОДУКТЫ ==========
+# Цены Stars, USDT, GOLD, NFT приведены к значениям с вашего скриншота.
+# Рублёвые цены и всё остальное осталось как в исправленной версии.
 PRODUCTS = {
     "apk_week": {
         "name": "📱 AimNoob Android",
         "period_text": "НЕДЕЛЮ",
         "price": 150,
-        "price_stars": 150,
-        "price_gold": 150,
-        "price_nft": 150,
-        "price_crypto_usdt": 1.5,
+        "price_stars": 350,       # как на скрине (для недели 350★)
+        "price_gold": 350,
+        "price_nft": 250,
+        "price_crypto_usdt": 2,   # как на скрине (2 USDT)
         "platform": "Android",
         "period": "НЕДЕЛЮ",
         "platform_code": "apk",
@@ -185,10 +187,10 @@ PRODUCTS = {
         "name": "📱 AimNoob Android",
         "period_text": "МЕСЯЦ",
         "price": 350,
-        "price_stars": 350,
-        "price_gold": 350,
-        "price_nft": 350,
-        "price_crypto_usdt": 3.5,
+        "price_stars": 800,       # как на скрине (800★)
+        "price_gold": 800,
+        "price_nft": 600,
+        "price_crypto_usdt": 5,   # как на скрине (5 USDT)
         "platform": "Android",
         "period": "МЕСЯЦ",
         "platform_code": "apk",
@@ -199,10 +201,10 @@ PRODUCTS = {
         "name": "📱 AimNoob Android",
         "period_text": "НАВСЕГДА",
         "price": 800,
-        "price_stars": 800,
-        "price_gold": 800,
-        "price_nft": 800,
-        "price_crypto_usdt": 8,
+        "price_stars": 1800,      # как было изначально
+        "price_gold": 1800,
+        "price_nft": 1400,
+        "price_crypto_usdt": 12,  # как было изначально
         "platform": "Android",
         "period": "НАВСЕГДА",
         "platform_code": "apk",
@@ -213,10 +215,10 @@ PRODUCTS = {
         "name": "🍎 AimNoob iOS",
         "period_text": "НЕДЕЛЮ",
         "price": 300,
-        "price_stars": 300,
-        "price_gold": 300,
-        "price_nft": 300,
-        "price_crypto_usdt": 3,
+        "price_stars": 700,       # как было изначально
+        "price_gold": 700,
+        "price_nft": 550,
+        "price_crypto_usdt": 4,   # как было изначально
         "platform": "iOS",
         "period": "НЕДЕЛЮ",
         "platform_code": "ios",
@@ -227,10 +229,10 @@ PRODUCTS = {
         "name": "🍎 AimNoob iOS",
         "period_text": "МЕСЯЦ",
         "price": 450,
-        "price_stars": 450,
-        "price_gold": 450,
-        "price_nft": 450,
-        "price_crypto_usdt": 4.5,
+        "price_stars": 1000,      # как было изначально
+        "price_gold": 1000,
+        "price_nft": 800,
+        "price_crypto_usdt": 6,   # как было изначально
         "platform": "iOS",
         "period": "МЕСЯЦ",
         "platform_code": "ios",
@@ -241,10 +243,10 @@ PRODUCTS = {
         "name": "🍎 AimNoob iOS",
         "period_text": "НАВСЕГДА",
         "price": 850,
-        "price_stars": 850,
-        "price_gold": 850,
-        "price_nft": 850,
-        "price_crypto_usdt": 8.5,
+        "price_stars": 2000,      # как было изначально
+        "price_gold": 2000,
+        "price_nft": 1600,
+        "price_crypto_usdt": 12,  # как было изначально
         "platform": "iOS",
         "period": "НАВСЕГДА",
         "platform_code": "ios",
@@ -1201,6 +1203,13 @@ async def back_to_subscription(callback: types.CallbackQuery, state: FSMContext)
 
 
 # ========== МИНИ-ПРИЛОЖЕНИЕ ==========
+# Здесь должен быть тот же самый HTML, что и в предыдущем ответе,
+# но с обновлёнными ценами в объекте PRODUCTS в JavaScript.
+# Чтобы не дублировать весь HTML, я приведу только изменённую часть.
+# Однако для полноты вы можете использовать тот же полный HTML, что был ранее,
+# заменив в нём значения price_stars, usdt, gold, nft на актуальные.
+# Я приведу полный HTML с исправленными ценами.
+
 MINIAPP_HTML = """<!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -1692,16 +1701,17 @@ const DOWNLOAD_URL = '{download_url}';
 const SUPPORT = '{support}';
 const API = window.location.origin + '/api';
 
+// Исправленные цены в соответствии с вашим скриншотом
 const PRODUCTS = {{
     android: [
-        {{id: 'apk_week', name: 'Android', period: 'НЕДЕЛЯ', duration: '7 дней', price: 150, stars: 150, gold: 150, nft: 150, usdt: 1.5, icon: '📱', features: ['AimBot', 'WallHack', 'ESP']}},
-        {{id: 'apk_month', name: 'Android', period: 'МЕСЯЦ', duration: '30 дней', price: 350, stars: 350, gold: 350, nft: 350, usdt: 3.5, icon: '📱', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban']}},
-        {{id: 'apk_forever', name: 'Android', period: 'НАВСЕГДА', duration: '∞', price: 800, stars: 800, gold: 800, nft: 800, usdt: 8, icon: '📱', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban', 'Updates']}}
+        {{id: 'apk_week', name: 'Android', period: 'НЕДЕЛЯ', duration: '7 дней', price: 150, stars: 350, gold: 350, nft: 250, usdt: 2, icon: '📱', features: ['AimBot', 'WallHack', 'ESP']}},
+        {{id: 'apk_month', name: 'Android', period: 'МЕСЯЦ', duration: '30 дней', price: 350, stars: 800, gold: 800, nft: 600, usdt: 5, icon: '📱', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban']}},
+        {{id: 'apk_forever', name: 'Android', period: 'НАВСЕГДА', duration: '∞', price: 800, stars: 1800, gold: 1800, nft: 1400, usdt: 12, icon: '📱', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban', 'Updates']}}
     ],
     ios: [
-        {{id: 'ios_week', name: 'iOS', period: 'НЕДЕЛЯ', duration: '7 дней', price: 300, stars: 300, gold: 300, nft: 300, usdt: 3, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP']}},
-        {{id: 'ios_month', name: 'iOS', period: 'МЕСЯЦ', duration: '30 дней', price: 450, stars: 450, gold: 450, nft: 450, usdt: 4.5, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban']}},
-        {{id: 'ios_forever', name: 'iOS', period: 'НАВСЕГДА', duration: '∞', price: 850, stars: 850, gold: 850, nft: 850, usdt: 8.5, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban', 'Updates']}}
+        {{id: 'ios_week', name: 'iOS', period: 'НЕДЕЛЯ', duration: '7 дней', price: 300, stars: 700, gold: 700, nft: 550, usdt: 4, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP']}},
+        {{id: 'ios_month', name: 'iOS', period: 'МЕСЯЦ', duration: '30 дней', price: 450, stars: 1000, gold: 1000, nft: 800, usdt: 6, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban']}},
+        {{id: 'ios_forever', name: 'iOS', period: 'НАВСЕГДА', duration: '∞', price: 850, stars: 2000, gold: 2000, nft: 1600, usdt: 12, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban', 'Updates']}}
     ]
 }};
 
