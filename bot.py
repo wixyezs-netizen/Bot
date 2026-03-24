@@ -265,12 +265,12 @@ PRODUCTS = {
 
 # ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 def generate_order_id():
-    raw = "{}_{}_{}".format(time.time(), random.randint(100000, 999999), os.urandom(4).hex())
+    raw = "{}_{}_{}" .format(time.time(), random.randint(100000, 999999), os.urandom(4).hex())
     return hashlib.sha256(raw.encode()).hexdigest()[:12]
 
 
 def generate_license_key(order_id, user_id):
-    raw = "{}_{}_{}".format(order_id, user_id, os.urandom(8).hex())
+    raw = "{}_{}_{}" .format(order_id, user_id, os.urandom(8).hex())
     h = hashlib.sha256(raw.encode()).hexdigest()[:16].upper()
     return "AIMNOOB-{}-{}-{}-{}".format(h[:4], h[4:8], h[8:12], h[12:16])
 
@@ -663,7 +663,7 @@ async def process_successful_payment(order_id, source="API"):
         "\U0001f48e <b>\u041d\u041e\u0412\u0410\u042f \u041f\u0420\u041e\u0414\u0410\u0416\u0410 ({source})</b>\n\n"
         "\U0001f464 {user_name}\n"
         "\U0001f194 {user_id}\n"
-        "\U0001f4e6 {{product_name} ({duration})\n"
+        "\U0001f4e6 {product_name} ({duration})\n"
         "\U0001f4b0 {amount} {currency}\n"
         "\U0001f511 <code>{key}</code>\n"
         "\U0001f4c5 {now}"
@@ -688,7 +688,7 @@ async def send_admin_notification(user, product, payment_method, price, order_id
         "\U0001f514 <b>\u041d\u041e\u0412\u042b\u0419 \u0417\u0410\u041a\u0410\u0417</b>\n\n"
         "\U0001f464 {full_name}\n"
         "\U0001f194 <code>{user_id}</code>\n"
-        "\U0001f4e6 {{product_name} ({duration})\n"
+        "\U0001f4e6 {product_name} ({duration})\n"
         "\U0001f4b0 {price}\n"
         "\U0001f4b3 {payment_method}\n"
         "\U0001f194 <code>{order_id}</code>\n\n"
@@ -1101,7 +1101,7 @@ async def _process_manual_payment(callback, method):
     support_url = "https://t.me/{}?text={}".format(Config.SUPPORT_CHAT_USERNAME, encoded_message)
     text = (
         "{icon} <b>\u041e\u043f\u043b\u0430\u0442\u0430 {method_name}</b>\n\n"
-        "{emoji} {{product_name}\n\u23f1\ufe0f {duration}\n"
+        "{emoji} {product_name}\n\u23f1\ufe0f {duration}\n"
         "\U0001f4b0 <b>{price} {method_name}</b>\n\n"
         "1\ufe0f\u20e3 \u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u00ab\u041f\u0435\u0440\u0435\u0439\u0442\u0438\u00bb\n"
         "2\ufe0f\u20e3 \u041e\u0442\u043f\u0440\u0430\u0432\u044c\u0442\u0435 \u0441\u043e\u043e\u0431\u0449\u0435\u043d\u0438\u0435\n"
@@ -1234,1474 +1234,647 @@ async def back_to_subscription(callback: types.CallbackQuery, state: FSMContext)
     await callback.answer()
 
 
-# ========== ПРОФЕССИОНАЛЬНЫЙ MINIAPP ==========
+# =============================================
+# ========== НОВЫЙ КРАСИВЫЙ MINIAPP ===========
+# =============================================
 
 MINIAPP_HTML = """<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
-<title>AimNoob | Premium Store</title>
+<title>AimNoob Shop</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-* {{
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
-}}
-
-:root {{
-    --bg-dark: #05050c;
-    --bg-card: rgba(18, 18, 28, 0.8);
-    --bg-surface: rgba(255, 255, 255, 0.05);
-    --bg-surface-hover: rgba(255, 255, 255, 0.08);
-    --accent-primary: #8b5cf6;
-    --accent-secondary: #ec4899;
-    --accent-glow: rgba(139, 92, 246, 0.4);
-    --text-primary: #ffffff;
-    --text-secondary: rgba(255, 255, 255, 0.7);
-    --text-muted: rgba(255, 255, 255, 0.4);
-    --success: #10b981;
-    --warning: #f59e0b;
-    --error: #ef4444;
-    --gradient-primary: linear-gradient(135deg, #8b5cf6, #ec4899);
-    --gradient-dark: linear-gradient(135deg, #6d28d9, #db2777);
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
-    --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.3);
-    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.4);
-    --shadow-glow: 0 0 20px rgba(139, 92, 246, 0.3);
-}}
-
-body {{
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', system-ui, sans-serif;
-    background: var(--bg-dark);
-    color: var(--text-primary);
-    min-height: 100vh;
-    overflow-x: hidden;
-}}
-
-/* Animated Background */
-.background {{
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 0;
-    overflow: hidden;
-}}
-
-.gradient-orb {{
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.3;
-    animation: float 20s ease-in-out infinite;
-}}
-
-.orb-1 {{
-    width: 400px;
-    height: 400px;
-    background: #8b5cf6;
-    top: -100px;
-    left: -100px;
-}}
-
-.orb-2 {{
-    width: 350px;
-    height: 350px;
-    background: #ec4899;
-    bottom: -80px;
-    right: -80px;
-    animation-delay: -5s;
-}}
-
-.orb-3 {{
-    width: 300px;
-    height: 300px;
-    background: #3b82f6;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    animation-delay: -10s;
-    opacity: 0.2;
-}}
-
-.grain {{
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-    pointer-events: none;
-}}
-
-@keyframes float {{
-    0%, 100% {{ transform: translate(0, 0) rotate(0deg); }}
-    33% {{ transform: translate(30px, -30px) rotate(120deg); }}
-    66% {{ transform: translate(-20px, 20px) rotate(240deg); }}
-}}
-
-/* Main Container */
-.app {{
-    position: relative;
-    z-index: 1;
-    max-width: 480px;
-    margin: 0 auto;
-    padding: 20px 16px 90px;
-    min-height: 100vh;
-}}
-
-/* Header Section */
-.header {{
-    text-align: center;
-    margin-bottom: 24px;
-    animation: fadeInDown 0.6s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-}}
-
-.logo-wrapper {{
-    position: relative;
-    display: inline-block;
-    margin-bottom: 16px;
-}}
-
-.logo {{
-    width: 80px;
-    height: 80px;
-    background: var(--gradient-primary);
-    border-radius: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 40px;
-    box-shadow: var(--shadow-glow);
-    animation: pulse 2s ease-in-out infinite;
-    position: relative;
-    z-index: 2;
-}}
-
-.logo-ring {{
-    position: absolute;
-    inset: -4px;
-    border-radius: 28px;
-    border: 2px solid rgba(139, 92, 246, 0.5);
-    animation: spin 8s linear infinite;
-}}
-
-@keyframes pulse {{
-    0%, 100% {{ transform: scale(1); box-shadow: 0 0 0 0 var(--accent-glow); }}
-    50% {{ transform: scale(1.05); box-shadow: 0 0 0 15px rgba(139, 92, 246, 0); }}
-}}
-
-@keyframes spin {{
-    from {{ transform: rotate(0deg); }}
-    to {{ transform: rotate(360deg); }}
-}}
-
-h1 {{
-    font-size: 28px;
-    font-weight: 800;
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    letter-spacing: -0.5px;
-    margin-bottom: 4px;
-}}
-
-.tagline {{
-    font-size: 12px;
-    color: var(--text-secondary);
-    letter-spacing: 0.5px;
-}}
-
-/* Status Badge */
-.status {{
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(16, 185, 129, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(16, 185, 129, 0.2);
-    padding: 6px 16px;
-    border-radius: 40px;
-    font-size: 11px;
-    font-weight: 500;
-    margin-bottom: 24px;
-}}
-
-.status-dot {{
-    width: 6px;
-    height: 6px;
-    background: var(--success);
-    border-radius: 50%;
-    animation: blink 1.5s infinite;
-}}
-
-@keyframes blink {{
-    0%, 100% {{ opacity: 1; transform: scale(1); }}
-    50% {{ opacity: 0.5; transform: scale(0.8); }}
-}}
-
-/* Navigation Tabs */
-.tabs {{
-    display: flex;
-    gap: 6px;
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(20px);
-    border-radius: 20px;
-    padding: 5px;
-    margin-bottom: 24px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}}
-
-.tab {{
-    flex: 1;
-    padding: 12px 8px;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: 14px;
-    font-weight: 600;
-    border-radius: 16px;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-}}
-
-.tab-icon {{
-    font-size: 20px;
-    transition: transform 0.2s;
-}}
-
-.tab.active {{
-    background: var(--gradient-primary);
-    color: white;
-    box-shadow: var(--shadow-sm);
-}}
-
-.tab.active .tab-icon {{
-    transform: scale(1.1);
-}}
-
-.tab:not(.active):hover {{
-    background: var(--bg-surface-hover);
-    color: var(--text-primary);
-}}
-
-/* Product Grid */
-.products-grid {{
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
-    margin-bottom: 20px;
-}}
-
-.product-card {{
-    background: var(--bg-card);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 24px;
-    overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-    cursor: pointer;
-    position: relative;
-}}
-
-.product-card:hover {{
-    transform: translateY(-4px);
-    border-color: var(--accent-primary);
-    box-shadow: var(--shadow-md);
-}}
-
-.product-card:active {{
-    transform: scale(0.98);
-}}
-
-.product-badge {{
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background: var(--gradient-primary);
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 10px;
-    font-weight: 700;
-    z-index: 2;
-    box-shadow: var(--shadow-sm);
-}}
-
-.product-content {{
-    padding: 18px 14px;
-    text-align: center;
-}}
-
-.product-icon {{
-    width: 56px;
-    height: 56px;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2));
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    margin: 0 auto 12px;
-    transition: transform 0.2s;
-}}
-
-.product-card:hover .product-icon {{
-    transform: scale(1.05);
-}}
-
-.product-name {{
-    font-weight: 700;
-    font-size: 15px;
-    margin-bottom: 4px;
-}}
-
-.product-period {{
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-bottom: 12px;
-}}
-
-.product-price {{
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--warning);
-    margin-bottom: 12px;
-}}
-
-.product-price small {{
-    font-size: 11px;
-    font-weight: 400;
-    color: var(--text-muted);
-}}
-
-.product-features {{
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    justify-content: center;
-    margin-bottom: 14px;
-}}
-
-.feature {{
-    font-size: 9px;
-    padding: 3px 8px;
-    background: rgba(139, 92, 246, 0.15);
-    border-radius: 8px;
-    color: var(--accent-primary);
-    font-weight: 500;
-}}
-
-.buy-btn {{
-    width: 100%;
-    padding: 10px;
-    background: var(--gradient-primary);
-    border: none;
-    border-radius: 14px;
-    color: white;
-    font-weight: 700;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    overflow: hidden;
-}}
-
-.buy-btn::before {{
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s;
-}}
-
-.buy-btn:hover::before {{
-    left: 100%;
-}}
-
-.buy-btn:active {{
-    transform: scale(0.96);
-}}
-
-/* Full Width Card */
-.product-card.full-width {{
-    grid-column: 1 / -1;
-}}
-
-.product-card.full-width .product-content {{
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    text-align: left;
-    padding: 16px;
-}}
-
-.product-card.full-width .product-icon {{
-    margin: 0;
-    width: 60px;
-    height: 60px;
-    font-size: 30px;
-}}
-
-.product-card.full-width .product-info {{
-    flex: 1;
-}}
-
-.product-card.full-width .product-name {{
-    font-size: 16px;
-    margin-bottom: 2px;
-}}
-
-.product-card.full-width .product-period {{
-    margin-bottom: 0;
-}}
-
-.product-card.full-width .product-price {{
-    font-size: 24px;
-    margin: 0;
-    text-align: right;
-}}
-
-.product-card.full-width .buy-btn {{
-    margin-top: 12px;
-    grid-column: 1 / -1;
-    width: calc(100% - 32px);
-    margin-left: 16px;
-    margin-bottom: 16px;
-}}
-
-/* Modal */
-.modal {{
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(20px);
-    z-index: 1000;
-    align-items: flex-end;
-    justify-content: center;
-}}
-
-.modal.active {{
-    display: flex;
-    animation: fadeIn 0.3s ease;
-}}
-
-.modal-content {{
-    background: linear-gradient(180deg, #111118 0%, #0a0a10 100%);
-    border-radius: 32px 32px 0 0;
-    width: 100%;
-    max-width: 480px;
-    max-height: 88vh;
-    overflow-y: auto;
-    animation: slideUp 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}}
-
-.modal-handle {{
-    width: 40px;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    margin: 14px auto 0;
-}}
-
-.modal-header {{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 18px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    position: sticky;
-    top: 0;
-    background: inherit;
-    z-index: 5;
-}}
-
-.modal-header h3 {{
-    font-size: 20px;
-    font-weight: 700;
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}}
-
-.modal-close {{
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--bg-surface);
-    border: none;
-    color: var(--text-secondary);
-    font-size: 20px;
-    cursor: pointer;
-    transition: all 0.2s;
-}}
-
-.modal-close:active {{
-    background: var(--error);
-    color: white;
-    transform: rotate(90deg);
-}}
-
-.modal-body {{
-    padding: 20px;
-}}
-
-/* Product Summary */
-.product-summary {{
-    background: var(--bg-surface);
-    border-radius: 24px;
-    padding: 20px;
-    text-align: center;
-    margin-bottom: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}}
-
-.summary-icon {{
-    font-size: 56px;
-    margin-bottom: 12px;
-}}
-
-.summary-title {{
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 4px;
-}}
-
-.summary-duration {{
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-bottom: 12px;
-}}
-
-.summary-price {{
-    font-size: 28px;
-    font-weight: 800;
-    color: var(--warning);
-}}
-
-/* Payment Methods */
-.payment-methods {{
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}}
-
-.payment-method {{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px;
-    background: var(--bg-surface);
-    border-radius: 20px;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid transparent;
-}}
-
-.payment-method:active {{
-    transform: scale(0.98);
-    border-color: var(--accent-primary);
-    background: rgba(139, 92, 246, 0.05);
-}}
-
-.payment-method-left {{
-    display: flex;
-    align-items: center;
-    gap: 14px;
-}}
-
-.payment-icon {{
-    width: 48px;
-    height: 48px;
-    background: rgba(139, 92, 246, 0.15);
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-}}
-
-.payment-info h4 {{
-    font-size: 15px;
-    font-weight: 700;
-    margin-bottom: 2px;
-}}
-
-.payment-info p {{
-    font-size: 11px;
-    color: var(--text-muted);
-}}
-
-.payment-amount {{
-    font-weight: 800;
-    color: var(--warning);
-    font-size: 16px;
-}}
-
-/* Status Views */
-.status-view {{
-    text-align: center;
-    padding: 40px 20px;
-}}
-
-.status-icon {{
-    font-size: 64px;
-    margin-bottom: 20px;
-}}
-
-.status-icon.spin {{
-    animation: spin 1s linear infinite;
-}}
-
-.status-title {{
-    font-size: 22px;
-    font-weight: 800;
-    margin-bottom: 8px;
-}}
-
-.status-desc {{
-    font-size: 14px;
-    color: var(--text-secondary);
-    line-height: 1.5;
-}}
-
-/* Key Display */
-.key-box {{
-    background: rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 16px;
-    border-radius: 16px;
-    font-family: 'SF Mono', monospace;
-    font-size: 13px;
-    text-align: center;
-    word-break: break-all;
-    color: var(--warning);
-    margin: 20px 0;
-    cursor: pointer;
-    transition: all 0.2s;
-    letter-spacing: 0.5px;
-}}
-
-.key-box:active {{
-    background: rgba(139, 92, 246, 0.1);
-    border-color: var(--accent-primary);
-}}
-
-/* Action Buttons */
-.action-btn {{
-    width: 100%;
-    padding: 16px;
-    border: none;
-    border-radius: 18px;
-    background: var(--gradient-primary);
-    color: white;
-    font-weight: 700;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.2s;
-    margin-bottom: 12px;
-    position: relative;
-    overflow: hidden;
-}}
-
-.action-btn::before {{
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s;
-}}
-
-.action-btn:hover::before {{
-    left: 100%;
-}}
-
-.action-btn:active {{
-    transform: scale(0.98);
-}}
-
-.action-btn.secondary {{
-    background: var(--bg-surface);
-    color: var(--text-primary);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}}
-
-/* License Cards */
-.license-card {{
-    background: var(--bg-card);
-    backdrop-filter: blur(10px);
-    border-radius: 20px;
-    padding: 16px;
-    margin-bottom: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    transition: all 0.2s;
-}}
-
-.license-header {{
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-}}
-
-.license-icon {{
-    width: 44px;
-    height: 44px;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2));
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 22px;
-}}
-
-.license-info h4 {{
-    font-size: 14px;
-    font-weight: 700;
-    margin-bottom: 2px;
-}}
-
-.license-date {{
-    font-size: 10px;
-    color: var(--text-muted);
-}}
-
-.license-key {{
-    background: rgba(0, 0, 0, 0.4);
-    padding: 12px;
-    border-radius: 12px;
-    font-family: 'SF Mono', monospace;
-    font-size: 11px;
-    text-align: center;
-    color: var(--warning);
-    cursor: pointer;
-    margin-bottom: 10px;
-    letter-spacing: 0.5px;
-}}
-
-.license-copy-btn {{
-    width: 100%;
-    padding: 10px;
-    background: var(--bg-surface);
-    border: none;
-    border-radius: 12px;
-    color: var(--text-secondary);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}}
-
-.license-copy-btn:active {{
-    background: var(--bg-surface-hover);
-    transform: scale(0.98);
-}}
-
-/* Profile Card */
-.profile-card {{
-    background: var(--bg-card);
-    backdrop-filter: blur(10px);
-    border-radius: 28px;
-    padding: 28px;
-    text-align: center;
-    margin-bottom: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}}
-
-.profile-avatar {{
-    width: 80px;
-    height: 80px;
-    background: var(--gradient-primary);
-    border-radius: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 40px;
-    margin: 0 auto 16px;
-    box-shadow: var(--shadow-glow);
-}}
-
-.profile-name {{
-    font-size: 20px;
-    font-weight: 800;
-    margin-bottom: 4px;
-}}
-
-.profile-username {{
-    font-size: 13px;
-    color: var(--text-muted);
-    margin-bottom: 20px;
-}}
-
-.profile-stats {{
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}}
-
-.stat-card {{
-    background: var(--bg-surface);
-    border-radius: 18px;
-    padding: 14px;
-    text-align: center;
-}}
-
-.stat-number {{
-    font-size: 24px;
-    font-weight: 800;
-    color: var(--accent-primary);
-}}
-
-.stat-label {{
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-top: 4px;
-}}
-
-/* Empty State */
-.empty-state {{
-    text-align: center;
-    padding: 60px 20px;
-}}
-
-.empty-icon {{
-    font-size: 64px;
-    margin-bottom: 16px;
-    opacity: 0.5;
-}}
-
-.empty-text {{
-    font-size: 15px;
-    color: var(--text-secondary);
-    margin-bottom: 20px;
-}}
-
-/* Toast Notification */
-.toast {{
-    position: fixed;
-    bottom: 100px;
-    left: 16px;
-    right: 16px;
-    padding: 14px 18px;
-    border-radius: 18px;
-    z-index: 1100;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 14px;
-    font-weight: 500;
-    animation: slideUp 0.3s ease;
-    max-width: 480px;
-    margin: 0 auto;
-    backdrop-filter: blur(20px);
-}}
-
-.toast.success {{
-    background: rgba(16, 185, 129, 0.2);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    color: var(--success);
-}}
-
-.toast.error {{
-    background: rgba(239, 68, 68, 0.2);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: var(--error);
-}}
-
-/* Pages */
-.page {{
-    display: none;
-    animation: fadeInUp 0.4s ease;
-}}
-
-.page.active {{
-    display: block;
-}}
-
-/* Bottom Navigation */
-.bottom-nav {{
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(5, 5, 12, 0.95);
-    backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    display: flex;
-    justify-content: space-around;
-    padding: 10px 16px 18px;
-    z-index: 100;
-    max-width: 480px;
-    margin: 0 auto;
-}}
-
-.nav-item {{
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    font-size: 11px;
-    font-weight: 600;
-    padding: 8px 24px;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: all 0.2s;
-}}
-
-.nav-item.active {{
-    color: var(--accent-primary);
-    background: rgba(139, 92, 246, 0.1);
-}}
-
-.nav-icon {{
-    font-size: 22px;
-}}
-
-/* Animations */
-@keyframes fadeInDown {{
-    from {{
-        opacity: 0;
-        transform: translateY(-30px);
-    }}
-    to {{
-        opacity: 1;
-        transform: translateY(0);
-    }}
-}}
-
-@keyframes fadeInUp {{
-    from {{
-        opacity: 0;
-        transform: translateY(30px);
-    }}
-    to {{
-        opacity: 1;
-        transform: translateY(0);
-    }}
-}}
-
-@keyframes fadeIn {{
-    from {{ opacity: 0; }}
-    to {{ opacity: 1; }}
-}}
-
-@keyframes slideUp {{
-    from {{
-        transform: translateY(100%);
-    }}
-    to {{
-        transform: translateY(0);
-    }}
-}}
-
-@keyframes spin {{
-    from {{ transform: rotate(0deg); }}
-    to {{ transform: rotate(360deg); }}
-}}
-
-/* Scrollbar */
-::-webkit-scrollbar {{
-    width: 4px;
-}}
-
-::-webkit-scrollbar-track {{
-    background: transparent;
-}}
-
-::-webkit-scrollbar-thumb {{
-    background: rgba(139, 92, 246, 0.3);
-    border-radius: 10px;
-}}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+*{{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}}
+:root{{
+--bg:#050510;--surface:rgba(255,255,255,.04);--surface2:rgba(255,255,255,.07);
+--surface3:rgba(255,255,255,.12);--text:#fff;--text2:rgba(255,255,255,.6);
+--text3:rgba(255,255,255,.35);--accent:#8b5cf6;--accent2:#a78bfa;
+--pink:#ec4899;--amber:#f59e0b;--emerald:#10b981;--red:#ef4444;
+--blue:#3b82f6;--grad1:linear-gradient(135deg,#8b5cf6,#ec4899);
+--grad2:linear-gradient(135deg,#6366f1,#8b5cf6);--grad3:linear-gradient(135deg,#f59e0b,#ef4444);
+--radius:16px;--radius2:20px;--radius3:28px;
+--shadow:0 8px 32px rgba(0,0,0,.4);--shadow2:0 20px 60px rgba(0,0,0,.5)
+}}
+html{{height:100%}}
+body{{
+font-family:'Inter',system-ui,-apple-system,sans-serif;
+background:var(--bg);color:var(--text);min-height:100%;
+overflow-x:hidden;-webkit-font-smoothing:antialiased
+}}
+
+/* === CANVAS PARTICLES === */
+#particles{{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}}
+
+/* === GLOW ORBS === */
+.orb{{position:fixed;border-radius:50%;filter:blur(80px);opacity:.15;z-index:0;pointer-events:none}}
+.orb1{{width:300px;height:300px;background:#8b5cf6;top:-100px;left:-80px;animation:orbFloat1 15s ease-in-out infinite}}
+.orb2{{width:250px;height:250px;background:#ec4899;bottom:-50px;right:-60px;animation:orbFloat2 18s ease-in-out infinite}}
+.orb3{{width:200px;height:200px;background:#3b82f6;top:40%;left:50%;animation:orbFloat3 20s ease-in-out infinite}}
+@keyframes orbFloat1{{0%,100%{{transform:translate(0,0)}}50%{{transform:translate(40px,60px)}}}}
+@keyframes orbFloat2{{0%,100%{{transform:translate(0,0)}}50%{{transform:translate(-50px,-40px)}}}}
+@keyframes orbFloat3{{0%,100%{{transform:translate(-50%,-50%)}}50%{{transform:translate(-30%,-30%)}}}}
+
+/* === LAYOUT === */
+.app{{max-width:480px;margin:0 auto;padding:16px 16px 100px;position:relative;z-index:1}}
+
+/* === HEADER === */
+.header{{text-align:center;padding:24px 0 28px;animation:fadeDown .6s ease}}
+@keyframes fadeDown{{from{{opacity:0;transform:translateY(-20px)}}to{{opacity:1;transform:translateY(0)}}}}
+.logo-wrap{{position:relative;display:inline-block;margin-bottom:14px}}
+.logo{{
+width:72px;height:72px;border-radius:22px;
+background:var(--grad1);display:flex;align-items:center;justify-content:center;
+font-size:36px;box-shadow:0 10px 40px rgba(139,92,246,.4);
+animation:logoPulse 3s ease-in-out infinite
+}}
+@keyframes logoPulse{{0%,100%{{transform:scale(1)}}50%{{transform:scale(1.05)}}}}
+.logo-ring{{
+position:absolute;inset:-4px;border-radius:26px;
+border:2px solid rgba(139,92,246,.3);
+animation:ringRotate 8s linear infinite
+}}
+@keyframes ringRotate{{from{{transform:rotate(0)}}to{{transform:rotate(360deg)}}}}
+.logo-dot{{
+position:absolute;width:8px;height:8px;background:var(--amber);
+border-radius:50%;top:-4px;left:50%;transform:translateX(-50%);
+box-shadow:0 0 10px var(--amber)
+}}
+h1{{
+font-size:26px;font-weight:900;letter-spacing:-.5px;
+background:linear-gradient(135deg,#fff 0%,var(--accent2) 100%);
+-webkit-background-clip:text;-webkit-text-fill-color:transparent
+}}
+.tagline{{color:var(--text2);font-size:12px;margin-top:4px;font-weight:500}}
+
+/* === STATUS BAR === */
+.status-bar{{
+display:flex;align-items:center;justify-content:center;gap:8px;
+padding:8px 16px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);
+border-radius:30px;margin:0 auto 24px;width:fit-content;font-size:11px;font-weight:600
+}}
+.status-dot{{width:6px;height:6px;background:var(--emerald);border-radius:50%;animation:blink 2s infinite}}
+@keyframes blink{{0%,100%{{opacity:1}}50%{{opacity:.3}}}}
+
+/* === TABS === */
+.tabs{{
+display:flex;gap:4px;background:var(--surface);border-radius:14px;
+padding:4px;margin-bottom:20px;position:sticky;top:0;z-index:50;
+backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)
+}}
+.tab{{
+flex:1;padding:10px;border-radius:11px;border:none;
+background:transparent;color:var(--text2);font-size:12px;
+font-weight:600;cursor:pointer;transition:.3s;
+display:flex;flex-direction:column;align-items:center;gap:3px
+}}
+.tab.active{{background:var(--surface3);color:var(--text);box-shadow:0 2px 12px rgba(0,0,0,.2)}}
+.tab-icon{{font-size:18px}}
+
+/* === PLATFORM SECTION === */
+.section{{margin-bottom:24px;animation:fadeUp .5s ease}}
+@keyframes fadeUp{{from{{opacity:0;transform:translateY(16px)}}to{{opacity:1;transform:translateY(0)}}}}
+.section-head{{
+display:flex;align-items:center;justify-content:space-between;
+margin-bottom:14px;padding:0 4px
+}}
+.section-title{{font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px}}
+.section-badge{{
+font-size:10px;font-weight:700;padding:3px 10px;
+border-radius:20px;background:var(--surface2);color:var(--text2)
+}}
+
+/* === PRODUCT CARDS === */
+.cards{{display:grid;grid-template-columns:1fr 1fr;gap:12px}}
+.card{{
+background:var(--surface);border:1px solid rgba(255,255,255,.06);
+border-radius:var(--radius2);overflow:hidden;cursor:pointer;
+transition:all .35s cubic-bezier(.4,0,.2,1);position:relative
+}}
+.card:active{{transform:scale(.97)}}
+.card::after{{
+content:'';position:absolute;inset:0;border-radius:var(--radius2);
+background:linear-gradient(135deg,rgba(139,92,246,.08),transparent 60%);
+opacity:0;transition:.3s
+}}
+.card:hover::after,.card:active::after{{opacity:1}}
+.card-shine{{
+position:absolute;top:0;left:0;right:0;height:1px;
+background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);
+transform:translateX(-100%);animation:shine 4s ease-in-out infinite
+}}
+@keyframes shine{{0%{{transform:translateX(-100%)}}40%,100%{{transform:translateX(100%)}}}}
+.card-badge{{
+position:absolute;top:8px;right:8px;z-index:2;
+font-size:9px;font-weight:800;padding:3px 8px;border-radius:10px;
+background:var(--grad3);color:#fff;text-transform:uppercase;letter-spacing:.5px
+}}
+.card-body{{padding:14px 12px;position:relative;z-index:1}}
+.card-icon{{
+width:44px;height:44px;border-radius:14px;
+background:var(--surface2);display:flex;align-items:center;
+justify-content:center;font-size:24px;margin:0 auto 10px
+}}
+.card-name{{font-size:14px;font-weight:700;text-align:center;margin-bottom:2px}}
+.card-period{{font-size:10px;color:var(--text3);text-align:center;margin-bottom:10px;font-weight:500}}
+.card-price{{text-align:center;margin-bottom:10px}}
+.price-main{{font-size:20px;font-weight:900;color:var(--amber)}}
+.price-old{{font-size:11px;color:var(--text3);text-decoration:line-through;margin-left:4px}}
+.price-per{{font-size:9px;color:var(--text3);margin-top:2px}}
+.card-features{{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-bottom:10px}}
+.feat{{
+font-size:8px;padding:2px 6px;border-radius:6px;
+background:rgba(139,92,246,.1);color:var(--accent2);font-weight:600
+}}
+.card-btn{{
+width:100%;padding:9px;border:none;border-radius:12px;
+background:var(--grad1);color:#fff;font-size:12px;
+font-weight:700;cursor:pointer;transition:.2s;
+position:relative;overflow:hidden
+}}
+.card-btn:active{{transform:scale(.98)}}
+
+/* === FULL WIDTH CARD === */
+.card-full{{grid-column:1/-1}}
+.card-full .card-body{{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}}
+.card-full .card-icon{{margin:0}}
+.card-full .card-info{{text-align:left}}
+.card-full .card-info .card-name{{text-align:left;font-size:15px}}
+.card-full .card-info .card-period{{text-align:left}}
+.card-full .card-right{{text-align:right}}
+.card-full .card-right .price-main{{font-size:22px}}
+.card-full .card-btn{{grid-column:1/-1}}
+
+/* === MODAL === */
+.modal-overlay{{
+display:none;position:fixed;inset:0;z-index:200;
+background:rgba(0,0,0,.85);backdrop-filter:blur(12px);
+-webkit-backdrop-filter:blur(12px);
+align-items:flex-end;justify-content:center
+}}
+.modal-overlay.open{{display:flex}}
+.modal{{
+background:linear-gradient(180deg,#131325 0%,#0a0a18 100%);
+border-radius:var(--radius3) var(--radius3) 0 0;
+width:100%;max-width:480px;max-height:92vh;overflow-y:auto;
+padding:0;animation:modalUp .4s cubic-bezier(.32,.72,.24,1.02);
+border-top:1px solid rgba(255,255,255,.08)
+}}
+@keyframes modalUp{{from{{transform:translateY(100%)}}to{{transform:translateY(0)}}}}
+.modal-handle{{
+width:36px;height:4px;background:rgba(255,255,255,.2);
+border-radius:4px;margin:10px auto 0
+}}
+.modal-head{{
+display:flex;align-items:center;justify-content:space-between;
+padding:16px 20px 12px;position:sticky;top:0;z-index:10;
+background:linear-gradient(180deg,#131325,rgba(19,19,37,.95))
+}}
+.modal-title{{font-size:18px;font-weight:800}}
+.modal-close{{
+width:30px;height:30px;border-radius:50%;border:none;
+background:var(--surface2);color:var(--text2);font-size:16px;
+cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center
+}}
+.modal-close:hover{{background:var(--red);color:#fff;transform:rotate(90deg)}}
+.modal-body{{padding:0 20px 24px}}
+
+/* === PAYMENT METHODS === */
+.pay-list{{display:flex;flex-direction:column;gap:8px;margin:16px 0}}
+.pay-item{{
+display:flex;align-items:center;justify-content:space-between;
+padding:14px 16px;background:var(--surface);border:1px solid transparent;
+border-radius:var(--radius);cursor:pointer;transition:.3s
+}}
+.pay-item:active{{transform:scale(.98);border-color:var(--accent)}}
+.pay-left{{display:flex;align-items:center;gap:12px}}
+.pay-icon{{
+width:42px;height:42px;border-radius:13px;background:var(--surface2);
+display:flex;align-items:center;justify-content:center;font-size:20px
+}}
+.pay-name{{font-size:13px;font-weight:700}}
+.pay-desc{{font-size:10px;color:var(--text3);margin-top:1px}}
+.pay-amount{{font-size:15px;font-weight:800;color:var(--amber)}}
+
+/* === ACTION BUTTON === */
+.action-btn{{
+width:100%;padding:15px;border:none;border-radius:var(--radius);
+background:var(--grad1);color:#fff;font-size:15px;font-weight:700;
+cursor:pointer;transition:.2s;position:relative;overflow:hidden;
+box-shadow:0 4px 20px rgba(139,92,246,.3)
+}}
+.action-btn:active{{transform:scale(.98)}}
+.action-btn.secondary{{background:var(--surface2);box-shadow:none;font-size:13px;padding:12px}}
+
+/* === STATUS === */
+.status-view{{text-align:center;padding:30px 0}}
+.status-emoji{{font-size:56px;margin-bottom:12px}}
+.status-emoji.spin{{animation:spin 1.2s linear infinite}}
+@keyframes spin{{to{{transform:rotate(360deg)}}}}
+.status-title{{font-size:18px;font-weight:700;margin-bottom:6px}}
+.status-desc{{font-size:12px;color:var(--text2);line-height:1.5}}
+
+/* === KEY BOX === */
+.key-box{{
+background:rgba(0,0,0,.4);border:1px solid var(--surface2);
+padding:14px;border-radius:14px;font-family:'Courier New',monospace;
+font-size:12px;text-align:center;word-break:break-all;
+margin:12px 0;color:var(--amber);letter-spacing:1px;
+cursor:pointer;transition:.2s
+}}
+.key-box:active{{background:rgba(139,92,246,.1)}}
+
+/* === LICENSE CARD === */
+.license-card{{
+background:var(--surface);border:1px solid rgba(255,255,255,.06);
+border-radius:var(--radius2);padding:16px;margin-bottom:10px
+}}
+.license-header{{display:flex;align-items:center;gap:10px;margin-bottom:10px}}
+.license-icon{{
+width:38px;height:38px;border-radius:12px;background:var(--grad1);
+display:flex;align-items:center;justify-content:center;font-size:18px
+}}
+.license-name{{font-size:14px;font-weight:700}}
+.license-date{{font-size:10px;color:var(--text3)}}
+.license-key{{
+background:rgba(0,0,0,.3);padding:10px;border-radius:10px;
+font-family:monospace;font-size:11px;text-align:center;
+color:var(--amber);cursor:pointer;margin-bottom:10px;
+word-break:break-all;transition:.2s
+}}
+.license-key:active{{background:rgba(139,92,246,.1)}}
+.license-copy{{
+width:100%;padding:8px;border:none;border-radius:10px;
+background:var(--surface2);color:var(--text);font-size:11px;
+font-weight:600;cursor:pointer
+}}
+
+/* === PROFILE === */
+.profile-card{{
+background:var(--surface);border-radius:var(--radius3);
+padding:24px;text-align:center;margin-bottom:16px;
+border:1px solid rgba(255,255,255,.06)
+}}
+.profile-avatar{{
+width:64px;height:64px;border-radius:20px;background:var(--grad2);
+display:flex;align-items:center;justify-content:center;
+font-size:30px;margin:0 auto 12px;
+box-shadow:0 8px 24px rgba(99,102,241,.3)
+}}
+.profile-name{{font-size:18px;font-weight:800;margin-bottom:2px}}
+.profile-username{{font-size:12px;color:var(--text3)}}
+.profile-stats{{
+display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px
+}}
+.stat-box{{
+background:var(--surface2);border-radius:14px;padding:12px;text-align:center
+}}
+.stat-num{{font-size:20px;font-weight:900;color:var(--accent2)}}
+.stat-label{{font-size:10px;color:var(--text3);margin-top:2px}}
+
+/* === EMPTY === */
+.empty{{text-align:center;padding:50px 20px}}
+.empty-icon{{font-size:48px;margin-bottom:12px;opacity:.5}}
+.empty-text{{font-size:14px;color:var(--text2);margin-bottom:16px}}
+
+/* === PRODUCT SUMMARY IN MODAL === */
+.product-summary{{
+text-align:center;padding:16px;background:var(--surface);
+border-radius:var(--radius);margin-bottom:16px
+}}
+.product-summary .ps-icon{{font-size:40px;margin-bottom:6px}}
+.product-summary .ps-name{{font-size:16px;font-weight:700}}
+.product-summary .ps-period{{font-size:11px;color:var(--text2)}}
+.product-summary .ps-price{{font-size:24px;font-weight:900;color:var(--amber);margin-top:6px}}
+
+/* === TOAST === */
+.toast{{
+position:fixed;bottom:80px;left:16px;right:16px;
+padding:12px 16px;border-radius:14px;z-index:300;
+display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;
+animation:toastIn .3s ease;max-width:480px;margin:0 auto;
+backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)
+}}
+.toast.success{{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:var(--emerald)}}
+.toast.error{{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:var(--red)}}
+@keyframes toastIn{{from{{opacity:0;transform:translateY(20px)}}to{{opacity:1;transform:translateY(0)}}}}
+
+/* === NAV === */
+.nav{{
+position:fixed;bottom:0;left:0;right:0;z-index:100;
+background:rgba(10,10,22,.92);backdrop-filter:blur(20px);
+-webkit-backdrop-filter:blur(20px);
+border-top:1px solid rgba(255,255,255,.06);
+display:flex;justify-content:space-around;padding:8px 16px 12px;
+max-width:480px;margin:0 auto
+}}
+.nav-btn{{
+display:flex;flex-direction:column;align-items:center;gap:2px;
+background:none;border:none;color:var(--text3);font-size:10px;
+font-weight:600;cursor:pointer;padding:6px 16px;border-radius:14px;transition:.3s
+}}
+.nav-btn.active{{color:var(--accent2);background:rgba(139,92,246,.1)}}
+.nav-btn .ni{{font-size:20px;transition:.2s}}
+
+.page{{display:none}}
+.page.active{{display:block;animation:fadeUp .3s ease}}
+
+/* scrollbar */
+::-webkit-scrollbar{{width:3px}}
+::-webkit-scrollbar-track{{background:transparent}}
+::-webkit-scrollbar-thumb{{background:var(--surface3);border-radius:10px}}
 </style>
 </head>
 <body>
-<div class="background">
-    <div class="gradient-orb orb-1"></div>
-    <div class="gradient-orb orb-2"></div>
-    <div class="gradient-orb orb-3"></div>
-    <div class="grain"></div>
-</div>
+
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+<canvas id="particles"></canvas>
 
 <div class="app">
-    <div class="header">
-        <div class="logo-wrapper">
-            <div class="logo">
-                <span>🎯</span>
-            </div>
-            <div class="logo-ring"></div>
-        </div>
-        <h1>AimNoob</h1>
-        <div class="tagline">Premium Software • Standoff 2</div>
+  <div class="header">
+    <div class="logo-wrap">
+      <div class="logo">&#127919;</div>
+      <div class="logo-ring"><div class="logo-dot"></div></div>
     </div>
+    <h1>AimNoob</h1>
+    <div class="tagline">Premium Cheat &#8226; Standoff 2</div>
+  </div>
 
-    <div style="text-align: center;">
-        <div class="status">
-            <span class="status-dot"></span>
-            <span>Online • v0.37.1 • Undetected</span>
-        </div>
-    </div>
+  <div class="status-bar">
+    <span class="status-dot"></span>
+    <span>v0.37.1 &#8226; Online &#8226; Undetected</span>
+  </div>
 
-    <div class="tabs">
-        <button class="tab active" data-tab="shop">
-            <span class="tab-icon">🛒</span>
-            <span>Магазин</span>
-        </button>
-        <button class="tab" data-tab="licenses">
-            <span class="tab-icon">🔑</span>
-            <span>Лицензии</span>
-        </button>
-        <button class="tab" data-tab="profile">
-            <span class="tab-icon">👤</span>
-            <span>Профиль</span>
-        </button>
-    </div>
+  <div class="tabs">
+    <button class="tab active" data-tab="shop"><span class="tab-icon">&#128722;</span>&#1052;&#1072;&#1075;&#1072;&#1079;&#1080;&#1085;</button>
+    <button class="tab" data-tab="keys"><span class="tab-icon">&#128273;</span>&#1050;&#1083;&#1102;&#1095;&#1080;</button>
+    <button class="tab" data-tab="profile"><span class="tab-icon">&#128100;</span>&#1055;&#1088;&#1086;&#1092;&#1080;&#1083;&#1100;</button>
+  </div>
 
-    <div id="page-shop" class="page active"></div>
-    <div id="page-licenses" class="page"></div>
-    <div id="page-profile" class="page"></div>
+  <div id="page-shop" class="page active"></div>
+  <div id="page-keys" class="page"></div>
+  <div id="page-profile" class="page"></div>
 </div>
 
-<div class="bottom-nav">
-    <button class="nav-item active" data-tab="shop">
-        <span class="nav-icon">🛒</span>
-        <span>Магазин</span>
-    </button>
-    <button class="nav-item" data-tab="licenses">
-        <span class="nav-icon">🔑</span>
-        <span>Лицензии</span>
-    </button>
-    <button class="nav-item" data-tab="profile">
-        <span class="nav-icon">👤</span>
-        <span>Профиль</span>
-    </button>
+<div class="nav">
+  <button class="nav-btn active" data-tab="shop"><span class="ni">&#128722;</span><span>&#1064;&#1086;&#1087;</span></button>
+  <button class="nav-btn" data-tab="keys"><span class="ni">&#128273;</span><span>&#1050;&#1083;&#1102;&#1095;&#1080;</span></button>
+  <button class="nav-btn" data-tab="profile"><span class="ni">&#128100;</span><span>&#1055;&#1088;&#1086;&#1092;&#1080;&#1083;&#1100;</span></button>
 </div>
 
-<div class="modal" id="paymentModal">
-    <div class="modal-content">
-        <div class="modal-handle"></div>
-        <div class="modal-header">
-            <h3>Оформление заказа</h3>
-            <button class="modal-close" id="modalClose">×</button>
-        </div>
-        <div class="modal-body" id="modalBody"></div>
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <div class="modal-title" id="mTitle">&#1047;&#1072;&#1082;&#1072;&#1079;</div>
+      <button class="modal-close" id="mClose">&times;</button>
     </div>
+    <div class="modal-body" id="mBody"></div>
+  </div>
 </div>
 
 <script>
-(function() {{
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-    tg.enableClosingConfirmation();
-    
-    const user = tg.initDataUnsafe?.user || {{ id: Date.now(), first_name: 'Guest', username: 'user' }};
-    let licenses = JSON.parse(localStorage.getItem('aimnoob_licenses') || '[]');
-    let currentProduct = null;
-    
-    const PRODUCTS = {{
-        android: [
-            {{ id: 'apk_week', name: 'Android', period: 'Неделя', duration: '7 дней', price: 150, stars: 350, gold: 350, nft: 250, usdt: 2, icon: '📱', features: ['AimBot', 'WallHack', 'ESP'], hit: false }},
-            {{ id: 'apk_month', name: 'Android', period: 'Месяц', duration: '30 дней', price: 350, stars: 800, gold: 800, nft: 600, usdt: 5, icon: '📱', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban'], hit: true }},
-            {{ id: 'apk_forever', name: 'Android', period: 'Навсегда', duration: '∞', price: 800, stars: 1800, gold: 1800, nft: 1400, usdt: 12, icon: '📱', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban', 'Updates'], hit: false }}
-        ],
-        ios: [
-            {{ id: 'ios_week', name: 'iOS', period: 'Неделя', duration: '7 дней', price: 300, stars: 700, gold: 700, nft: 550, usdt: 4, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP'], hit: false }},
-            {{ id: 'ios_month', name: 'iOS', period: 'Месяц', duration: '30 дней', price: 450, stars: 1000, gold: 1000, nft: 800, usdt: 6, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban'], hit: true }},
-            {{ id: 'ios_forever', name: 'iOS', period: 'Навсегда', duration: '∞', price: 850, stars: 2000, gold: 2000, nft: 1600, usdt: 12, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban', 'Updates'], hit: false }}
-        ]
-    }};
-    
-    const API = window.location.origin + '/api';
-    const SUPPORT = '{support}';
-    const DOWNLOAD_URL = '{download_url}';
-    
-    function toast(message, type) {{
-        type = type || 'success';
-        const el = document.createElement('div');
-        el.className = 'toast ' + type;
-        el.innerHTML = '<span>' + (type === 'success' ? '✓' : '✗') + '</span><span>' + message + '</span>';
-        document.body.appendChild(el);
-        setTimeout(() => el.remove(), 3000);
-    }}
-    
-    function copyToClipboard(text) {{
-        navigator.clipboard.writeText(text);
-        toast('Ключ скопирован в буфер обмена');
-        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-    }}
-    
-    function saveLicenses() {{
-        localStorage.setItem('aimnoob_licenses', JSON.stringify(licenses));
-    }}
-    
-    const modal = document.getElementById('paymentModal');
-    const modalBody = document.getElementById('modalBody');
-    const modalClose = document.getElementById('modalClose');
-    
-    function openModal() {{
-        modal.classList.add('active');
-    }}
-    
-    function closeModal() {{
-        modal.classList.remove('active');
-        currentProduct = null;
-    }}
-    
-    modalClose.onclick = closeModal;
-    modal.onclick = (e) => {{ if (e.target === modal) closeModal(); }};
-    
-    function openPaymentModal(product) {{
-        currentProduct = product;
-        modalBody.innerHTML = 
-            '<div class="product-summary">' +
-                '<div class="summary-icon">' + product.icon + '</div>' +
-                '<div class="summary-title">' + product.name + ' • ' + product.period + '</div>' +
-                '<div class="summary-duration">' + product.duration + '</div>' +
-                '<div class="summary-price">' + product.price + ' ₽</div>' +
-            '</div>' +
-            '<div class="payment-methods">' +
-                '<div class="payment-method" data-method="yoomoney">' +
-                    '<div class="payment-method-left">' +
-                        '<div class="payment-icon">💳</div>' +
-                        '<div class="payment-info">' +
-                            '<h4>Банковская карта</h4>' +
-                            '<p>Visa • Mastercard • Мир • SBP</p>' +
-                        '</div>' +
-                    '</div>' +
-                    '<div class="payment-amount">' + product.price + ' ₽</div>' +
-                '</div>' +
-                '<div class="payment-method" data-method="stars">' +
-                    '<div class="payment-method-left">' +
-                        '<div class="payment-icon">⭐️</div>' +
-                        '<div class="payment-info">' +
-                            '<h4>Telegram Stars</h4>' +
-                            '<p>Мгновенная оплата</p>' +
-                        '</div>' +
-                    '</div>' +
-                    '<div class="payment-amount">' + product.stars + ' ⭐️</div>' +
-                '</div>' +
-                '<div class="payment-method" data-method="crypto">' +
-                    '<div class="payment-method-left">' +
-                        '<div class="payment-icon">₿</div>' +
-                        '<div class="payment-info">' +
-                            '<h4>Криптовалюта</h4>' +
-                            '<p>USDT • BTC • ETH • TON</p>' +
-                        '</div>' +
-                    '</div>' +
-                    '<div class="payment-amount">' + product.usdt + ' USDT</div>' +
-                '</div>' +
-                '<div class="payment-method" data-method="gold">' +
-                    '<div class="payment-method-left">' +
-                        '<div class="payment-icon">💰</div>' +
-                        '<div class="payment-info">' +
-                            '<h4>GOLD</h4>' +
-                            '<p>Игровая валюта</p>' +
-                        '</div>' +
-                    '</div>' +
-                    '<div class="payment-amount">' + product.gold + ' 🪙</div>' +
-                '</div>' +
-                '<div class="payment-method" data-method="nft">' +
-                    '<div class="payment-method-left">' +
-                        '<div class="payment-icon">🎨</div>' +
-                        '<div class="payment-info">' +
-                            '<h4>NFT</h4>' +
-                            '<p>Коллекционные токены</p>' +
-                        '</div>' +
-                    '</div>' +
-                    '<div class="payment-amount">' + product.nft + ' 🖼️</div>' +
-                '</div>' +
-            '</div>';
-        
-        document.querySelectorAll('.payment-method').forEach(el => {{
-            el.onclick = () => processPayment(el.dataset.method);
-        }});
-        openModal();
-    }}
-    
-    async function processPayment(method) {{
-        modalBody.innerHTML = '<div class="status-view"><div class="status-icon spin">⏳</div><div class="status-title">Создание платежа</div><div class="status-desc">Пожалуйста, подождите...</div></div>';
-        
-        try {{
-            const res = await fetch(API + '/create_payment', {{
-                method: 'POST',
-                headers: {{ 'Content-Type': 'application/json' }},
-                body: JSON.stringify({{
-                    product_id: currentProduct.id,
-                    method: method,
-                    user_id: user.id,
-                    user_name: user.first_name + (user.last_name || ''),
-                    init_data: tg.initData
-                }})
-            }});
-            const data = await res.json();
-            if (!data.success) throw new Error(data.error);
-            
-            if (method === 'yoomoney') {{
-                modalBody.innerHTML = 
-                    '<div class="status-view">' +
-                        '<div class="status-icon">💳</div>' +
-                        '<div class="status-title">' + currentProduct.price + ' ₽</div>' +
-                        '<div class="status-desc">Заказ #' + data.order_id.slice(-8) + '</div>' +
-                        '<button class="action-btn" id="payBtn">🔗 Перейти к оплате</button>' +
-                        '<button class="action-btn secondary" id="checkBtn">✓ Проверить оплату</button>' +
-                    '</div>';
-                document.getElementById('payBtn').onclick = () => window.open(data.payment_url, '_blank');
-                document.getElementById('checkBtn').onclick = () => checkPayment(data.order_id);
-            }} else if (method === 'stars') {{
-                modalBody.innerHTML = 
-                    '<div class="status-view">' +
-                        '<div class="status-icon">⭐️</div>' +
-                        '<div class="status-title">' + currentProduct.stars + ' Stars</div>' +
-                        '<div class="status-desc">Оплата через Telegram Stars</div>' +
-                        '<button class="action-btn" id="starsBtn">⭐️ Оплатить в боте</button>' +
-                    '</div>';
-                document.getElementById('starsBtn').onclick = () => tg.openTelegramLink('https://t.me/aimnoob_bot?start=buy_stars_' + currentProduct.id);
-            }} else if (method === 'crypto') {{
-                modalBody.innerHTML = 
-                    '<div class="status-view">' +
-                        '<div class="status-icon">₿</div>' +
-                        '<div class="status-title">' + currentProduct.usdt + ' USDT</div>' +
-                        '<div class="status-desc">Заказ #' + data.order_id.slice(-8) + '</div>' +
-                        '<button class="action-btn" id="payBtn">🔗 Оплатить криптовалютой</button>' +
-                        '<button class="action-btn secondary" id="checkBtn">✓ Проверить оплату</button>' +
-                    '</div>';
-                document.getElementById('payBtn').onclick = () => window.open(data.payment_url, '_blank');
-                document.getElementById('checkBtn').onclick = () => checkCryptoPayment(data.order_id, data.invoice_id);
-            }} else {{
-                const msg = 'Привет! Хочу купить AimNoob ' + currentProduct.name + ' на ' + currentProduct.period + ' за ' + (method === 'gold' ? currentProduct.gold + ' GOLD' : currentProduct.nft + ' NFT');
-                modalBody.innerHTML = 
-                    '<div class="status-view">' +
-                        '<div class="status-icon">' + (method === 'gold' ? '💰' : '🎨') + '</div>' +
-                        '<div class="status-title">' + (method === 'gold' ? currentProduct.gold + ' GOLD' : currentProduct.nft + ' NFT') + '</div>' +
-                        '<div class="status-desc">Заказ #' + data.order_id.slice(-8) + '</div>' +
-                        '<button class="action-btn" id="msgBtn">💬 Написать в поддержку</button>' +
-                        '<button class="action-btn secondary" id="doneBtn">✓ Я написал</button>' +
-                    '</div>';
-                document.getElementById('msgBtn').onclick = () => window.open('https://t.me/' + SUPPORT + '?text=' + encodeURIComponent(msg), '_blank');
-                document.getElementById('doneBtn').onclick = () => {{ closeModal(); toast('Заказ отправлен! Ожидайте подтверждение'); }};
-            }}
-        }} catch(e) {{
-            toast(e.message, 'error');
-            setTimeout(() => openPaymentModal(currentProduct), 1000);
-        }}
-    }}
-    
-    async function checkPayment(orderId) {{
-        modalBody.innerHTML = '<div class="status-view"><div class="status-icon spin">⏳</div><div class="status-title">Проверка платежа</div><div class="status-desc">Это может занять 15-25 секунд</div></div>';
-        
-        for (let i = 0; i < 5; i++) {{
-            const res = await fetch(API + '/check_payment', {{
-                method: 'POST',
-                headers: {{ 'Content-Type': 'application/json' }},
-                body: JSON.stringify({{ order_id: orderId }})
-            }});
-            const data = await res.json();
-            if (data.paid) {{
-                showSuccess(data.license_key);
-                return;
-            }}
-            await new Promise(r => setTimeout(r, 3000));
-        }}
-        
-        modalBody.innerHTML = 
-            '<div class="status-view">' +
-                '<div class="status-icon">⏳</div>' +
-                '<div class="status-title">Платеж не найден</div>' +
-                '<div class="status-desc">Попробуйте через 1-2 минуты</div>' +
-                '<button class="action-btn secondary" id="retryBtn">🔄 Повторить проверку</button>' +
-            '</div>';
-        document.getElementById('retryBtn').onclick = () => checkPayment(orderId);
-    }}
-    
-    async function checkCryptoPayment(orderId, invoiceId) {{
-        modalBody.innerHTML = '<div class="status-view"><div class="status-icon spin">⏳</div><div class="status-title">Проверка платежа</div><div class="status-desc">Ожидание подтверждения сети</div></div>';
-        
-        for (let i = 0; i < 5; i++) {{
-            const res = await fetch(API + '/check_crypto', {{
-                method: 'POST',
-                headers: {{ 'Content-Type': 'application/json' }},
-                body: JSON.stringify({{ invoice_id: invoiceId, order_id: orderId }})
-            }});
-            const data = await res.json();
-            if (data.paid) {{
-                showSuccess(data.license_key);
-                return;
-            }}
-            await new Promise(r => setTimeout(r, 5000));
-        }}
-        
-        modalBody.innerHTML = 
-            '<div class="status-view">' +
-                '<div class="status-icon">⏳</div>' +
-                '<div class="status-title">В обработке</div>' +
-                '<div class="status-desc">Платеж не подтвержден</div>' +
-                '<button class="action-btn secondary" id="retryBtn">🔄 Повторить проверку</button>' +
-            '</div>';
-        document.getElementById('retryBtn').onclick = () => checkCryptoPayment(orderId, invoiceId);
-    }}
-    
-    function showSuccess(key) {{
-        licenses.unshift({{
-            key: key,
-            product: currentProduct.name + ' • ' + currentProduct.period,
-            date: new Date().toISOString()
-        }});
-        saveLicenses();
-        
-        modalBody.innerHTML = 
-            '<div class="status-view">' +
-                '<div class="status-icon">✓</div>' +
-                '<div class="status-title">Оплата подтверждена!</div>' +
-                '<div class="status-desc">Ваш лицензионный ключ активирован</div>' +
-                '<div class="key-box" id="keyBox">🔑 ' + key + '</div>' +
-                '<button class="action-btn" id="downloadBtn">📥 Скачать AimNoob</button>' +
-                '<button class="action-btn secondary" id="myKeysBtn">🔑 Мои лицензии</button>' +
-            '</div>';
-        
-        document.getElementById('keyBox').onclick = () => copyToClipboard(key);
-        document.getElementById('downloadBtn').onclick = () => window.open(DOWNLOAD_URL, '_blank');
-        document.getElementById('myKeysBtn').onclick = () => {{ closeModal(); switchTab('licenses'); }};
-        
-        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-        renderLicenses();
-    }}
-    
-    function renderShop() {{
-        let html = '';
-        ['android', 'ios'].forEach(platform => {{
-            const platformName = platform === 'android' ? '📱 Android' : '🍎 iOS';
-            html += '<div style="margin-bottom: 28px;"><div class="section-title" style="font-size: 18px; font-weight: 700; margin-bottom: 16px; padding-left: 4px;">' + platformName + '</div><div class="products-grid">';
-            PRODUCTS[platform].forEach(p => {{
-                const isLast = p.id.includes('forever');
-                html += '<div class="product-card' + (isLast ? ' full-width' : '') + '" data-product=\'' + JSON.stringify(p) + '\'>';
-                if (p.hit) html += '<div class="product-badge">🔥 HIT</div>';
-                html += '<div class="product-content">';
-                html += '<div class="product-icon">' + p.icon + '</div>';
-                if (!isLast) {{
-                    html += '<div class="product-name">' + p.name + '</div>';
-                    html += '<div class="product-period">' + p.period + ' • ' + p.duration + '</div>';
-                    html += '<div class="product-price">' + p.price + ' <small>₽</small></div>';
-                    html += '<div class="product-features">' + p.features.map(f => '<span class="feature">' + f + '</span>').join('') + '</div>';
-                    html += '<button class="buy-btn" data-id="' + p.id + '">Купить</button>';
-                }} else {{
-                    html += '<div class="product-info"><div class="product-name">' + p.name + ' ' + p.period + '</div><div class="product-period">' + p.duration + '</div></div>';
-                    html += '<div class="product-price">' + p.price + ' <small>₽</small></div>';
-                    html += '<button class="buy-btn" data-id="' + p.id + '">Купить</button>';
-                }}
-                html += '</div></div>';
-            }});
-            html += '</div></div>';
-        }});
-        document.getElementById('page-shop').innerHTML = html;
-        
-        document.querySelectorAll('.buy-btn').forEach(btn => {{
-            btn.onclick = (e) => {{
-                e.stopPropagation();
-                let product = null;
-                for (const p of [...PRODUCTS.android, ...PRODUCTS.ios]) {{
-                    if (p.id === btn.dataset.id) product = p;
-                }}
-                if (product) openPaymentModal(product);
-            }};
-        }});
-    }}
-    
-    function renderLicenses() {{
-        const container = document.getElementById('page-licenses');
-        if (licenses.length === 0) {{
-            container.innerHTML = 
-                '<div class="empty-state">' +
-                    '<div class="empty-icon">🔑</div>' +
-                    '<div class="empty-text">У вас пока нет активных лицензий</div>' +
-                    '<button class="action-btn" id="goToShopBtn">Перейти в магазин</button>' +
-                '</div>';
-            document.getElementById('goToShopBtn').onclick = () => switchTab('shop');
-            return;
-        }}
-        
-        let html = '<div style="margin-bottom: 28px;"><div style="font-size: 18px; font-weight: 700; margin-bottom: 16px;">Мои лицензии</div>';
-        licenses.forEach(l => {{
-            const date = new Date(l.date).toLocaleDateString('ru-RU', {{ day: 'numeric', month: 'long', year: 'numeric' }});
-            html += 
-                '<div class="license-card">' +
-                    '<div class="license-header">' +
-                        '<div class="license-icon">🎯</div>' +
-                        '<div class="license-info">' +
-                            '<h4>' + l.product + '</h4>' +
-                            '<div class="license-date">Активирована: ' + date + '</div>' +
-                        '</div>' +
-                    '</div>' +
-                    '<div class="license-key" data-key="' + l.key + '">' + l.key + '</div>' +
-                    '<button class="license-copy-btn" data-key="' + l.key + '">📋 Скопировать ключ</button>' +
-                '</div>';
-        }});
-        html += '</div>';
-        container.innerHTML = html;
-        
-        document.querySelectorAll('.license-key, .license-copy-btn').forEach(el => {{
-            el.onclick = () => copyToClipboard(el.dataset.key);
-        }});
-    }}
-    
-    function renderProfile() {{
-        const avatars = ['🎯', '🔥', '⚡', '💎', '⭐', '🎮', '🚀', '👑'];
-        const avatar = avatars[Math.abs(user.id) % avatars.length];
-        
-        document.getElementById('page-profile').innerHTML = 
-            '<div class="profile-card">' +
-                '<div class="profile-avatar">' + avatar + '</div>' +
-                '<div class="profile-name">' + (user.first_name || 'User') + (user.last_name ? ' ' + user.last_name : '') + '</div>' +
-                '<div class="profile-username">@' + (user.username || 'user') + '</div>' +
-                '<div class="profile-stats">' +
-                    '<div class="stat-card"><div class="stat-number">' + licenses.length + '</div><div class="stat-label">Лицензий</div></div>' +
-                    '<div class="stat-card"><div class="stat-number">v0.37</div><div class="stat-label">Версия</div></div>' +
-                '</div>' +
-            '</div>' +
-            '<button class="action-btn" id="supportBtn">💬 Поддержка 24/7</button>' +
-            '<button class="action-btn secondary" id="downloadAppBtn">📥 Скачать AimNoob</button>';
-        
-        document.getElementById('supportBtn').onclick = () => window.open('https://t.me/' + SUPPORT, '_blank');
-        document.getElementById('downloadAppBtn').onclick = () => window.open(DOWNLOAD_URL, '_blank');
-    }}
-    
-    function switchTab(tab) {{
-        document.querySelectorAll('.tab, .nav-item').forEach(el => {{
-            el.classList.toggle('active', el.dataset.tab === tab);
-        }});
-        document.querySelectorAll('.page').forEach(page => {{
-            page.classList.toggle('active', page.id === 'page-' + tab);
-        }});
-        if (tab === 'shop') renderShop();
-        else if (tab === 'licenses') renderLicenses();
-        else if (tab === 'profile') renderProfile();
-    }}
-    
-    document.querySelectorAll('.tab, .nav-item').forEach(el => {{
-        el.onclick = () => switchTab(el.dataset.tab);
-    }});
-    
-    renderShop();
-    tg.ready();
+(function(){{
+var DOWNLOAD_URL='{download_url}';
+var SUPPORT='{support}';
+var tg=window.Telegram.WebApp;
+tg.expand();tg.enableClosingConfirmation();
+try{{tg.MainButton.hide()}}catch(e){{}}
+
+var API=window.location.origin+'/api';
+var user=tg.initDataUnsafe&&tg.initDataUnsafe.user?tg.initDataUnsafe.user:{{id:Date.now(),first_name:'Guest',username:'user'}};
+var licenses=JSON.parse(localStorage.getItem('an_lic')||'[]');
+var selected=null;
+
+var P={{
+android:[
+{{id:'apk_week',name:'Android',per:'&#1053;&#1077;&#1076;&#1077;&#1083;&#1103;',dur:'7 &#1076;&#1085;&#1077;&#1081;',price:150,stars:350,gold:350,nft:250,usdt:2,icon:'&#128241;',feats:['AimBot','WallHack','ESP'],pop:false,disc:0}},
+{{id:'apk_month',name:'Android',per:'&#1052;&#1077;&#1089;&#1103;&#1094;',dur:'30 &#1076;&#1085;&#1077;&#1081;',price:350,stars:800,gold:800,nft:600,usdt:5,icon:'&#128241;',feats:['AimBot','WallHack','ESP','Anti-Ban'],pop:true,disc:15}},
+{{id:'apk_forever',name:'Android',per:'&#1053;&#1072;&#1074;&#1089;&#1077;&#1075;&#1076;&#1072;',dur:'&#8734;',price:800,stars:1800,gold:1800,nft:1400,usdt:12,icon:'&#128241;',feats:['AimBot','WallHack','ESP','Anti-Ban','Updates'],pop:false,disc:30}}
+],
+ios:[
+{{id:'ios_week',name:'iOS',per:'&#1053;&#1077;&#1076;&#1077;&#1083;&#1103;',dur:'7 &#1076;&#1085;&#1077;&#1081;',price:300,stars:700,gold:700,nft:550,usdt:4,icon:'&#127822;',feats:['AimBot','WallHack','ESP'],pop:false,disc:0}},
+{{id:'ios_month',name:'iOS',per:'&#1052;&#1077;&#1089;&#1103;&#1094;',dur:'30 &#1076;&#1085;&#1077;&#1081;',price:450,stars:1000,gold:1000,nft:800,usdt:6,icon:'&#127822;',feats:['AimBot','WallHack','ESP','Anti-Ban'],pop:true,disc:10}},
+{{id:'ios_forever',name:'iOS',per:'&#1053;&#1072;&#1074;&#1089;&#1077;&#1075;&#1076;&#1072;',dur:'&#8734;',price:850,stars:2000,gold:2000,nft:1600,usdt:12,icon:'&#127822;',feats:['AimBot','WallHack','ESP','Anti-Ban','Updates'],pop:false,disc:25}}
+]
+}};
+
+// === PARTICLES ===
+var cv=document.getElementById('particles'),cx=cv.getContext('2d');
+function resizeCanvas(){{cv.width=window.innerWidth;cv.height=window.innerHeight}}
+resizeCanvas();window.addEventListener('resize',resizeCanvas);
+var pts=[];for(var i=0;i<40;i++)pts.push({{x:Math.random()*cv.width,y:Math.random()*cv.height,r:Math.random()*1.5+.5,dx:(Math.random()-.5)*.3,dy:(Math.random()-.5)*.3,o:Math.random()*.4+.1}});
+function drawParticles(){{
+cx.clearRect(0,0,cv.width,cv.height);
+for(var i=0;i<pts.length;i++){{
+var p=pts[i];p.x+=p.dx;p.y+=p.dy;
+if(p.x<0||p.x>cv.width)p.dx*=-1;
+if(p.y<0||p.y>cv.height)p.dy*=-1;
+cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);
+cx.fillStyle='rgba(139,92,246,'+p.o+')';cx.fill();
+for(var j=i+1;j<pts.length;j++){{
+var q=pts[j],d=Math.hypot(p.x-q.x,p.y-q.y);
+if(d<120){{cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(q.x,q.y);cx.strokeStyle='rgba(139,92,246,'+(1-d/120)*.08+')';cx.stroke()}}
+}}
+}}
+requestAnimationFrame(drawParticles);
+}}
+drawParticles();
+
+// === TABS ===
+function switchTab(t){{
+document.querySelectorAll('.tab,.nav-btn').forEach(function(b){{b.classList.toggle('active',b.dataset.tab===t)}});
+document.querySelectorAll('.page').forEach(function(p){{p.classList.toggle('active',p.id==='page-'+t)}});
+if(t==='shop')renderShop();
+else if(t==='keys')renderKeys();
+else if(t==='profile')renderProfile();
+}}
+document.querySelectorAll('.tab,.nav-btn').forEach(function(b){{b.addEventListener('click',function(){{switchTab(b.dataset.tab)}})}});
+
+// === RENDER SHOP ===
+function renderShop(){{
+var h='';
+['android','ios'].forEach(function(pl){{
+var icon=pl==='android'?'&#128241;':'&#127822;';
+var name=pl==='android'?'Android':'iOS';
+h+='<div class="section"><div class="section-head"><div class="section-title"><span>'+icon+'</span><span>'+name+'</span></div><div class="section-badge">3 &#1090;&#1072;&#1088;&#1080;&#1092;&#1072;</div></div><div class="cards">';
+P[pl].forEach(function(p,i){{
+var old=p.disc?Math.round(p.price*(1+p.disc/100)):'';
+var days=parseInt(p.dur);var ppd=(!isNaN(days)&&days>0)?(p.price/days).toFixed(0)+'&#8381;/&#1076;&#1077;&#1085;&#1100;':'&#1083;&#1091;&#1095;&#1096;&#1072;&#1103; &#1094;&#1077;&#1085;&#1072;';
+if(i===2){{
+h+='<div class="card card-full" data-pid="'+p.id+'">';
+h+='<div class="card-shine"></div>';
+if(p.pop)h+='<div class="card-badge">&#128293; HIT</div>';
+h+='<div class="card-body">';
+h+='<div class="card-icon">'+p.icon+'</div>';
+h+='<div class="card-info"><div class="card-name">'+p.name+' '+p.per+'</div><div class="card-period">'+p.dur+' &#8226; '+ppd+'</div></div>';
+h+='<div class="card-right"><div class="price-main">'+p.price+' &#8381;</div>'+(old?'<div class="price-old">'+old+' &#8381;</div>':'')+'</div>';
+h+='<button class="card-btn buy-btn" data-pid="'+p.id+'">&#128142; &#1050;&#1091;&#1087;&#1080;&#1090;&#1100;</button>';
+h+='</div></div>';
+}}else{{
+h+='<div class="card" data-pid="'+p.id+'">';
+h+='<div class="card-shine"></div>';
+if(p.pop)h+='<div class="card-badge">&#128293; HIT</div>';
+h+='<div class="card-body">';
+h+='<div class="card-icon">'+p.icon+'</div>';
+h+='<div class="card-name">'+p.name+'</div>';
+h+='<div class="card-period">'+p.per+' &#8226; '+p.dur+'</div>';
+h+='<div class="card-price"><span class="price-main">'+p.price+'&#8381;</span>'+(old?'<span class="price-old">'+old+'&#8381;</span>':'')+'</div>';
+h+='<div class="price-per">'+ppd+'</div>';
+h+='<div class="card-features">'+p.feats.map(function(f){{return '<span class="feat">'+f+'</span>'}}).join('')+'</div>';
+h+='<button class="card-btn buy-btn" data-pid="'+p.id+'">'+(p.pop?'&#128293;':'&#128722;')+' &#1050;&#1091;&#1087;&#1080;&#1090;&#1100;</button>';
+h+='</div></div>';
+}}
+}});
+h+='</div></div>';
+}});
+document.getElementById('page-shop').innerHTML=h;
+document.querySelectorAll('.buy-btn').forEach(function(b){{
+b.addEventListener('click',function(e){{e.stopPropagation();var p=findP(b.dataset.pid);if(p)openPayModal(p)}});
+}});
+}}
+
+function findP(id){{
+var all=P.android.concat(P.ios);return all.find(function(x){{return x.id===id}})
+}}
+
+// === MODAL ===
+function openModal(title){{document.getElementById('mTitle').textContent=title;document.getElementById('modal').classList.add('open')}}
+function closeModal(){{document.getElementById('modal').classList.remove('open')}}
+document.getElementById('mClose').addEventListener('click',closeModal);
+document.getElementById('modal').addEventListener('click',function(e){{if(e.target===this)closeModal()}});
+
+// === PAYMENT MODAL ===
+function openPayModal(p){{
+selected=p;
+openModal('&#1057;&#1087;&#1086;&#1089;&#1086;&#1073; &#1086;&#1087;&#1083;&#1072;&#1090;&#1099;');
+var mb=document.getElementById('mBody');
+mb.innerHTML='<div class="product-summary"><div class="ps-icon">'+p.icon+'</div><div class="ps-name">'+p.name+' &#8226; '+p.per+'</div><div class="ps-period">'+p.dur+'</div><div class="ps-price">'+p.price+' &#8381;</div></div>'
++'<div class="pay-list">'
++'<div class="pay-item" data-m="yoomoney"><div class="pay-left"><div class="pay-icon">&#128179;</div><div><div class="pay-name">&#1050;&#1072;&#1088;&#1090;&#1086;&#1081;</div><div class="pay-desc">Visa, MC, &#1052;&#1080;&#1088;, SBP</div></div></div><div class="pay-amount">'+p.price+' &#8381;</div></div>'
++'<div class="pay-item" data-m="stars"><div class="pay-left"><div class="pay-icon">&#11088;</div><div><div class="pay-name">Telegram Stars</div><div class="pay-desc">&#1042;&#1089;&#1090;&#1088;&#1086;&#1077;&#1085;&#1085;&#1099;&#1077; &#1087;&#1083;&#1072;&#1090;&#1077;&#1078;&#1080;</div></div></div><div class="pay-amount">'+p.stars+' &#11088;</div></div>'
++'<div class="pay-item" data-m="crypto"><div class="pay-left"><div class="pay-icon">&#8383;</div><div><div class="pay-name">&#1050;&#1088;&#1080;&#1087;&#1090;&#1072;</div><div class="pay-desc">USDT, BTC, ETH, TON</div></div></div><div class="pay-amount">'+p.usdt+' USDT</div></div>'
++'<div class="pay-item" data-m="gold"><div class="pay-left"><div class="pay-icon">&#128176;</div><div><div class="pay-name">GOLD</div><div class="pay-desc">&#1048;&#1075;&#1088;&#1086;&#1074;&#1072;&#1103; &#1074;&#1072;&#1083;&#1102;&#1090;&#1072;</div></div></div><div class="pay-amount">'+p.gold+' &#129689;</div></div>'
++'<div class="pay-item" data-m="nft"><div class="pay-left"><div class="pay-icon">&#127912;</div><div><div class="pay-name">NFT</div><div class="pay-desc">&#1050;&#1086;&#1083;&#1083;&#1077;&#1082;&#1094;&#1080;&#1086;&#1085;&#1085;&#1099;&#1077;</div></div></div><div class="pay-amount">'+p.nft+' &#128444;</div></div>'
++'</div>';
+mb.querySelectorAll('.pay-item').forEach(function(el){{
+el.addEventListener('click',function(){{processPayment(el.dataset.m)}});
+}});
+}}
+
+function processPayment(method){{
+var mb=document.getElementById('mBody');
+mb.innerHTML='<div class="status-view"><div class="status-emoji spin">&#9203;</div><div class="status-title">&#1057;&#1086;&#1079;&#1076;&#1072;&#1085;&#1080;&#1077; &#1087;&#1083;&#1072;&#1090;&#1077;&#1078;&#1072;...</div></div>';
+fetch(API+'/create_payment',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{product_id:selected.id,method:method,user_id:user.id,user_name:user.first_name+' '+(user.last_name||''),init_data:tg.initData}})}}
+).then(function(r){{return r.json()}}).then(function(res){{
+if(!res.success)throw new Error(res.error||'Error');
+if(method==='yoomoney')showPayView(res.payment_url,res.order_id,'&#128179;',selected.price+' &#8381;','ym');
+else if(method==='stars'){{
+mb.innerHTML='<div class="status-view"><div class="status-emoji">&#11088;</div><div class="status-title">'+selected.stars+' Stars</div><div class="status-desc">&#1054;&#1087;&#1083;&#1072;&#1090;&#1080;&#1090;&#1077; &#1074; &#1073;&#1086;&#1090;&#1077;</div></div><button class="action-btn" id="starsBtn">&#11088; &#1054;&#1087;&#1083;&#1072;&#1090;&#1080;&#1090;&#1100; &#1074; &#1073;&#1086;&#1090;&#1077;</button>';
+document.getElementById('starsBtn').addEventListener('click',function(){{tg.openTelegramLink('https://t.me/aimnoob_bot?start=buy_stars_'+selected.id)}});
+}}
+else if(method==='crypto')showPayView(res.payment_url,res.order_id,'&#8383;',selected.usdt+' USDT','cr',res.invoice_id);
+else showManual(method,res.order_id);
+}}).catch(function(e){{toast(e.message,'error');setTimeout(function(){{openPayModal(selected)}},1200)}});
+}}
+
+function showPayView(url,oid,icon,amount,type,invoiceId){{
+var mb=document.getElementById('mBody');
+mb.innerHTML='<div class="status-view"><div class="status-emoji">'+icon+'</div><div class="status-title">'+amount+'</div><div class="status-desc">&#1047;&#1072;&#1082;&#1072;&#1079; #'+oid.slice(-8)+'</div></div><button class="action-btn" id="goPayBtn">&#128279; &#1054;&#1087;&#1083;&#1072;&#1090;&#1080;&#1090;&#1100;</button><button class="action-btn secondary" id="goCheckBtn" style="margin-top:8px">&#9989; &#1055;&#1088;&#1086;&#1074;&#1077;&#1088;&#1080;&#1090;&#1100; &#1086;&#1087;&#1083;&#1072;&#1090;&#1091;</button>';
+document.getElementById('goPayBtn').addEventListener('click',function(){{window.open(url,'_blank')}});
+document.getElementById('goCheckBtn').addEventListener('click',function(){{
+if(type==='ym')checkYM(oid);else checkCR(oid,invoiceId);
+}});
+}}
+
+function showManual(method,oid){{
+var names={{gold:'GOLD',nft:'NFT'}},amounts={{gold:selected.gold,nft:selected.nft}},icons={{gold:'&#128176;',nft:'&#127912;'}};
+var msg='&#1055;&#1088;&#1080;&#1074;&#1077;&#1090;! &#1061;&#1086;&#1095;&#1091; &#1082;&#1091;&#1087;&#1080;&#1090;&#1100; AimNoob '+selected.name+' &#1085;&#1072; '+selected.per+' &#1079;&#1072; '+amounts[method]+' '+names[method];
+var mb=document.getElementById('mBody');
+mb.innerHTML='<div class="status-view"><div class="status-emoji">'+icons[method]+'</div><div class="status-title">'+amounts[method]+' '+names[method]+'</div><div class="status-desc" style="background:var(--surface);padding:10px;border-radius:10px;margin:8px 0;font-size:11px;color:var(--text)">'+msg+'</div></div><button class="action-btn" id="manPayBtn">&#128172; &#1053;&#1072;&#1087;&#1080;&#1089;&#1072;&#1090;&#1100;</button><button class="action-btn secondary" id="manDoneBtn" style="margin-top:8px">&#9989; &#1071; &#1085;&#1072;&#1087;&#1080;&#1089;&#1072;&#1083;</button>';
+document.getElementById('manPayBtn').addEventListener('click',function(){{window.open('https://t.me/'+SUPPORT+'?text='+encodeURIComponent(msg),'_blank')}});
+document.getElementById('manDoneBtn').addEventListener('click',function(){{closeModal();toast('&#1047;&#1072;&#1082;&#1072;&#1079; &#1089;&#1086;&#1079;&#1076;&#1072;&#1085;!')}});
+}}
+
+function checkYM(oid){{
+var mb=document.getElementById('mBody');
+mb.innerHTML='<div class="status-view"><div class="status-emoji spin">&#9203;</div><div class="status-title">&#1055;&#1088;&#1086;&#1074;&#1077;&#1088;&#1082;&#1072;...</div><div class="status-desc">15-25 &#1089;&#1077;&#1082;&#1091;&#1085;&#1076;</div></div>';
+fetch(API+'/check_payment',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{order_id:oid}})}}).then(function(r){{return r.json()}}).then(function(res){{
+if(res.paid)showSuccess(res.license_key);
+else{{mb.innerHTML='<div class="status-view"><div class="status-emoji">&#9203;</div><div class="status-title">&#1053;&#1077; &#1085;&#1072;&#1081;&#1076;&#1077;&#1085;</div><div class="status-desc">&#1055;&#1086;&#1087;&#1088;&#1086;&#1073;&#1091;&#1081;&#1090;&#1077; &#1095;&#1077;&#1088;&#1077;&#1079; 1-2 &#1084;&#1080;&#1085;</div></div><button class="action-btn secondary" id="retryBtn">&#128260; &#1055;&#1086;&#1074;&#1090;&#1086;&#1088;&#1080;&#1090;&#1100;</button>';document.getElementById('retryBtn').addEventListener('click',function(){{checkYM(oid)}})}}
+}}).catch(function(){{toast('&#1054;&#1096;&#1080;&#1073;&#1082;&#1072;','error')}});
+}}
+
+function checkCR(oid,iid){{
+var mb=document.getElementById('mBody');
+mb.innerHTML='<div class="status-view"><div class="status-emoji spin">&#9203;</div><div class="status-title">&#1055;&#1088;&#1086;&#1074;&#1077;&#1088;&#1082;&#1072;...</div></div>';
+fetch(API+'/check_crypto',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{invoice_id:iid,order_id:oid}})}}).then(function(r){{return r.json()}}).then(function(res){{
+if(res.paid)showSuccess(res.license_key);
+else{{mb.innerHTML='<div class="status-view"><div class="status-emoji">&#9203;</div><div class="status-title">&#1042; &#1086;&#1073;&#1088;&#1072;&#1073;&#1086;&#1090;&#1082;&#1077;</div></div><button class="action-btn secondary" id="retryCBtn">&#128260; &#1055;&#1086;&#1074;&#1090;&#1086;&#1088;&#1080;&#1090;&#1100;</button>';document.getElementById('retryCBtn').addEventListener('click',function(){{checkCR(oid,iid)}})}}
+}}).catch(function(){{toast('&#1054;&#1096;&#1080;&#1073;&#1082;&#1072;','error')}});
+}}
+
+function showSuccess(key){{
+licenses.push({{key:key,product:selected.name+' &#8226; '+selected.per,date:new Date().toISOString()}});
+localStorage.setItem('an_lic',JSON.stringify(licenses));
+var mb=document.getElementById('mBody');
+document.getElementById('mTitle').textContent='&#1059;&#1089;&#1087;&#1077;&#1093;!';
+mb.innerHTML='<div class="status-view"><div class="status-emoji">&#9989;</div><div class="status-title">&#1054;&#1087;&#1083;&#1072;&#1090;&#1072; &#1087;&#1086;&#1076;&#1090;&#1074;&#1077;&#1088;&#1078;&#1076;&#1077;&#1085;&#1072;!</div><div class="status-desc">&#1042;&#1072;&#1096; &#1082;&#1083;&#1102;&#1095; &#1072;&#1082;&#1090;&#1080;&#1074;&#1080;&#1088;&#1086;&#1074;&#1072;&#1085;</div></div><div class="key-box" id="keyBox">&#128273; '+key+'</div><button class="action-btn" id="dlBtn">&#128229; &#1057;&#1082;&#1072;&#1095;&#1072;&#1090;&#1100; AimNoob</button><button class="action-btn secondary" id="toKeysBtn" style="margin-top:8px">&#128203; &#1052;&#1086;&#1080; &#1082;&#1083;&#1102;&#1095;&#1080;</button>';
+document.getElementById('keyBox').addEventListener('click',function(){{copyKey(key)}});
+document.getElementById('dlBtn').addEventListener('click',function(){{window.open(DOWNLOAD_URL,'_blank')}});
+document.getElementById('toKeysBtn').addEventListener('click',function(){{closeModal();switchTab('keys')}});
+try{{tg.HapticFeedback.notificationOccurred('success')}}catch(e){{}}
+}}
+
+// === KEYS ===
+function renderKeys(){{
+var el=document.getElementById('page-keys');
+if(!licenses.length){{
+el.innerHTML='<div class="empty"><div class="empty-icon">&#128273;</div><div class="empty-text">&#1053;&#1077;&#1090; &#1072;&#1082;&#1090;&#1080;&#1074;&#1085;&#1099;&#1093; &#1082;&#1083;&#1102;&#1095;&#1077;&#1081;</div><button class="action-btn" id="goShopBtn">&#128722; &#1042; &#1084;&#1072;&#1075;&#1072;&#1079;&#1080;&#1085;</button></div>';
+document.getElementById('goShopBtn').addEventListener('click',function(){{switchTab('shop')}});
+return;
+}}
+var h='<div class="section"><div class="section-head"><div class="section-title"><span>&#128273;</span><span>&#1052;&#1086;&#1080; &#1083;&#1080;&#1094;&#1077;&#1085;&#1079;&#1080;&#1080;</span></div><div class="section-badge">'+licenses.length+'</div></div>';
+licenses.forEach(function(l){{
+h+='<div class="license-card"><div class="license-header"><div class="license-icon">&#127919;</div><div><div class="license-name">'+l.product+'</div><div class="license-date">'+new Date(l.date).toLocaleDateString('ru-RU')+'</div></div></div><div class="license-key" data-key="'+l.key+'">'+l.key+'</div><button class="license-copy" data-key="'+l.key+'">&#128203; &#1057;&#1082;&#1086;&#1087;&#1080;&#1088;&#1086;&#1074;&#1072;&#1090;&#1100;</button></div>';
+}});
+h+='</div>';
+el.innerHTML=h;
+el.querySelectorAll('.license-key,.license-copy').forEach(function(b){{
+b.addEventListener('click',function(){{copyKey(b.dataset.key)}});
+}});
+}}
+
+// === PROFILE ===
+function renderProfile(){{
+var avatars=['&#127919;','&#128293;','&#9889;','&#128142;','&#127775;','&#127918;','&#128640;','&#128170;'];
+var av=avatars[Math.abs(user.id)%avatars.length];
+var ln=user.last_name||'';
+var un=user.username||'user';
+var el=document.getElementById('page-profile');
+el.innerHTML='<div class="profile-card"><div class="profile-avatar">'+av+'</div><div class="profile-name">'+user.first_name+' '+ln+'</div><div class="profile-username">@'+un+'</div><div class="profile-stats"><div class="stat-box"><div class="stat-num">'+licenses.length+'</div><div class="stat-label">&#1050;&#1083;&#1102;&#1095;&#1077;&#1081;</div></div><div class="stat-box"><div class="stat-num">v0.37</div><div class="stat-label">&#1042;&#1077;&#1088;&#1089;&#1080;&#1103;</div></div></div></div><button class="action-btn" id="supBtn">&#128172; &#1055;&#1086;&#1076;&#1076;&#1077;&#1088;&#1078;&#1082;&#1072;</button><button class="action-btn secondary" id="dlBtn2" style="margin-top:8px">&#128229; &#1057;&#1082;&#1072;&#1095;&#1072;&#1090;&#1100;</button>';
+document.getElementById('supBtn').addEventListener('click',function(){{window.open('https://t.me/'+SUPPORT,'_blank')}});
+document.getElementById('dlBtn2').addEventListener('click',function(){{window.open(DOWNLOAD_URL,'_blank')}});
+}}
+
+// === UTILS ===
+function copyKey(k){{
+navigator.clipboard.writeText(k).then(function(){{toast('&#1050;&#1083;&#1102;&#1095; &#1089;&#1082;&#1086;&#1087;&#1080;&#1088;&#1086;&#1074;&#1072;&#1085;!')}}).catch(function(){{toast('&#1054;&#1096;&#1080;&#1073;&#1082;&#1072;','error')}});
+try{{tg.HapticFeedback.impactOccurred('light')}}catch(e){{}}
+}}
+function toast(msg,type){{
+type=type||'success';
+var t=document.createElement('div');t.className='toast '+type;
+t.innerHTML='<span>'+(type==='success'?'&#9989;':'&#10060;')+'</span><span>'+msg+'</span>';
+document.body.appendChild(t);setTimeout(function(){{t.remove()}},3000);
+}}
+
+renderShop();
+tg.ready();
 }})();
 </script>
 </body>
