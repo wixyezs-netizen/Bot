@@ -265,12 +265,12 @@ PRODUCTS = {
 
 # ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 def generate_order_id():
-    raw = "{}_{}_{}" .format(time.time(), random.randint(100000, 999999), os.urandom(4).hex())
+    raw = "{}_{}_{}".format(time.time(), random.randint(100000, 999999), os.urandom(4).hex())
     return hashlib.sha256(raw.encode()).hexdigest()[:12]
 
 
 def generate_license_key(order_id, user_id):
-    raw = "{}_{}_{}" .format(order_id, user_id, os.urandom(8).hex())
+    raw = "{}_{}_{}".format(order_id, user_id, os.urandom(8).hex())
     h = hashlib.sha256(raw.encode()).hexdigest()[:16].upper()
     return "AIMNOOB-{}-{}-{}-{}".format(h[:4], h[4:8], h[8:12], h[12:16])
 
@@ -1234,648 +1234,1455 @@ async def back_to_subscription(callback: types.CallbackQuery, state: FSMContext)
     await callback.answer()
 
 
-# =============================================
-# ========== НОВЫЙ КРАСИВЫЙ MINIAPP ===========
-# =============================================
+# ========== ПРОФЕССИОНАЛЬНЫЙ MINIAPP ==========
 
 MINIAPP_HTML = """<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
-<title>AimNoob Shop</title>
+<title>AimNoob Premium Store</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-*{{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}}
-:root{{
---bg:#050510;--surface:rgba(255,255,255,.04);--surface2:rgba(255,255,255,.07);
---surface3:rgba(255,255,255,.12);--text:#fff;--text2:rgba(255,255,255,.6);
---text3:rgba(255,255,255,.35);--accent:#8b5cf6;--accent2:#a78bfa;
---pink:#ec4899;--amber:#f59e0b;--emerald:#10b981;--red:#ef4444;
---blue:#3b82f6;--grad1:linear-gradient(135deg,#8b5cf6,#ec4899);
---grad2:linear-gradient(135deg,#6366f1,#8b5cf6);--grad3:linear-gradient(135deg,#f59e0b,#ef4444);
---radius:16px;--radius2:20px;--radius3:28px;
---shadow:0 8px 32px rgba(0,0,0,.4);--shadow2:0 20px 60px rgba(0,0,0,.5)
-}}
-html{{height:100%}}
-body{{
-font-family:'Inter',system-ui,-apple-system,sans-serif;
-background:var(--bg);color:var(--text);min-height:100%;
-overflow-x:hidden;-webkit-font-smoothing:antialiased
-}}
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
 
-/* === CANVAS PARTICLES === */
-#particles{{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}}
+:root {
+    --bg: #0a0a12;
+    --surface: rgba(255,255,255,0.05);
+    --surface-hover: rgba(255,255,255,0.08);
+    --accent: #8b5cf6;
+    --accent-dark: #7c3aed;
+    --accent-glow: rgba(139,92,246,0.3);
+    --text: #ffffff;
+    --text-secondary: rgba(255,255,255,0.6);
+    --text-tertiary: rgba(255,255,255,0.35);
+    --success: #10b981;
+    --warning: #f59e0b;
+    --error: #ef4444;
+    --gradient: linear-gradient(135deg, #8b5cf6, #ec4899);
+    --gradient-dark: linear-gradient(135deg, #6d28d9, #db2777);
+    --shadow: 0 4px 20px rgba(0,0,0,0.3);
+    --shadow-lg: 0 8px 30px rgba(0,0,0,0.4);
+}
 
-/* === GLOW ORBS === */
-.orb{{position:fixed;border-radius:50%;filter:blur(80px);opacity:.15;z-index:0;pointer-events:none}}
-.orb1{{width:300px;height:300px;background:#8b5cf6;top:-100px;left:-80px;animation:orbFloat1 15s ease-in-out infinite}}
-.orb2{{width:250px;height:250px;background:#ec4899;bottom:-50px;right:-60px;animation:orbFloat2 18s ease-in-out infinite}}
-.orb3{{width:200px;height:200px;background:#3b82f6;top:40%;left:50%;animation:orbFloat3 20s ease-in-out infinite}}
-@keyframes orbFloat1{{0%,100%{{transform:translate(0,0)}}50%{{transform:translate(40px,60px)}}}}
-@keyframes orbFloat2{{0%,100%{{transform:translate(0,0)}}50%{{transform:translate(-50px,-40px)}}}}
-@keyframes orbFloat3{{0%,100%{{transform:translate(-50%,-50%)}}50%{{transform:translate(-30%,-30%)}}}}
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
 
-/* === LAYOUT === */
-.app{{max-width:480px;margin:0 auto;padding:16px 16px 100px;position:relative;z-index:1}}
+/* Animated Background */
+.bg-gradient {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 20% 20%, rgba(139,92,246,0.08), transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(236,72,153,0.08), transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+}
 
-/* === HEADER === */
-.header{{text-align:center;padding:24px 0 28px;animation:fadeDown .6s ease}}
-@keyframes fadeDown{{from{{opacity:0;transform:translateY(-20px)}}to{{opacity:1;transform:translateY(0)}}}}
-.logo-wrap{{position:relative;display:inline-block;margin-bottom:14px}}
-.logo{{
-width:72px;height:72px;border-radius:22px;
-background:var(--grad1);display:flex;align-items:center;justify-content:center;
-font-size:36px;box-shadow:0 10px 40px rgba(139,92,246,.4);
-animation:logoPulse 3s ease-in-out infinite
-}}
-@keyframes logoPulse{{0%,100%{{transform:scale(1)}}50%{{transform:scale(1.05)}}}}
-.logo-ring{{
-position:absolute;inset:-4px;border-radius:26px;
-border:2px solid rgba(139,92,246,.3);
-animation:ringRotate 8s linear infinite
-}}
-@keyframes ringRotate{{from{{transform:rotate(0)}}to{{transform:rotate(360deg)}}}}
-.logo-dot{{
-position:absolute;width:8px;height:8px;background:var(--amber);
-border-radius:50%;top:-4px;left:50%;transform:translateX(-50%);
-box-shadow:0 0 10px var(--amber)
-}}
-h1{{
-font-size:26px;font-weight:900;letter-spacing:-.5px;
-background:linear-gradient(135deg,#fff 0%,var(--accent2) 100%);
--webkit-background-clip:text;-webkit-text-fill-color:transparent
-}}
-.tagline{{color:var(--text2);font-size:12px;margin-top:4px;font-weight:500}}
+.bg-grain {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+}
 
-/* === STATUS BAR === */
-.status-bar{{
-display:flex;align-items:center;justify-content:center;gap:8px;
-padding:8px 16px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);
-border-radius:30px;margin:0 auto 24px;width:fit-content;font-size:11px;font-weight:600
-}}
-.status-dot{{width:6px;height:6px;background:var(--emerald);border-radius:50%;animation:blink 2s infinite}}
-@keyframes blink{{0%,100%{{opacity:1}}50%{{opacity:.3}}}}
+.app {
+    position: relative;
+    z-index: 1;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 20px 16px 90px;
+    min-height: 100vh;
+}
 
-/* === TABS === */
-.tabs{{
-display:flex;gap:4px;background:var(--surface);border-radius:14px;
-padding:4px;margin-bottom:20px;position:sticky;top:0;z-index:50;
-backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)
-}}
-.tab{{
-flex:1;padding:10px;border-radius:11px;border:none;
-background:transparent;color:var(--text2);font-size:12px;
-font-weight:600;cursor:pointer;transition:.3s;
-display:flex;flex-direction:column;align-items:center;gap:3px
-}}
-.tab.active{{background:var(--surface3);color:var(--text);box-shadow:0 2px 12px rgba(0,0,0,.2)}}
-.tab-icon{{font-size:18px}}
+/* Header */
+.header {
+    text-align: center;
+    margin-bottom: 24px;
+    animation: fadeInDown 0.5s ease;
+}
 
-/* === PLATFORM SECTION === */
-.section{{margin-bottom:24px;animation:fadeUp .5s ease}}
-@keyframes fadeUp{{from{{opacity:0;transform:translateY(16px)}}to{{opacity:1;transform:translateY(0)}}}}
-.section-head{{
-display:flex;align-items:center;justify-content:space-between;
-margin-bottom:14px;padding:0 4px
-}}
-.section-title{{font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px}}
-.section-badge{{
-font-size:10px;font-weight:700;padding:3px 10px;
-border-radius:20px;background:var(--surface2);color:var(--text2)
-}}
+.logo {
+    width: 70px;
+    height: 70px;
+    background: var(--gradient);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin: 0 auto 12px;
+    box-shadow: 0 8px 24px var(--accent-glow);
+    animation: pulse 2s infinite;
+}
 
-/* === PRODUCT CARDS === */
-.cards{{display:grid;grid-template-columns:1fr 1fr;gap:12px}}
-.card{{
-background:var(--surface);border:1px solid rgba(255,255,255,.06);
-border-radius:var(--radius2);overflow:hidden;cursor:pointer;
-transition:all .35s cubic-bezier(.4,0,.2,1);position:relative
-}}
-.card:active{{transform:scale(.97)}}
-.card::after{{
-content:'';position:absolute;inset:0;border-radius:var(--radius2);
-background:linear-gradient(135deg,rgba(139,92,246,.08),transparent 60%);
-opacity:0;transition:.3s
-}}
-.card:hover::after,.card:active::after{{opacity:1}}
-.card-shine{{
-position:absolute;top:0;left:0;right:0;height:1px;
-background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);
-transform:translateX(-100%);animation:shine 4s ease-in-out infinite
-}}
-@keyframes shine{{0%{{transform:translateX(-100%)}}40%,100%{{transform:translateX(100%)}}}}
-.card-badge{{
-position:absolute;top:8px;right:8px;z-index:2;
-font-size:9px;font-weight:800;padding:3px 8px;border-radius:10px;
-background:var(--grad3);color:#fff;text-transform:uppercase;letter-spacing:.5px
-}}
-.card-body{{padding:14px 12px;position:relative;z-index:1}}
-.card-icon{{
-width:44px;height:44px;border-radius:14px;
-background:var(--surface2);display:flex;align-items:center;
-justify-content:center;font-size:24px;margin:0 auto 10px
-}}
-.card-name{{font-size:14px;font-weight:700;text-align:center;margin-bottom:2px}}
-.card-period{{font-size:10px;color:var(--text3);text-align:center;margin-bottom:10px;font-weight:500}}
-.card-price{{text-align:center;margin-bottom:10px}}
-.price-main{{font-size:20px;font-weight:900;color:var(--amber)}}
-.price-old{{font-size:11px;color:var(--text3);text-decoration:line-through;margin-left:4px}}
-.price-per{{font-size:9px;color:var(--text3);margin-top:2px}}
-.card-features{{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-bottom:10px}}
-.feat{{
-font-size:8px;padding:2px 6px;border-radius:6px;
-background:rgba(139,92,246,.1);color:var(--accent2);font-weight:600
-}}
-.card-btn{{
-width:100%;padding:9px;border:none;border-radius:12px;
-background:var(--grad1);color:#fff;font-size:12px;
-font-weight:700;cursor:pointer;transition:.2s;
-position:relative;overflow:hidden
-}}
-.card-btn:active{{transform:scale(.98)}}
+.logo span {
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
 
-/* === FULL WIDTH CARD === */
-.card-full{{grid-column:1/-1}}
-.card-full .card-body{{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}}
-.card-full .card-icon{{margin:0}}
-.card-full .card-info{{text-align:left}}
-.card-full .card-info .card-name{{text-align:left;font-size:15px}}
-.card-full .card-info .card-period{{text-align:left}}
-.card-full .card-right{{text-align:right}}
-.card-full .card-right .price-main{{font-size:22px}}
-.card-full .card-btn{{grid-column:1/-1}}
+h1 {
+    font-size: 26px;
+    font-weight: 800;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+}
 
-/* === MODAL === */
-.modal-overlay{{
-display:none;position:fixed;inset:0;z-index:200;
-background:rgba(0,0,0,.85);backdrop-filter:blur(12px);
--webkit-backdrop-filter:blur(12px);
-align-items:flex-end;justify-content:center
-}}
-.modal-overlay.open{{display:flex}}
-.modal{{
-background:linear-gradient(180deg,#131325 0%,#0a0a18 100%);
-border-radius:var(--radius3) var(--radius3) 0 0;
-width:100%;max-width:480px;max-height:92vh;overflow-y:auto;
-padding:0;animation:modalUp .4s cubic-bezier(.32,.72,.24,1.02);
-border-top:1px solid rgba(255,255,255,.08)
-}}
-@keyframes modalUp{{from{{transform:translateY(100%)}}to{{transform:translateY(0)}}}}
-.modal-handle{{
-width:36px;height:4px;background:rgba(255,255,255,.2);
-border-radius:4px;margin:10px auto 0
-}}
-.modal-head{{
-display:flex;align-items:center;justify-content:space-between;
-padding:16px 20px 12px;position:sticky;top:0;z-index:10;
-background:linear-gradient(180deg,#131325,rgba(19,19,37,.95))
-}}
-.modal-title{{font-size:18px;font-weight:800}}
-.modal-close{{
-width:30px;height:30px;border-radius:50%;border:none;
-background:var(--surface2);color:var(--text2);font-size:16px;
-cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center
-}}
-.modal-close:hover{{background:var(--red);color:#fff;transform:rotate(90deg)}}
-.modal-body{{padding:0 20px 24px}}
+.tagline {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
 
-/* === PAYMENT METHODS === */
-.pay-list{{display:flex;flex-direction:column;gap:8px;margin:16px 0}}
-.pay-item{{
-display:flex;align-items:center;justify-content:space-between;
-padding:14px 16px;background:var(--surface);border:1px solid transparent;
-border-radius:var(--radius);cursor:pointer;transition:.3s
-}}
-.pay-item:active{{transform:scale(.98);border-color:var(--accent)}}
-.pay-left{{display:flex;align-items:center;gap:12px}}
-.pay-icon{{
-width:42px;height:42px;border-radius:13px;background:var(--surface2);
-display:flex;align-items:center;justify-content:center;font-size:20px
-}}
-.pay-name{{font-size:13px;font-weight:700}}
-.pay-desc{{font-size:10px;color:var(--text3);margin-top:1px}}
-.pay-amount{{font-size:15px;font-weight:800;color:var(--amber)}}
+/* Status Badge */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.2);
+    padding: 6px 14px;
+    border-radius: 40px;
+    font-size: 11px;
+    font-weight: 500;
+    margin-bottom: 20px;
+}
 
-/* === ACTION BUTTON === */
-.action-btn{{
-width:100%;padding:15px;border:none;border-radius:var(--radius);
-background:var(--grad1);color:#fff;font-size:15px;font-weight:700;
-cursor:pointer;transition:.2s;position:relative;overflow:hidden;
-box-shadow:0 4px 20px rgba(139,92,246,.3)
-}}
-.action-btn:active{{transform:scale(.98)}}
-.action-btn.secondary{{background:var(--surface2);box-shadow:none;font-size:13px;padding:12px}}
+.status-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--success);
+    border-radius: 50%;
+    animation: blink 1.5s infinite;
+}
 
-/* === STATUS === */
-.status-view{{text-align:center;padding:30px 0}}
-.status-emoji{{font-size:56px;margin-bottom:12px}}
-.status-emoji.spin{{animation:spin 1.2s linear infinite}}
-@keyframes spin{{to{{transform:rotate(360deg)}}}}
-.status-title{{font-size:18px;font-weight:700;margin-bottom:6px}}
-.status-desc{{font-size:12px;color:var(--text2);line-height:1.5}}
+/* Navigation Tabs */
+.tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 4px;
+    margin-bottom: 20px;
+    position: sticky;
+    top: 10px;
+    backdrop-filter: blur(20px);
+    z-index: 10;
+}
 
-/* === KEY BOX === */
-.key-box{{
-background:rgba(0,0,0,.4);border:1px solid var(--surface2);
-padding:14px;border-radius:14px;font-family:'Courier New',monospace;
-font-size:12px;text-align:center;word-break:break-all;
-margin:12px 0;color:var(--amber);letter-spacing:1px;
-cursor:pointer;transition:.2s
-}}
-.key-box:active{{background:rgba(139,92,246,.1)}}
+.tab {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
 
-/* === LICENSE CARD === */
-.license-card{{
-background:var(--surface);border:1px solid rgba(255,255,255,.06);
-border-radius:var(--radius2);padding:16px;margin-bottom:10px
-}}
-.license-header{{display:flex;align-items:center;gap:10px;margin-bottom:10px}}
-.license-icon{{
-width:38px;height:38px;border-radius:12px;background:var(--grad1);
-display:flex;align-items:center;justify-content:center;font-size:18px
-}}
-.license-name{{font-size:14px;font-weight:700}}
-.license-date{{font-size:10px;color:var(--text3)}}
-.license-key{{
-background:rgba(0,0,0,.3);padding:10px;border-radius:10px;
-font-family:monospace;font-size:11px;text-align:center;
-color:var(--amber);cursor:pointer;margin-bottom:10px;
-word-break:break-all;transition:.2s
-}}
-.license-key:active{{background:rgba(139,92,246,.1)}}
-.license-copy{{
-width:100%;padding:8px;border:none;border-radius:10px;
-background:var(--surface2);color:var(--text);font-size:11px;
-font-weight:600;cursor:pointer
-}}
+.tab.active {
+    background: var(--surface-hover);
+    color: var(--text);
+}
 
-/* === PROFILE === */
-.profile-card{{
-background:var(--surface);border-radius:var(--radius3);
-padding:24px;text-align:center;margin-bottom:16px;
-border:1px solid rgba(255,255,255,.06)
-}}
-.profile-avatar{{
-width:64px;height:64px;border-radius:20px;background:var(--grad2);
-display:flex;align-items:center;justify-content:center;
-font-size:30px;margin:0 auto 12px;
-box-shadow:0 8px 24px rgba(99,102,241,.3)
-}}
-.profile-name{{font-size:18px;font-weight:800;margin-bottom:2px}}
-.profile-username{{font-size:12px;color:var(--text3)}}
-.profile-stats{{
-display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px
-}}
-.stat-box{{
-background:var(--surface2);border-radius:14px;padding:12px;text-align:center
-}}
-.stat-num{{font-size:20px;font-weight:900;color:var(--accent2)}}
-.stat-label{{font-size:10px;color:var(--text3);margin-top:2px}}
+.tab-icon {
+    font-size: 18px;
+}
 
-/* === EMPTY === */
-.empty{{text-align:center;padding:50px 20px}}
-.empty-icon{{font-size:48px;margin-bottom:12px;opacity:.5}}
-.empty-text{{font-size:14px;color:var(--text2);margin-bottom:16px}}
+/* Sections */
+.section {
+    margin-bottom: 28px;
+    animation: fadeInUp 0.5s ease;
+}
 
-/* === PRODUCT SUMMARY IN MODAL === */
-.product-summary{{
-text-align:center;padding:16px;background:var(--surface);
-border-radius:var(--radius);margin-bottom:16px
-}}
-.product-summary .ps-icon{{font-size:40px;margin-bottom:6px}}
-.product-summary .ps-name{{font-size:16px;font-weight:700}}
-.product-summary .ps-period{{font-size:11px;color:var(--text2)}}
-.product-summary .ps-price{{font-size:24px;font-weight:900;color:var(--amber);margin-top:6px}}
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 4px;
+}
 
-/* === TOAST === */
-.toast{{
-position:fixed;bottom:80px;left:16px;right:16px;
-padding:12px 16px;border-radius:14px;z-index:300;
-display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;
-animation:toastIn .3s ease;max-width:480px;margin:0 auto;
-backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)
-}}
-.toast.success{{background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);color:var(--emerald)}}
-.toast.error{{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:var(--red)}}
-@keyframes toastIn{{from{{opacity:0;transform:translateY(20px)}}to{{opacity:1;transform:translateY(0)}}}}
+.section-title i {
+    font-size: 20px;
+}
 
-/* === NAV === */
-.nav{{
-position:fixed;bottom:0;left:0;right:0;z-index:100;
-background:rgba(10,10,22,.92);backdrop-filter:blur(20px);
--webkit-backdrop-filter:blur(20px);
-border-top:1px solid rgba(255,255,255,.06);
-display:flex;justify-content:space-around;padding:8px 16px 12px;
-max-width:480px;margin:0 auto
-}}
-.nav-btn{{
-display:flex;flex-direction:column;align-items:center;gap:2px;
-background:none;border:none;color:var(--text3);font-size:10px;
-font-weight:600;cursor:pointer;padding:6px 16px;border-radius:14px;transition:.3s
-}}
-.nav-btn.active{{color:var(--accent2);background:rgba(139,92,246,.1)}}
-.nav-btn .ni{{font-size:20px;transition:.2s}}
+/* Product Grid */
+.products-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
 
-.page{{display:none}}
-.page.active{{display:block;animation:fadeUp .3s ease}}
+.product-card {
+    background: var(--surface);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px;
+    overflow: hidden;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+}
 
-/* scrollbar */
-::-webkit-scrollbar{{width:3px}}
-::-webkit-scrollbar-track{{background:transparent}}
-::-webkit-scrollbar-thumb{{background:var(--surface3);border-radius:10px}}
+.product-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+}
+
+.product-card:active {
+    transform: scale(0.98);
+}
+
+.product-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--gradient);
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 9px;
+    font-weight: 700;
+    z-index: 2;
+}
+
+.product-content {
+    padding: 14px 12px;
+    text-align: center;
+}
+
+.product-icon {
+    width: 50px;
+    height: 50px;
+    background: rgba(139,92,246,0.15);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    margin: 0 auto 10px;
+}
+
+.product-name {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.product-period {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-bottom: 8px;
+}
+
+.product-price {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--warning);
+    margin-bottom: 8px;
+}
+
+.product-price small {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-tertiary);
+}
+
+.product-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.feature {
+    font-size: 8px;
+    padding: 2px 6px;
+    background: rgba(139,92,246,0.15);
+    border-radius: 6px;
+    color: var(--accent);
+}
+
+.buy-btn {
+    width: 100%;
+    padding: 8px;
+    background: var(--gradient);
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.buy-btn:active {
+    transform: scale(0.96);
+    background: var(--gradient-dark);
+}
+
+/* Full Width Card */
+.product-card.full-width {
+    grid-column: 1 / -1;
+}
+
+.product-card.full-width .product-content {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    text-align: left;
+}
+
+.product-card.full-width .product-icon {
+    margin: 0;
+}
+
+.product-card.full-width .product-info {
+    flex: 1;
+}
+
+.product-card.full-width .product-name {
+    font-size: 15px;
+}
+
+.product-card.full-width .product-price {
+    font-size: 22px;
+    margin: 0;
+    text-align: right;
+}
+
+.product-card.full-width .buy-btn {
+    margin-top: 8px;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(12px);
+    z-index: 1000;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    background: linear-gradient(180deg, #14141f 0%, #0c0c14 100%);
+    border-radius: 28px 28px 0 0;
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s cubic-bezier(0.32, 0.72, 0.24, 1.02);
+}
+
+.modal-handle {
+    width: 36px;
+    height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 4px;
+    margin: 12px auto 0;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    position: sticky;
+    top: 0;
+    background: inherit;
+    z-index: 5;
+}
+
+.modal-header h3 {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.modal-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: none;
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.modal-close:active {
+    background: var(--error);
+    color: white;
+    transform: rotate(90deg);
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+/* Payment Methods */
+.payment-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.payment-method {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--surface);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.payment-method:active {
+    transform: scale(0.98);
+    border-color: var(--accent);
+}
+
+.payment-method-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.payment-icon {
+    width: 44px;
+    height: 44px;
+    background: rgba(139,92,246,0.15);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+}
+
+.payment-info h4 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.payment-info p {
+    font-size: 10px;
+    color: var(--text-tertiary);
+}
+
+.payment-amount {
+    font-weight: 800;
+    color: var(--warning);
+    font-size: 15px;
+}
+
+/* Status Views */
+.status-view {
+    text-align: center;
+    padding: 30px 20px;
+}
+
+.status-icon {
+    font-size: 56px;
+    margin-bottom: 16px;
+}
+
+.status-icon.spin {
+    animation: spin 1s linear infinite;
+}
+
+.status-title {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 8px;
+}
+
+.status-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* Key Display */
+.key-box {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 14px;
+    border-radius: 14px;
+    font-family: monospace;
+    font-size: 12px;
+    text-align: center;
+    word-break: break-all;
+    color: var(--warning);
+    margin: 16px 0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.key-box:active {
+    background: rgba(139,92,246,0.1);
+}
+
+/* Action Buttons */
+.action-btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 14px;
+    background: var(--gradient);
+    color: white;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 10px;
+}
+
+.action-btn:active {
+    transform: scale(0.98);
+}
+
+.action-btn.secondary {
+    background: var(--surface);
+    color: var(--text);
+}
+
+.action-btn.secondary:active {
+    background: var(--surface-hover);
+}
+
+/* License Cards */
+.license-card {
+    background: var(--surface);
+    border-radius: 18px;
+    padding: 14px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+.license-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.license-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(139,92,246,0.15);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.license-info h4 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.license-date {
+    font-size: 10px;
+    color: var(--text-tertiary);
+}
+
+.license-key {
+    background: rgba(0,0,0,0.3);
+    padding: 10px;
+    border-radius: 12px;
+    font-family: monospace;
+    font-size: 11px;
+    text-align: center;
+    word-break: break-all;
+    color: var(--warning);
+    cursor: pointer;
+    margin-bottom: 8px;
+}
+
+.license-copy-btn {
+    width: 100%;
+    padding: 8px;
+    background: var(--surface);
+    border: none;
+    border-radius: 10px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.license-copy-btn:active {
+    background: var(--surface-hover);
+}
+
+/* Profile Card */
+.profile-card {
+    background: var(--surface);
+    border-radius: 24px;
+    padding: 24px;
+    text-align: center;
+    margin-bottom: 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+.profile-avatar {
+    width: 70px;
+    height: 70px;
+    background: var(--gradient);
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin: 0 auto 12px;
+}
+
+.profile-name {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 2px;
+}
+
+.profile-username {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+}
+
+.profile-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.stat-card {
+    background: var(--surface-hover);
+    border-radius: 14px;
+    padding: 12px;
+}
+
+.stat-number {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--accent);
+}
+
+.stat-label {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 50px 20px;
+}
+
+.empty-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+.empty-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+
+/* Toast */
+.toast {
+    position: fixed;
+    bottom: 100px;
+    left: 16px;
+    right: 16px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    z-index: 1100;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    animation: toastIn 0.3s ease;
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.toast.success {
+    background: rgba(16,185,129,0.2);
+    border: 1px solid rgba(16,185,129,0.3);
+    color: var(--success);
+}
+
+.toast.error {
+    background: rgba(239,68,68,0.2);
+    border: 1px solid rgba(239,68,68,0.3);
+    color: var(--error);
+}
+
+/* Pages */
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+    animation: fadeInUp 0.3s ease;
+}
+
+/* Bottom Navigation */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10,10,18,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 16px 12px;
+    z-index: 100;
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 6px 20px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.nav-item.active {
+    color: var(--accent);
+    background: rgba(139,92,246,0.1);
+}
+
+.nav-icon {
+    font-size: 20px;
+}
+
+/* Animations */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 8px 24px var(--accent-glow); }
+    50% { transform: scale(1.02); box-shadow: 0 12px 32px var(--accent-glow); }
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+@keyframes toastIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 3px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--surface-hover);
+    border-radius: 10px;
+}
 </style>
 </head>
 <body>
-
-<div class="orb orb1"></div>
-<div class="orb orb2"></div>
-<div class="orb orb3"></div>
-<canvas id="particles"></canvas>
+<div class="bg-gradient"></div>
+<div class="bg-grain"></div>
 
 <div class="app">
-  <div class="header">
-    <div class="logo-wrap">
-      <div class="logo">&#127919;</div>
-      <div class="logo-ring"><div class="logo-dot"></div></div>
+    <div class="header">
+        <div class="logo"><span>🎯</span></div>
+        <h1>AimNoob</h1>
+        <div class="tagline">Premium Cheat for Standoff 2</div>
     </div>
-    <h1>AimNoob</h1>
-    <div class="tagline">Premium Cheat &#8226; Standoff 2</div>
-  </div>
 
-  <div class="status-bar">
-    <span class="status-dot"></span>
-    <span>v0.37.1 &#8226; Online &#8226; Undetected</span>
-  </div>
+    <div style="text-align: center;">
+        <div class="status-badge">
+            <span class="status-dot"></span>
+            <span>v0.37.1 • Online • Undetected</span>
+        </div>
+    </div>
 
-  <div class="tabs">
-    <button class="tab active" data-tab="shop"><span class="tab-icon">&#128722;</span>&#1052;&#1072;&#1075;&#1072;&#1079;&#1080;&#1085;</button>
-    <button class="tab" data-tab="keys"><span class="tab-icon">&#128273;</span>&#1050;&#1083;&#1102;&#1095;&#1080;</button>
-    <button class="tab" data-tab="profile"><span class="tab-icon">&#128100;</span>&#1055;&#1088;&#1086;&#1092;&#1080;&#1083;&#1100;</button>
-  </div>
+    <div class="tabs">
+        <button class="tab active" data-tab="shop">
+            <span class="tab-icon">🛒</span>
+            <span>Магазин</span>
+        </button>
+        <button class="tab" data-tab="licenses">
+            <span class="tab-icon">🔑</span>
+            <span>Лицензии</span>
+        </button>
+        <button class="tab" data-tab="profile">
+            <span class="tab-icon">👤</span>
+            <span>Профиль</span>
+        </button>
+    </div>
 
-  <div id="page-shop" class="page active"></div>
-  <div id="page-keys" class="page"></div>
-  <div id="page-profile" class="page"></div>
+    <div id="page-shop" class="page active"></div>
+    <div id="page-licenses" class="page"></div>
+    <div id="page-profile" class="page"></div>
 </div>
 
-<div class="nav">
-  <button class="nav-btn active" data-tab="shop"><span class="ni">&#128722;</span><span>&#1064;&#1086;&#1087;</span></button>
-  <button class="nav-btn" data-tab="keys"><span class="ni">&#128273;</span><span>&#1050;&#1083;&#1102;&#1095;&#1080;</span></button>
-  <button class="nav-btn" data-tab="profile"><span class="ni">&#128100;</span><span>&#1055;&#1088;&#1086;&#1092;&#1080;&#1083;&#1100;</span></button>
+<div class="bottom-nav">
+    <button class="nav-item active" data-tab="shop">
+        <span class="nav-icon">🛒</span>
+        <span>Магазин</span>
+    </button>
+    <button class="nav-item" data-tab="licenses">
+        <span class="nav-icon">🔑</span>
+        <span>Лицензии</span>
+    </button>
+    <button class="nav-item" data-tab="profile">
+        <span class="nav-icon">👤</span>
+        <span>Профиль</span>
+    </button>
 </div>
 
-<div class="modal-overlay" id="modal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-head">
-      <div class="modal-title" id="mTitle">&#1047;&#1072;&#1082;&#1072;&#1079;</div>
-      <button class="modal-close" id="mClose">&times;</button>
+<div class="modal" id="paymentModal">
+    <div class="modal-content">
+        <div class="modal-handle"></div>
+        <div class="modal-header">
+            <h3 id="modalTitle">Оформление заказа</h3>
+            <button class="modal-close" id="modalClose">×</button>
+        </div>
+        <div class="modal-body" id="modalBody"></div>
     </div>
-    <div class="modal-body" id="mBody"></div>
-  </div>
 </div>
 
 <script>
-(function(){{
-var DOWNLOAD_URL='{download_url}';
-var SUPPORT='{support}';
-var tg=window.Telegram.WebApp;
-tg.expand();tg.enableClosingConfirmation();
-try{{tg.MainButton.hide()}}catch(e){{}}
-
-var API=window.location.origin+'/api';
-var user=tg.initDataUnsafe&&tg.initDataUnsafe.user?tg.initDataUnsafe.user:{{id:Date.now(),first_name:'Guest',username:'user'}};
-var licenses=JSON.parse(localStorage.getItem('an_lic')||'[]');
-var selected=null;
-
-var P={{
-android:[
-{{id:'apk_week',name:'Android',per:'&#1053;&#1077;&#1076;&#1077;&#1083;&#1103;',dur:'7 &#1076;&#1085;&#1077;&#1081;',price:150,stars:350,gold:350,nft:250,usdt:2,icon:'&#128241;',feats:['AimBot','WallHack','ESP'],pop:false,disc:0}},
-{{id:'apk_month',name:'Android',per:'&#1052;&#1077;&#1089;&#1103;&#1094;',dur:'30 &#1076;&#1085;&#1077;&#1081;',price:350,stars:800,gold:800,nft:600,usdt:5,icon:'&#128241;',feats:['AimBot','WallHack','ESP','Anti-Ban'],pop:true,disc:15}},
-{{id:'apk_forever',name:'Android',per:'&#1053;&#1072;&#1074;&#1089;&#1077;&#1075;&#1076;&#1072;',dur:'&#8734;',price:800,stars:1800,gold:1800,nft:1400,usdt:12,icon:'&#128241;',feats:['AimBot','WallHack','ESP','Anti-Ban','Updates'],pop:false,disc:30}}
-],
-ios:[
-{{id:'ios_week',name:'iOS',per:'&#1053;&#1077;&#1076;&#1077;&#1083;&#1103;',dur:'7 &#1076;&#1085;&#1077;&#1081;',price:300,stars:700,gold:700,nft:550,usdt:4,icon:'&#127822;',feats:['AimBot','WallHack','ESP'],pop:false,disc:0}},
-{{id:'ios_month',name:'iOS',per:'&#1052;&#1077;&#1089;&#1103;&#1094;',dur:'30 &#1076;&#1085;&#1077;&#1081;',price:450,stars:1000,gold:1000,nft:800,usdt:6,icon:'&#127822;',feats:['AimBot','WallHack','ESP','Anti-Ban'],pop:true,disc:10}},
-{{id:'ios_forever',name:'iOS',per:'&#1053;&#1072;&#1074;&#1089;&#1077;&#1075;&#1076;&#1072;',dur:'&#8734;',price:850,stars:2000,gold:2000,nft:1600,usdt:12,icon:'&#127822;',feats:['AimBot','WallHack','ESP','Anti-Ban','Updates'],pop:false,disc:25}}
-]
-}};
-
-// === PARTICLES ===
-var cv=document.getElementById('particles'),cx=cv.getContext('2d');
-function resizeCanvas(){{cv.width=window.innerWidth;cv.height=window.innerHeight}}
-resizeCanvas();window.addEventListener('resize',resizeCanvas);
-var pts=[];for(var i=0;i<40;i++)pts.push({{x:Math.random()*cv.width,y:Math.random()*cv.height,r:Math.random()*1.5+.5,dx:(Math.random()-.5)*.3,dy:(Math.random()-.5)*.3,o:Math.random()*.4+.1}});
-function drawParticles(){{
-cx.clearRect(0,0,cv.width,cv.height);
-for(var i=0;i<pts.length;i++){{
-var p=pts[i];p.x+=p.dx;p.y+=p.dy;
-if(p.x<0||p.x>cv.width)p.dx*=-1;
-if(p.y<0||p.y>cv.height)p.dy*=-1;
-cx.beginPath();cx.arc(p.x,p.y,p.r,0,Math.PI*2);
-cx.fillStyle='rgba(139,92,246,'+p.o+')';cx.fill();
-for(var j=i+1;j<pts.length;j++){{
-var q=pts[j],d=Math.hypot(p.x-q.x,p.y-q.y);
-if(d<120){{cx.beginPath();cx.moveTo(p.x,p.y);cx.lineTo(q.x,q.y);cx.strokeStyle='rgba(139,92,246,'+(1-d/120)*.08+')';cx.stroke()}}
-}}
-}}
-requestAnimationFrame(drawParticles);
-}}
-drawParticles();
-
-// === TABS ===
-function switchTab(t){{
-document.querySelectorAll('.tab,.nav-btn').forEach(function(b){{b.classList.toggle('active',b.dataset.tab===t)}});
-document.querySelectorAll('.page').forEach(function(p){{p.classList.toggle('active',p.id==='page-'+t)}});
-if(t==='shop')renderShop();
-else if(t==='keys')renderKeys();
-else if(t==='profile')renderProfile();
-}}
-document.querySelectorAll('.tab,.nav-btn').forEach(function(b){{b.addEventListener('click',function(){{switchTab(b.dataset.tab)}})}});
-
-// === RENDER SHOP ===
-function renderShop(){{
-var h='';
-['android','ios'].forEach(function(pl){{
-var icon=pl==='android'?'&#128241;':'&#127822;';
-var name=pl==='android'?'Android':'iOS';
-h+='<div class="section"><div class="section-head"><div class="section-title"><span>'+icon+'</span><span>'+name+'</span></div><div class="section-badge">3 &#1090;&#1072;&#1088;&#1080;&#1092;&#1072;</div></div><div class="cards">';
-P[pl].forEach(function(p,i){{
-var old=p.disc?Math.round(p.price*(1+p.disc/100)):'';
-var days=parseInt(p.dur);var ppd=(!isNaN(days)&&days>0)?(p.price/days).toFixed(0)+'&#8381;/&#1076;&#1077;&#1085;&#1100;':'&#1083;&#1091;&#1095;&#1096;&#1072;&#1103; &#1094;&#1077;&#1085;&#1072;';
-if(i===2){{
-h+='<div class="card card-full" data-pid="'+p.id+'">';
-h+='<div class="card-shine"></div>';
-if(p.pop)h+='<div class="card-badge">&#128293; HIT</div>';
-h+='<div class="card-body">';
-h+='<div class="card-icon">'+p.icon+'</div>';
-h+='<div class="card-info"><div class="card-name">'+p.name+' '+p.per+'</div><div class="card-period">'+p.dur+' &#8226; '+ppd+'</div></div>';
-h+='<div class="card-right"><div class="price-main">'+p.price+' &#8381;</div>'+(old?'<div class="price-old">'+old+' &#8381;</div>':'')+'</div>';
-h+='<button class="card-btn buy-btn" data-pid="'+p.id+'">&#128142; &#1050;&#1091;&#1087;&#1080;&#1090;&#1100;</button>';
-h+='</div></div>';
-}}else{{
-h+='<div class="card" data-pid="'+p.id+'">';
-h+='<div class="card-shine"></div>';
-if(p.pop)h+='<div class="card-badge">&#128293; HIT</div>';
-h+='<div class="card-body">';
-h+='<div class="card-icon">'+p.icon+'</div>';
-h+='<div class="card-name">'+p.name+'</div>';
-h+='<div class="card-period">'+p.per+' &#8226; '+p.dur+'</div>';
-h+='<div class="card-price"><span class="price-main">'+p.price+'&#8381;</span>'+(old?'<span class="price-old">'+old+'&#8381;</span>':'')+'</div>';
-h+='<div class="price-per">'+ppd+'</div>';
-h+='<div class="card-features">'+p.feats.map(function(f){{return '<span class="feat">'+f+'</span>'}}).join('')+'</div>';
-h+='<button class="card-btn buy-btn" data-pid="'+p.id+'">'+(p.pop?'&#128293;':'&#128722;')+' &#1050;&#1091;&#1087;&#1080;&#1090;&#1100;</button>';
-h+='</div></div>';
-}}
-}});
-h+='</div></div>';
-}});
-document.getElementById('page-shop').innerHTML=h;
-document.querySelectorAll('.buy-btn').forEach(function(b){{
-b.addEventListener('click',function(e){{e.stopPropagation();var p=findP(b.dataset.pid);if(p)openPayModal(p)}});
-}});
-}}
-
-function findP(id){{
-var all=P.android.concat(P.ios);return all.find(function(x){{return x.id===id}})
-}}
-
-// === MODAL ===
-function openModal(title){{document.getElementById('mTitle').textContent=title;document.getElementById('modal').classList.add('open')}}
-function closeModal(){{document.getElementById('modal').classList.remove('open')}}
-document.getElementById('mClose').addEventListener('click',closeModal);
-document.getElementById('modal').addEventListener('click',function(e){{if(e.target===this)closeModal()}});
-
-// === PAYMENT MODAL ===
-function openPayModal(p){{
-selected=p;
-openModal('&#1057;&#1087;&#1086;&#1089;&#1086;&#1073; &#1086;&#1087;&#1083;&#1072;&#1090;&#1099;');
-var mb=document.getElementById('mBody');
-mb.innerHTML='<div class="product-summary"><div class="ps-icon">'+p.icon+'</div><div class="ps-name">'+p.name+' &#8226; '+p.per+'</div><div class="ps-period">'+p.dur+'</div><div class="ps-price">'+p.price+' &#8381;</div></div>'
-+'<div class="pay-list">'
-+'<div class="pay-item" data-m="yoomoney"><div class="pay-left"><div class="pay-icon">&#128179;</div><div><div class="pay-name">&#1050;&#1072;&#1088;&#1090;&#1086;&#1081;</div><div class="pay-desc">Visa, MC, &#1052;&#1080;&#1088;, SBP</div></div></div><div class="pay-amount">'+p.price+' &#8381;</div></div>'
-+'<div class="pay-item" data-m="stars"><div class="pay-left"><div class="pay-icon">&#11088;</div><div><div class="pay-name">Telegram Stars</div><div class="pay-desc">&#1042;&#1089;&#1090;&#1088;&#1086;&#1077;&#1085;&#1085;&#1099;&#1077; &#1087;&#1083;&#1072;&#1090;&#1077;&#1078;&#1080;</div></div></div><div class="pay-amount">'+p.stars+' &#11088;</div></div>'
-+'<div class="pay-item" data-m="crypto"><div class="pay-left"><div class="pay-icon">&#8383;</div><div><div class="pay-name">&#1050;&#1088;&#1080;&#1087;&#1090;&#1072;</div><div class="pay-desc">USDT, BTC, ETH, TON</div></div></div><div class="pay-amount">'+p.usdt+' USDT</div></div>'
-+'<div class="pay-item" data-m="gold"><div class="pay-left"><div class="pay-icon">&#128176;</div><div><div class="pay-name">GOLD</div><div class="pay-desc">&#1048;&#1075;&#1088;&#1086;&#1074;&#1072;&#1103; &#1074;&#1072;&#1083;&#1102;&#1090;&#1072;</div></div></div><div class="pay-amount">'+p.gold+' &#129689;</div></div>'
-+'<div class="pay-item" data-m="nft"><div class="pay-left"><div class="pay-icon">&#127912;</div><div><div class="pay-name">NFT</div><div class="pay-desc">&#1050;&#1086;&#1083;&#1083;&#1077;&#1082;&#1094;&#1080;&#1086;&#1085;&#1085;&#1099;&#1077;</div></div></div><div class="pay-amount">'+p.nft+' &#128444;</div></div>'
-+'</div>';
-mb.querySelectorAll('.pay-item').forEach(function(el){{
-el.addEventListener('click',function(){{processPayment(el.dataset.m)}});
-}});
-}}
-
-function processPayment(method){{
-var mb=document.getElementById('mBody');
-mb.innerHTML='<div class="status-view"><div class="status-emoji spin">&#9203;</div><div class="status-title">&#1057;&#1086;&#1079;&#1076;&#1072;&#1085;&#1080;&#1077; &#1087;&#1083;&#1072;&#1090;&#1077;&#1078;&#1072;...</div></div>';
-fetch(API+'/create_payment',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{product_id:selected.id,method:method,user_id:user.id,user_name:user.first_name+' '+(user.last_name||''),init_data:tg.initData}})}}
-).then(function(r){{return r.json()}}).then(function(res){{
-if(!res.success)throw new Error(res.error||'Error');
-if(method==='yoomoney')showPayView(res.payment_url,res.order_id,'&#128179;',selected.price+' &#8381;','ym');
-else if(method==='stars'){{
-mb.innerHTML='<div class="status-view"><div class="status-emoji">&#11088;</div><div class="status-title">'+selected.stars+' Stars</div><div class="status-desc">&#1054;&#1087;&#1083;&#1072;&#1090;&#1080;&#1090;&#1077; &#1074; &#1073;&#1086;&#1090;&#1077;</div></div><button class="action-btn" id="starsBtn">&#11088; &#1054;&#1087;&#1083;&#1072;&#1090;&#1080;&#1090;&#1100; &#1074; &#1073;&#1086;&#1090;&#1077;</button>';
-document.getElementById('starsBtn').addEventListener('click',function(){{tg.openTelegramLink('https://t.me/aimnoob_bot?start=buy_stars_'+selected.id)}});
-}}
-else if(method==='crypto')showPayView(res.payment_url,res.order_id,'&#8383;',selected.usdt+' USDT','cr',res.invoice_id);
-else showManual(method,res.order_id);
-}}).catch(function(e){{toast(e.message,'error');setTimeout(function(){{openPayModal(selected)}},1200)}});
-}}
-
-function showPayView(url,oid,icon,amount,type,invoiceId){{
-var mb=document.getElementById('mBody');
-mb.innerHTML='<div class="status-view"><div class="status-emoji">'+icon+'</div><div class="status-title">'+amount+'</div><div class="status-desc">&#1047;&#1072;&#1082;&#1072;&#1079; #'+oid.slice(-8)+'</div></div><button class="action-btn" id="goPayBtn">&#128279; &#1054;&#1087;&#1083;&#1072;&#1090;&#1080;&#1090;&#1100;</button><button class="action-btn secondary" id="goCheckBtn" style="margin-top:8px">&#9989; &#1055;&#1088;&#1086;&#1074;&#1077;&#1088;&#1080;&#1090;&#1100; &#1086;&#1087;&#1083;&#1072;&#1090;&#1091;</button>';
-document.getElementById('goPayBtn').addEventListener('click',function(){{window.open(url,'_blank')}});
-document.getElementById('goCheckBtn').addEventListener('click',function(){{
-if(type==='ym')checkYM(oid);else checkCR(oid,invoiceId);
-}});
-}}
-
-function showManual(method,oid){{
-var names={{gold:'GOLD',nft:'NFT'}},amounts={{gold:selected.gold,nft:selected.nft}},icons={{gold:'&#128176;',nft:'&#127912;'}};
-var msg='&#1055;&#1088;&#1080;&#1074;&#1077;&#1090;! &#1061;&#1086;&#1095;&#1091; &#1082;&#1091;&#1087;&#1080;&#1090;&#1100; AimNoob '+selected.name+' &#1085;&#1072; '+selected.per+' &#1079;&#1072; '+amounts[method]+' '+names[method];
-var mb=document.getElementById('mBody');
-mb.innerHTML='<div class="status-view"><div class="status-emoji">'+icons[method]+'</div><div class="status-title">'+amounts[method]+' '+names[method]+'</div><div class="status-desc" style="background:var(--surface);padding:10px;border-radius:10px;margin:8px 0;font-size:11px;color:var(--text)">'+msg+'</div></div><button class="action-btn" id="manPayBtn">&#128172; &#1053;&#1072;&#1087;&#1080;&#1089;&#1072;&#1090;&#1100;</button><button class="action-btn secondary" id="manDoneBtn" style="margin-top:8px">&#9989; &#1071; &#1085;&#1072;&#1087;&#1080;&#1089;&#1072;&#1083;</button>';
-document.getElementById('manPayBtn').addEventListener('click',function(){{window.open('https://t.me/'+SUPPORT+'?text='+encodeURIComponent(msg),'_blank')}});
-document.getElementById('manDoneBtn').addEventListener('click',function(){{closeModal();toast('&#1047;&#1072;&#1082;&#1072;&#1079; &#1089;&#1086;&#1079;&#1076;&#1072;&#1085;!')}});
-}}
-
-function checkYM(oid){{
-var mb=document.getElementById('mBody');
-mb.innerHTML='<div class="status-view"><div class="status-emoji spin">&#9203;</div><div class="status-title">&#1055;&#1088;&#1086;&#1074;&#1077;&#1088;&#1082;&#1072;...</div><div class="status-desc">15-25 &#1089;&#1077;&#1082;&#1091;&#1085;&#1076;</div></div>';
-fetch(API+'/check_payment',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{order_id:oid}})}}).then(function(r){{return r.json()}}).then(function(res){{
-if(res.paid)showSuccess(res.license_key);
-else{{mb.innerHTML='<div class="status-view"><div class="status-emoji">&#9203;</div><div class="status-title">&#1053;&#1077; &#1085;&#1072;&#1081;&#1076;&#1077;&#1085;</div><div class="status-desc">&#1055;&#1086;&#1087;&#1088;&#1086;&#1073;&#1091;&#1081;&#1090;&#1077; &#1095;&#1077;&#1088;&#1077;&#1079; 1-2 &#1084;&#1080;&#1085;</div></div><button class="action-btn secondary" id="retryBtn">&#128260; &#1055;&#1086;&#1074;&#1090;&#1086;&#1088;&#1080;&#1090;&#1100;</button>';document.getElementById('retryBtn').addEventListener('click',function(){{checkYM(oid)}})}}
-}}).catch(function(){{toast('&#1054;&#1096;&#1080;&#1073;&#1082;&#1072;','error')}});
-}}
-
-function checkCR(oid,iid){{
-var mb=document.getElementById('mBody');
-mb.innerHTML='<div class="status-view"><div class="status-emoji spin">&#9203;</div><div class="status-title">&#1055;&#1088;&#1086;&#1074;&#1077;&#1088;&#1082;&#1072;...</div></div>';
-fetch(API+'/check_crypto',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{invoice_id:iid,order_id:oid}})}}).then(function(r){{return r.json()}}).then(function(res){{
-if(res.paid)showSuccess(res.license_key);
-else{{mb.innerHTML='<div class="status-view"><div class="status-emoji">&#9203;</div><div class="status-title">&#1042; &#1086;&#1073;&#1088;&#1072;&#1073;&#1086;&#1090;&#1082;&#1077;</div></div><button class="action-btn secondary" id="retryCBtn">&#128260; &#1055;&#1086;&#1074;&#1090;&#1086;&#1088;&#1080;&#1090;&#1100;</button>';document.getElementById('retryCBtn').addEventListener('click',function(){{checkCR(oid,iid)}})}}
-}}).catch(function(){{toast('&#1054;&#1096;&#1080;&#1073;&#1082;&#1072;','error')}});
-}}
-
-function showSuccess(key){{
-licenses.push({{key:key,product:selected.name+' &#8226; '+selected.per,date:new Date().toISOString()}});
-localStorage.setItem('an_lic',JSON.stringify(licenses));
-var mb=document.getElementById('mBody');
-document.getElementById('mTitle').textContent='&#1059;&#1089;&#1087;&#1077;&#1093;!';
-mb.innerHTML='<div class="status-view"><div class="status-emoji">&#9989;</div><div class="status-title">&#1054;&#1087;&#1083;&#1072;&#1090;&#1072; &#1087;&#1086;&#1076;&#1090;&#1074;&#1077;&#1088;&#1078;&#1076;&#1077;&#1085;&#1072;!</div><div class="status-desc">&#1042;&#1072;&#1096; &#1082;&#1083;&#1102;&#1095; &#1072;&#1082;&#1090;&#1080;&#1074;&#1080;&#1088;&#1086;&#1074;&#1072;&#1085;</div></div><div class="key-box" id="keyBox">&#128273; '+key+'</div><button class="action-btn" id="dlBtn">&#128229; &#1057;&#1082;&#1072;&#1095;&#1072;&#1090;&#1100; AimNoob</button><button class="action-btn secondary" id="toKeysBtn" style="margin-top:8px">&#128203; &#1052;&#1086;&#1080; &#1082;&#1083;&#1102;&#1095;&#1080;</button>';
-document.getElementById('keyBox').addEventListener('click',function(){{copyKey(key)}});
-document.getElementById('dlBtn').addEventListener('click',function(){{window.open(DOWNLOAD_URL,'_blank')}});
-document.getElementById('toKeysBtn').addEventListener('click',function(){{closeModal();switchTab('keys')}});
-try{{tg.HapticFeedback.notificationOccurred('success')}}catch(e){{}}
-}}
-
-// === KEYS ===
-function renderKeys(){{
-var el=document.getElementById('page-keys');
-if(!licenses.length){{
-el.innerHTML='<div class="empty"><div class="empty-icon">&#128273;</div><div class="empty-text">&#1053;&#1077;&#1090; &#1072;&#1082;&#1090;&#1080;&#1074;&#1085;&#1099;&#1093; &#1082;&#1083;&#1102;&#1095;&#1077;&#1081;</div><button class="action-btn" id="goShopBtn">&#128722; &#1042; &#1084;&#1072;&#1075;&#1072;&#1079;&#1080;&#1085;</button></div>';
-document.getElementById('goShopBtn').addEventListener('click',function(){{switchTab('shop')}});
-return;
-}}
-var h='<div class="section"><div class="section-head"><div class="section-title"><span>&#128273;</span><span>&#1052;&#1086;&#1080; &#1083;&#1080;&#1094;&#1077;&#1085;&#1079;&#1080;&#1080;</span></div><div class="section-badge">'+licenses.length+'</div></div>';
-licenses.forEach(function(l){{
-h+='<div class="license-card"><div class="license-header"><div class="license-icon">&#127919;</div><div><div class="license-name">'+l.product+'</div><div class="license-date">'+new Date(l.date).toLocaleDateString('ru-RU')+'</div></div></div><div class="license-key" data-key="'+l.key+'">'+l.key+'</div><button class="license-copy" data-key="'+l.key+'">&#128203; &#1057;&#1082;&#1086;&#1087;&#1080;&#1088;&#1086;&#1074;&#1072;&#1090;&#1100;</button></div>';
-}});
-h+='</div>';
-el.innerHTML=h;
-el.querySelectorAll('.license-key,.license-copy').forEach(function(b){{
-b.addEventListener('click',function(){{copyKey(b.dataset.key)}});
-}});
-}}
-
-// === PROFILE ===
-function renderProfile(){{
-var avatars=['&#127919;','&#128293;','&#9889;','&#128142;','&#127775;','&#127918;','&#128640;','&#128170;'];
-var av=avatars[Math.abs(user.id)%avatars.length];
-var ln=user.last_name||'';
-var un=user.username||'user';
-var el=document.getElementById('page-profile');
-el.innerHTML='<div class="profile-card"><div class="profile-avatar">'+av+'</div><div class="profile-name">'+user.first_name+' '+ln+'</div><div class="profile-username">@'+un+'</div><div class="profile-stats"><div class="stat-box"><div class="stat-num">'+licenses.length+'</div><div class="stat-label">&#1050;&#1083;&#1102;&#1095;&#1077;&#1081;</div></div><div class="stat-box"><div class="stat-num">v0.37</div><div class="stat-label">&#1042;&#1077;&#1088;&#1089;&#1080;&#1103;</div></div></div></div><button class="action-btn" id="supBtn">&#128172; &#1055;&#1086;&#1076;&#1076;&#1077;&#1088;&#1078;&#1082;&#1072;</button><button class="action-btn secondary" id="dlBtn2" style="margin-top:8px">&#128229; &#1057;&#1082;&#1072;&#1095;&#1072;&#1090;&#1100;</button>';
-document.getElementById('supBtn').addEventListener('click',function(){{window.open('https://t.me/'+SUPPORT,'_blank')}});
-document.getElementById('dlBtn2').addEventListener('click',function(){{window.open(DOWNLOAD_URL,'_blank')}});
-}}
-
-// === UTILS ===
-function copyKey(k){{
-navigator.clipboard.writeText(k).then(function(){{toast('&#1050;&#1083;&#1102;&#1095; &#1089;&#1082;&#1086;&#1087;&#1080;&#1088;&#1086;&#1074;&#1072;&#1085;!')}}).catch(function(){{toast('&#1054;&#1096;&#1080;&#1073;&#1082;&#1072;','error')}});
-try{{tg.HapticFeedback.impactOccurred('light')}}catch(e){{}}
-}}
-function toast(msg,type){{
-type=type||'success';
-var t=document.createElement('div');t.className='toast '+type;
-t.innerHTML='<span>'+(type==='success'?'&#9989;':'&#10060;')+'</span><span>'+msg+'</span>';
-document.body.appendChild(t);setTimeout(function(){{t.remove()}},3000);
-}}
-
-renderShop();
-tg.ready();
-}})();
+(function() {
+    // Telegram WebApp
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    tg.enableClosingConfirmation();
+    
+    // User Data
+    const user = tg.initDataUnsafe?.user || { id: Date.now(), first_name: 'Guest', username: 'user' };
+    
+    // Storage
+    let licenses = JSON.parse(localStorage.getItem('aimnoob_licenses') || '[]');
+    let currentProduct = null;
+    
+    // Products
+    const PRODUCTS = {
+        android: [
+            { id: 'apk_week', name: 'Android', period: 'Неделя', duration: '7 дней', price: 150, stars: 350, gold: 350, nft: 250, usdt: 2, icon: '📱', features: ['AimBot', 'WallHack', 'ESP'], hit: false },
+            { id: 'apk_month', name: 'Android', period: 'Месяц', duration: '30 дней', price: 350, stars: 800, gold: 800, nft: 600, usdt: 5, icon: '📱', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban'], hit: true },
+            { id: 'apk_forever', name: 'Android', period: 'Навсегда', duration: '∞', price: 800, stars: 1800, gold: 1800, nft: 1400, usdt: 12, icon: '📱', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban', 'Updates'], hit: false }
+        ],
+        ios: [
+            { id: 'ios_week', name: 'iOS', period: 'Неделя', duration: '7 дней', price: 300, stars: 700, gold: 700, nft: 550, usdt: 4, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP'], hit: false },
+            { id: 'ios_month', name: 'iOS', period: 'Месяц', duration: '30 дней', price: 450, stars: 1000, gold: 1000, nft: 800, usdt: 6, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban'], hit: true },
+            { id: 'ios_forever', name: 'iOS', period: 'Навсегда', duration: '∞', price: 850, stars: 2000, gold: 2000, nft: 1600, usdt: 12, icon: '🍎', features: ['AimBot', 'WallHack', 'ESP', 'Anti-Ban', 'Updates'], hit: false }
+        ]
+    };
+    
+    const API = window.location.origin + '/api';
+    const SUPPORT = '{support}';
+    const DOWNLOAD_URL = '{download_url}';
+    
+    // Helper Functions
+    function toast(message, type = 'success') {
+        const toastEl = document.createElement('div');
+        toastEl.className = `toast ${type}`;
+        toastEl.innerHTML = `<span>${type === 'success' ? '✅' : '❌'}</span><span>${message}</span>`;
+        document.body.appendChild(toastEl);
+        setTimeout(() => toastEl.remove(), 3000);
+    }
+    
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            toast('Ключ скопирован!');
+            tg.HapticFeedback.notificationOccurred('success');
+        }).catch(() => toast('Ошибка копирования', 'error'));
+    }
+    
+    function saveLicenses() {
+        localStorage.setItem('aimnoob_licenses', JSON.stringify(licenses));
+    }
+    
+    // Modal
+    const modal = document.getElementById('paymentModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    const modalClose = document.getElementById('modalClose');
+    
+    function openModal(title) {
+        modalTitle.textContent = title;
+        modal.classList.add('active');
+    }
+    
+    function closeModal() {
+        modal.classList.remove('active');
+        currentProduct = null;
+    }
+    
+    modalClose.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    
+    // Payment Methods Modal
+    function openPaymentModal(product) {
+        currentProduct = product;
+        openModal('Выберите способ оплаты');
+        
+        modalBody.innerHTML = `
+            <div class="product-summary" style="background: var(--surface); border-radius: 20px; padding: 16px; text-align: center; margin-bottom: 20px;">
+                <div style="font-size: 48px; margin-bottom: 8px;">${product.icon}</div>
+                <div style="font-weight: 700; font-size: 16px;">${product.name} • ${product.period}</div>
+                <div style="font-size: 12px; color: var(--text-tertiary); margin: 4px 0;">${product.duration}</div>
+                <div style="font-size: 24px; font-weight: 800; color: var(--warning); margin-top: 8px;">${product.price} ₽</div>
+            </div>
+            <div class="payment-methods">
+                <div class="payment-method" data-method="yoomoney">
+                    <div class="payment-method-left">
+                        <div class="payment-icon">💳</div>
+                        <div class="payment-info">
+                            <h4>Банковская карта</h4>
+                            <p>Visa, Mastercard, Мир, SBP</p>
+                        </div>
+                    </div>
+                    <div class="payment-amount">${product.price} ₽</div>
+                </div>
+                <div class="payment-method" data-method="stars">
+                    <div class="payment-method-left">
+                        <div class="payment-icon">⭐️</div>
+                        <div class="payment-info">
+                            <h4>Telegram Stars</h4>
+                            <p>Встроенные платежи Telegram</p>
+                        </div>
+                    </div>
+                    <div class="payment-amount">${product.stars} ⭐️</div>
+                </div>
+                <div class="payment-method" data-method="crypto">
+                    <div class="payment-method-left">
+                        <div class="payment-icon">₿</div>
+                        <div class="payment-info">
+                            <h4>Криптовалюта</h4>
+                            <p>USDT, BTC, ETH, TON</p>
+                        </div>
+                    </div>
+                    <div class="payment-amount">${product.usdt} USDT</div>
+                </div>
+                <div class="payment-method" data-method="gold">
+                    <div class="payment-method-left">
+                        <div class="payment-icon">💰</div>
+                        <div class="payment-info">
+                            <h4>GOLD</h4>
+                            <p>Игровая валюта</p>
+                        </div>
+                    </div>
+                    <div class="payment-amount">${product.gold} 🪙</div>
+                </div>
+                <div class="payment-method" data-method="nft">
+                    <div class="payment-method-left">
+                        <div class="payment-icon">🎨</div>
+                        <div class="payment-info">
+                            <h4>NFT</h4>
+                            <p>Коллекционные токены</p>
+                        </div>
+                    </div>
+                    <div class="payment-amount">${product.nft} 🖼️</div>
+                </div>
+            </div>
+        `;
+        
+        document.querySelectorAll('.payment-method').forEach(el => {
+            el.addEventListener('click', () => processPayment(el.dataset.method));
+        });
+    }
+    
+    // Process Payment
+    async function processPayment(method) {
+        modalBody.innerHTML = `
+            <div class="status-view">
+                <div class="status-icon spin">⏳</div>
+                <div class="status-title">Создание платежа...</div>
+                <div class="status-desc">Пожалуйста, подождите</div>
+            </div>
+        `;
+        
+        try {
+            const response = await fetch(API + '/create_payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    product_id: currentProduct.id,
+                    method: method,
+                    user_id: user.id,
+                    user_name: user.first_name + (user.last_name ? ' ' + user.last_name : ''),
+                    init_data: tg.initData
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (!data.success) throw new Error(data.error || 'Ошибка создания платежа');
+            
+            if (method === 'yoomoney') {
+                showPaymentView(data.payment_url, data.order_id, '💳', currentProduct.price + ' ₽', 'yoomoney');
+            } else if (method === 'stars') {
+                modalBody.innerHTML = `
+                    <div class="status-view">
+                        <div class="status-icon">⭐️</div>
+                        <div class="status-title">${currentProduct.stars} Stars</div>
+                        <div class="status-desc">Оплатите в боте Telegram</div>
+                        <button class="action-btn" id="starsPayBtn" style="margin-top: 20px;">⭐️ Оплатить в боте</button>
+                    </div>
+                `;
+                document.getElementById('starsPayBtn').addEventListener('click', () => {
+                    tg.openTelegramLink('https://t.me/aimnoob_bot?start=buy_stars_' + currentProduct.id);
+                });
+            } else if (method === 'crypto') {
+                showPaymentView(data.payment_url, data.order_id, '₿', currentProduct.usdt + ' USDT', 'crypto', data.invoice_id);
+            } else {
+                showManualPayment(method, data.order_id);
+            }
+        } catch (err) {
+            toast(err.message, 'error');
+            setTimeout(() => openPaymentModal(currentProduct), 1000);
+        }
+    }
+    
+    function showPaymentView(url, orderId, icon, amount, type, invoiceId) {
+        modalBody.innerHTML = `
+            <div class="status-view">
+                <div class="status-icon">${icon}</div>
+                <div class="status-title">${amount}</div>
+                <div class="status-desc">Заказ #${orderId.slice(-8)}</div>
+                <button class="action-btn" id="payNowBtn" style="margin-top: 20px;">🔗 Перейти к оплате</button>
+                <button class="action-btn secondary" id="checkPayBtn">✅ Проверить оплату</button>
+            </div>
+        `;
+        
+        document.getElementById('payNowBtn').addEventListener('click', () => {
+            window.open(url, '_blank');
+        });
+        
+        document.getElementById('checkPayBtn').addEventListener('click', async () => {
+            if (type === 'yoomoney') {
+                await checkYooMoneyPayment(orderId);
+            } else if (type === 'crypto') {
+                await checkCryptoPayment(orderId, invoiceId);
+            }
+        });
+    }
+    
+    function showManualPayment(method, orderId) {
+        const methods = {
+            gold: { name: 'GOLD', icon: '💰', amount: currentProduct.gold, emoji: '🪙' },
+            nft: { name: 'NFT', icon: '🎨', amount: currentProduct.nft, emoji: '🖼️' }
+        };
+        const m = methods[method];
+        const message = `Привет! Хочу купить AimNoob ${currentProduct.name} на ${currentProduct.period} за ${m.amount} ${m.name}`;
+        
+        modalBody.innerHTML = `
+            <div class="status-view">
+                <div class="status-icon">${m.icon}</div>
+                <div class="status-title">${m.amount} ${m.name}</div>
+                <div class="status-desc" style="background: var(--surface); padding: 12px; border-radius: 14px; margin: 16px 0; font-size: 11px;">
+                    ${message}
+                </div>
+                <button class="action-btn" id="contactSupportBtn">💬 Написать поддержке</button>
+                <button class="action-btn secondary" id="notifySupportBtn">✅ Я написал</button>
+            </div>
+        `;
+        
+        document.getElementById('contactSupportBtn').addEventListener('click', () => {
+            window.open(`https://t.me/${SUPPORT}?text=${encodeURIComponent(message)}`, '_blank');
+        });
+        
+        document.getElementById('notifySupportBtn').addEventListener('click', () => {
+            closeModal();
+            toast(`Заказ #${orderId.slice(-8)} создан! Ожидайте подтверждения`, 'success');
+        });
+    }
+    
+    async function checkYooMoneyPayment(orderId) {
+        modalBody.innerHTML = `
+            <div class="status-view">
+                <div class="status-icon spin">⏳</div>
+                <div class="status-title">Проверка платежа...</div>
+                <div class="status-desc">Это может занять 15-25 секунд</div>
+            </div>
+        `;
+        
+        try {
+            const response = await fetch(API + '/check_payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order_id: orderId })
+            });
+            const data = await response.json();
+            
+            if (data.paid) {
+                showSuccess(data.license_key);
+            } else {
+                modalBody.innerHTML = `
+                    <div class="status-view">
+                        <div class="status-icon">⏳</div>
+                        <div class="status-title">Платеж не найден</div>
+                        <div class="status-desc">Попробуйте через 1-2 минуты</div>
+                        <button class="action-btn secondary" id="retryBtn" style="margin-top: 20px;">🔄 Повторить</button>
+                    </div>
+                `;
+                document.getElementById('retryBtn').addEventListener('click', () => checkYooMoneyPayment(orderId));
+            }
+        } catch (err) {
+            toast('Ошибка проверки', 'error');
+        }
+    }
+    
+    async function checkCryptoPayment(orderId, invoiceId) {
+        modalBody.innerHTML = `
+            <div class="status-view">
+                <div class="status-icon spin">⏳</div>
+                <div class="status-title">Проверка платежа...</div>
+                <div class="status-desc">Ожидание подтверждения сети</div>
+            </div>
+        `;
+        
+        try {
+            const response = await fetch(API + '/check_crypto', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ invoice_id: invoiceId, order_id: orderId })
+            });
+            const data = await response.json();
+            
+            if (data.paid) {
+                showSuccess(data.license_key);
+            } else {
+                modalBody.innerHTML = `
+                    <div class="status-view">
+                        <div class="status-icon">⏳</div>
+                        <div class="status-title">В обработке</div>
+                        <div class="status-desc">Платеж не подтвержден, попробуйте позже</div>
+                        <button class="action-btn secondary" id="retryBtn" style="margin-top: 20px;">🔄 Повторить</button>
+                    </div>
+                `;
+                document.getElementById('retryBtn').addEventListener('click', () => checkCryptoPayment(orderId, invoiceId));
+            }
+        } catch (err) {
+            toast('Ошибка проверки', 'error');
+        }
+    }
+    
+    function showSuccess(licenseKey) {
+        const productInfo = `${currentProduct.name} • ${currentProduct.period}`;
+        licenses.unshift({
+            key: licenseKey,
+            product: productInfo,
+            date: new Date().toISOString()
+        });
+        saveLicenses();
+        
+        modalTitle.textContent = 'Успешная оплата!';
+        modalBody.innerHTML = `
+            <div class="status-view">
+                <div class="status-icon">✅</div>
+                <div class="status-title">Оплата подтверждена!</div>
+                <div class="status-desc">Ваш лицензионный ключ активирован</div>
+                <div class="key-box" id="licenseKeyBox">🔑 ${licenseKey}</div>
+                <button class="action-btn" id="downloadBtn">📥 Скачать AimNoob</button>
+                <button class="action-btn secondary" id="myKeysBtn">🔑 Мои лицензии</button>
+            </div>
+        `;
+        
+        document.getElementById('licenseKeyBox').addEventListener('click', () => copyToClipboard(licenseKey));
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            window.open(DOWNLOAD_URL, '_blank');
+        });
+        document.getElementById('myKeysBtn').addEventListener('click', () => {
+            closeModal();
+            switchTab('licenses');
+        });
+        
+        tg.HapticFeedback.notificationOccurred('success');
+        renderLicenses();
+    }
+    
+    // Render Shop
+    function renderShop() {
+        const container = document.getElementById('page-shop');
+        let html = '';
+        
+        ['android', 'ios'].forEach(platform => {
+            const platformName = platform === 'android' ? '📱 Android' : '🍎 iOS';
+            html += `
+                <div class="section">
+                    <div class="section-title">
+                        <i>${platform === 'android' ? '📱' : '🍎'}</i>
+                        <span>${platformName}</span>
+                    </div>
+                    <div class="products-grid">
+            `;
+            
+            PRODUCTS[platform].forEach(product => {
+                const isLast = product.id.includes('forever');
+                const cardClass = isLast ? 'product-card full-width' : 'product-card';
+                const badgeHtml = product.hit ? '<div class="product-badge">🔥 HIT</div>' : '';
+                
+                html += `
+                    <div class="${cardClass}" data-product='${JSON.stringify(product)}'>
+                        ${badgeHtml}
+                        <div class="product-content">
+                            <div class="product-icon">${product.icon}</div>
+                            ${!isLast ? `
+                                <div class="product-name">${product.name}</div>
+                                <div class="product-period">${product.period} • ${product.duration}</div>
+                                <div class="product-price">${product.price} ₽</div>
+                                <div class="product-features">
+                                    ${product.features.map(f => `<span class="feature">${f}</span>`).join('')}
+                                </div>
+                                <button class="buy-btn" data-id="${product.id}">🛒 Купить</button>
+                            ` : `
+                                <div class="product-info">
+                                    <div class="product-name">${product.name} ${product.period}</div>
+                                    <div class="product-period">${product.duration}</div>
+                                </div>
+                                <div class="product-price">${product.price} ₽</div>
+                                <button class="buy-btn" data-id="${product.id}">🛒 Купить</button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `</div></div>`;
+        });
+        
+        container.innerHTML = html;
+        
+        document.querySelectorAll('.buy-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const productId = btn.dataset.id;
+                let product = null;
+                for (const platform of ['android', 'ios']) {
+                    product = PRODUCTS[platform].find(p => p.id === productId);
+                    if (product) break;
+                }
+                if (product) openPaymentModal(product);
+            });
+        });
+    }
+    
+    // Render Licenses
+    function renderLicenses() {
+        const container = document.getElementById('page-licenses');
+        
+        if (licenses.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">🔑</div>
+                    <div class="empty-text">У вас пока нет активных лицензий</div>
+                    <button class="action-btn" id="goToShopBtn">🛒 Перейти в магазин</button>
+                </div>
+            `;
+            document.getElementById('goToShopBtn')?.addEventListener('click', () => switchTab('shop'));
+            return;
+        }
+        
+        let html = `<div class="section"><div class="section-title"><i>🔑</i><span>Мои лицензии</span></div>`;
+        
+        licenses.forEach(license => {
+            const date = new Date(license.date).toLocaleDateString('ru-RU');
+            html += `
+                <div class="license-card">
+                    <div class="license-header">
+                        <div class="license-icon">🎯</div>
+                        <div class="license-info">
+                            <h4>${license.product}</h4>
+                            <div class="license-date">Активирована: ${date}</div>
+                        </div>
+                    </div>
+                    <div class="license-key" data-key="${license.key}">${license.key}</div>
+                    <button class="license-copy-btn" data-key="${license.key}">📋 Скопировать ключ</button>
+                </div>
+            `;
+        });
+        
+        html += `</div>`;
+        container.innerHTML = html;
+        
+        document.querySelectorAll('.license-key, .license-copy-btn').forEach(el => {
+            el.addEventListener('click', () => copyToClipboard(el.dataset.key));
+        });
+    }
+    
+    // Render Profile
+    function renderProfile() {
+        const avatarEmojis = ['🎯', '🔥', '⚡️', '💎', '⭐️', '🎮', '🚀', '💪'];
+        const avatar = avatarEmojis[Math.abs(user.id) % avatarEmojis.length];
+        
+        const container = document.getElementById('page-profile');
+        container.innerHTML = `
+            <div class="profile-card">
+                <div class="profile-avatar">${avatar}</div>
+                <div class="profile-name">${user.first_name}${user.last_name ? ' ' + user.last_name : ''}</div>
+                <div class="profile-username">@${user.username || 'user'}</div>
+                <div class="profile-stats">
+                    <div class="stat-card">
+                        <div class="stat-number">${licenses.length}</div>
+                        <div class="stat-label">Лицензий</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">v0.37</div>
+                        <div class="stat-label">Версия</div>
+                    </div>
+                </div>
+            </div>
+            <button class="action-btn" id="supportBtn">💬 Поддержка</button>
+            <button class="action-btn secondary" id="downloadAppBtn">📥 Скачать AimNoob</button>
+        `;
+        
+        document.getElementById('supportBtn')?.addEventListener('click', () => {
+            window.open(`https://t.me/${SUPPORT}`, '_blank');
+        });
+        
+        document.getElementById('downloadAppBtn')?.addEventListener('click', () => {
+            window.open(DOWNLOAD_URL, '_blank');
+        });
+    }
+    
+    // Tab Navigation
+    function switchTab(tab) {
+        document.querySelectorAll('.tab, .nav-item').forEach(el => {
+            el.classList.toggle('active', el.dataset.tab === tab);
+        });
+        
+        document.querySelectorAll('.page').forEach(page => {
+            page.classList.toggle('active', page.id === `page-${tab}`);
+        });
+        
+        if (tab === 'shop') renderShop();
+        else if (tab === 'licenses') renderLicenses();
+        else if (tab === 'profile') renderProfile();
+    }
+    
+    document.querySelectorAll('.tab, .nav-item').forEach(el => {
+        el.addEventListener('click', () => switchTab(el.dataset.tab));
+    });
+    
+    // Initial Render
+    renderShop();
+    tg.ready();
+})();
 </script>
 </body>
 </html>"""
